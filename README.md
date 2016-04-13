@@ -1,16 +1,22 @@
-## Clone this, reset the git url, and make an app
+# Cognition Lab
 
-### Notes
+Dev setup using TLM as a lab subject for doing dev on cognition and its familiy
+of plugins.
 
-Install `release-it` (`npm install release-it -g`) to make bumping versions real easy.
+The goal of this is to centralize and smooth out the process of dev and deployment
+for cognition ensuring that future version bumps can be handled by all of cognition's
+dependants by doing `npm update`. EZ.
 
-If `release-it` complains about your upstream repo, push once with the `-u` flag set
-(`git push -u origin master`) to tell git that `origin/master` is to be the tracking branch
-for the branch that you're currently pushing from. Yay git.
+## Dependencies
 
-`git config --global push.default simple`
+* Global install of `release-it` (`npm install release-it -g`) for release-time convenience
+* Global install of `gulp` (`npm install gulp -g`) for the simple server and build-time convenience
+
+The framework's deps are already included in `src/app/lib`.
 
 #### Repo Config
+
+note: `git config --global push.default simple`
 
 To work on a module, go and fork it from the Ohmubus org.
 
