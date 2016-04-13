@@ -44,8 +44,19 @@ const serverConfig = {
     root: "src",
     //fallback: path.join(__dirname, "src", "index.html"),
     //fallback: "index.html",
-    debug: true,
+    //debug: true,
     port: process.env.PORT || 3000
+}
+
+function spawner (cwd) {
+    const shipper = spawn("release-it", ["--config=./.release.json", "-e"], {
+        cwd: path.resolve(cwd)
+    })
+
+    shipper.stdout.on("data", (data) => { console.log(data.toString()) })
+    shipper.stderr.on("data", (data) => { console.error(data.toString()) })
+
+    return shipper
 }
 
 function serve () {
@@ -54,17 +65,27 @@ function serve () {
 }
 
 function shipKakashi () {
-    console.log("woo")
+    const sheep = spawner("src/app/lib/kakashi")
 }
 
-function shipVash () {}
+function shipVash () {
+    const sheep = spawner("src/app/lib/vash")
+}
 
-function shipOhmu () {}
+function shipOhmu () {
+    const sheep = spawner("src/app/lib/ohmu")
+}
 
-function shipRei () {}
+function shipRei () {
+    const sheep = spawner("src/app/lib/rei")
+}
 
-function shipSeele () {}
+function shipSeele () {
+    const sheep = spawner("src/app/lib/seele")
+}
 
-function shipCatbus () {}
+function shipCatbus () {
+    const sheep = spawner("src/app/lib/catbus")
+}
 
 function shipCognition () {}
