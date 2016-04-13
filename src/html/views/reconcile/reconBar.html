@@ -1,0 +1,153 @@
+
+<blueprint>
+
+    <data name="aspectBarRenderer" />
+    <data name="drillDownRenderer" />
+    <data name="openDrillDown" value="false" prop="true" />
+    <data name="barAction" />
+
+    <prop find="volumeBarClick" />
+    <prop find="volumeField" />
+    <prop find="rowData" />
+    <prop find="selGroupBy" />
+    <prop find="showItemName" />
+
+    <sensor watch="openDrillDown" change="true" transform="toDrillDownUrl" pipe="drillDownRenderer" auto="true" />
+    <sensor watch="rowData" change="true" run="closeDrillDown" />
+    <sensor watch="rowData,showItemName" run="renderTitle" auto="true" />
+    <sensor watch="rowData,volumeField" run="renderVolume" auto="true" />
+    <sensor watch="selAspect" transform="toAspectUrl" pipe="aspectBarRenderer" auto="true" />
+    <sensor watch="barAction" run="doBarAction" />
+
+    <cog find="aspectBar" url="data aspectBarRenderer" />
+    <cog find="drillDown" url="data drillDownRenderer" />
+
+</blueprint>
+
+
+<display>
+    <div style="width: 100%;">
+
+        <div style="display: flex; width: 100%; height: 20px; ">
+
+           <div id="titleHolder" style="display: flex; justify-content:space-between; flex: 1 1 160px; height: 100%; border-radius: 4px; padding-left: 5px; cursor: pointer;" class="katana_highlight_fading" >
+               <span id="title" class="reconcile_item_title"></span>
+
+           </div>
+           <div style="flex: 0 1 100px; height: 100%; text-align: right; padding-right: 8px" >
+               <span id="volume" class="reconcile_volume_title"></span>
+           </div>
+            <div id="volumeBarHolder" style="flex: 1 1 120px; height: 100%; padding-right: 16px;">
+                <div id="volumeBar" style="border-style: solid;  box-sizing: border-box;  min-width: 3px; height: 100%; border-width: 1px 1px 0px 1px; border-color: rgb(11, 25, 45);" class="sizeBar" > </div>
+            </div>
+            <div style="flex: 1 1 240px; height: 100%;">
+                <div id="aspectBar" class="reconcile_aspect_bar">
+                </div>
+            </div>
+
+        </div>
+
+        <div id="drillDown" >
+
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+
+        getTipData: function(){
+
+            var self = this;
+            var d = self.rowData.read();
+            var field = self.volumeField.read();
+            var count = d[field];
+            var countMessage = numeral(count).format('0,0');
+
+            var tipData = {
+                id: self.mapItem.uid + ':Volume',
+                title: 'Volume',
+                items: [
+                    {title: 'Messages',value: countMessage}
+                ]
+
+            };
+
+            return tipData;
+
+        },
+
+        init: function(){
+
+            var self = this;
+
+
+
+            self.volumeBarHolder.on('click', function(e){
+                e.preventDefault();
+                self.volumeBarClick.write(true);
+            });
+
+            self.titleHolder.on('click', function(e){
+                e.preventDefault();
+                self.openDrillDown.toggle();
+            });
+
+        },
+
+        doBarAction: function(){
+
+        },
+
+        toAspectUrl: function(aspect){
+            return 'bars/' + aspect + 'Bar.html';
+        },
+
+        closeDrillDown: function(){
+            this.openDrillDown.write(false);
+        },
+
+        toDrillDownUrl: function(open){
+            return (open) ? 'reconDrillDown.html' : null;
+        },
+
+        renderTitle: function(){
+
+            var selGroupBy = this.selGroupBy.read();
+            var d = this.rowData.read();
+            var text;
+
+            if(selGroupBy === 'date')
+                text = moment(d.msg_date).add("days",0).format("MMMM Do");
+            else {
+                if(d.item)
+                    text = this.showItemName.read() ? d.item.name : d.item.abbr;
+                else
+                    text = '(missing data?)';
+            }
+
+            this.title.text(text);
+        },
+
+        renderVolume: function(){
+
+            var self = this;
+            var d = this.rowData.read();
+            var field = this.volumeField.read();
+            var relativePctField = field + '_pct_max';
+            var count = d[field];
+            var pct = d[relativePctField] * 100.0 + '%';
+
+            self.volume.text(numeral(count).format('0,0'));
+            self.volumeBar.css('width',pct);
+            self.aspectBar.toggle(count > 0);
+
+            var tipData = self.getTipData();
+            self.volumeBar.bamboo(tipData);
+
+        }
+
+    })
+
+</script>

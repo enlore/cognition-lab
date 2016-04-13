@@ -1,0 +1,77 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="record" />
+    <prop find="itemData" />
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%; height: 100%; padding: 0 0 1px 1px; background-color: #135;" >
+         <svg id="graph" style="background-color: #061227;" height="100%" width="100%" vector-effect="non-scaling-stroke" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="not_fresh_fill">
+                    <stop offset="10%" stop-color="#aab" stop-opacity=".8"></stop>
+                    <stop offset="90%" stop-color="#889" stop-opacity=".8"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="no_record_fill">
+                    <stop offset="10%" stop-color="#d21" stop-opacity=".8"></stop>
+                    <stop offset="90%" stop-color="#a00" stop-opacity=".8"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="success_fill">
+                    <stop offset="10%" stop-color="#1c1" stop-opacity=".8"></stop>
+                    <stop offset="90%" stop-color="#080" stop-opacity=".8"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="pending_fill">
+                    <stop offset="10%" stop-color="#cc1" stop-opacity=".8"></stop>
+                    <stop offset="90%" stop-color="#990" stop-opacity=".8"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="failed_fill">
+                    <stop offset="10%" stop-color="#e1d" stop-opacity=".8"></stop>
+                    <stop offset="90%" stop-color="#a09" stop-opacity=".8"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="quiet_fill">
+                    <stop offset="10%" stop-color="#012" stop-opacity=".8"></stop>
+                    <stop offset="90%" stop-color="#012" stop-opacity=".8"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="anomaly_fill">
+                    <stop offset="10%" stop-color="#1cf" stop-opacity=".8"></stop>
+                    <stop offset="90%" stop-color="#08c" stop-opacity=".8"></stop>
+                </linearGradient>
+            </defs>
+             <g  >
+                 <rect id="box" x="0" y="0" width="100" height="100" ></rect>
+             </g>
+
+         </svg>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        init: function(){
+
+
+        },
+
+        render: function(){
+
+
+            var self = this;
+
+            var d = self.itemData.read();
+
+            var box = d3.select(self.box.get(0));
+
+            var name = d + '_fill';
+            box.style("fill", 'url(#' + self[name].attr('id') + ')');
+
+
+        }
+
+
+    });
+
+</script>

@@ -1,0 +1,21 @@
+<blueprint>
+    <chain find="listOfCharts" and="append" source="historyData" item="historyChartData" url="historyChart.html" />
+</blueprint>
+
+
+<display>
+    <div id="historyChart" class="katana_panel_night" style="padding: 6px;" >
+        <div id="listOfCharts" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        }
+
+    });
+
+</script>

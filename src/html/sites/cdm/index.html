@@ -1,0 +1,85 @@
+<blueprint>
+
+
+    <alloy url="aliases.html" />
+    <alloy url="services.html" />
+    <alloy url="/html/core/cdm.html" />
+
+    <data name="contentPage" value="loading.html" />
+    <sensor watch="configData" transform="getUrl" pipe="contentPage" auto="true" once="true" />
+    <cog find="content" url="data contentPage" />
+
+    <prop find="activeSiteMenu" />
+    <prop find="activeSiteCog" />
+    <prop find="activeSiteDomain" />
+    <prop find="pageMenuOptions" />
+    <prop find="activePageUrl" />
+
+</blueprint>
+
+
+<display>
+    <div id="content" style="width: 100%;"></div>
+</display>
+
+
+<script>
+    $.cog({
+
+        init: function() {
+
+       //     this.activePageUrl.write(null);
+            this.activeSiteCog.write(this.mapItem.uid);
+            this.activeSiteDomain.write('cdm');
+            this.pageMenuOptions.write(this.getPageMenuOptions());
+
+        },
+
+        getUrl: function() { return "content.html"; },
+
+
+
+
+            getPageMenuOptions: function(){
+                var options = {
+                    url: 'KATANA_TEXT_BUTTON_RENDERER',
+                    class: 'katana_nav_button',
+                    default: 'COMP_FLOW_PAGE',
+//                    default: 'BIZTALK_HEALTH_PAGE',
+//                    default: 'DATA_QUALITY_PAGE',
+                        show: 'activePageUrl',
+                        menuStyle: { 'flex-direction':'column' },
+                    items: [
+                        { value:'RECON_PAGE',              title:'Reconciliation' },
+                        { value:'RECON_HISTORY_PAGE',      title:'Reconciliation History' },
+                        { value:'DATA_FLOW_PAGE',          title:'Data Flow' },
+                        { value:'COMP_FLOW_PAGE',          title:'Component Flow' },
+                        { value:'MSG_HISTORY_PAGE',        title:'Message History' },
+                        { value:'MSG_HEAT_MAP_PAGE',       title:'Message Quality' },
+                        { value:'DATA_QUALITY_PAGE',       title:'Data Quality' },
+                        { value:'ORIG_SOURCES_PAGE',       title:'Original Sources' },
+                        { value:'TLM_FEEDS_PAGE',          title:'TLM Feeds' },
+                        { value:'EX_FACS_PAGE',            title:'Excluded Facilities' },
+//                        { value:'CASES_PAGE',              title:'Issue List' },
+                        { value:'BIZTALK_HEALTH_PAGE',     title:'BizTalk Health' }
+                    ]
+                };
+
+                var defaultPage = 'COMP_FLOW_PAGE';
+                var currentPage = this.activePageUrl.read();
+
+                for(var i = 0; i < options.items.length; i++){
+                    var item = options.items[i];
+                    if(item.value === currentPage)
+                        defaultPage = currentPage;
+                }
+                options.default = defaultPage;
+
+                return options;
+            }
+
+        });
+
+</script>
+
+

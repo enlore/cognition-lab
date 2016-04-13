@@ -1,0 +1,179 @@
+<blueprint>
+
+    <sensor watch="refreshAllFilters" batch="true" run="requestData" auto="true" />
+
+    <sensor need="compAlertStatus,compHist_svc" run="buildComps" />
+
+    <prop find="compAlertStatus" />
+    <prop find="compHist_svc" />
+    <prop find="platformHealth_svc" />
+    <data name="compOptions" prop="true" />
+    <data name="compHistRecords" prop="true" />
+
+</blueprint>
+
+
+<script>
+
+    $.cog({
+
+
+        buildComps: function(){
+
+            var alerts = this.compAlertStatus.read();
+            var compHist = this.compHist_svc.read();
+
+            if(!alerts || !compHist)
+                return;
+
+            compHist = _.sortBy(compHist.data, "flowOrder");
+
+            var compRecords = [];
+
+            for(var i = 0; i < compHist.length; i++) {
+
+                var c = compHist[i];
+
+                c.pageLink = this.getPageLink(c.id);
+                c.nominal = true;
+                c.warning = alerts[c.id] && alerts[c.id].warning;
+                c.critical = alerts[c.id] && alerts[c.id].critical;
+
+                c.status = 'nominal';
+                c.status = (c.warning) ? 'warning' : c.status;
+                c.status = (c.critical) ? 'critical' : c.status;
+
+                this.formatCompData(c);
+                c.volumes = [];
+                c.totalVolume = 0;
+                for(var j = 0; j < c.seriesData.length; j++){
+                    var v = c.seriesData[j].vol;
+                    c.volumes.push(v);
+                    c.totalVolume += v;
+                }
+                compRecords.push(c);
+
+            }
+            //console.log(compRecords);
+            this.compHistRecords.write(compRecords);
+        },
+
+//TODO hack , replace with global method
+        getPageLink: function(id){
+            if(id=='BZT')
+                return 'BIZTALK_HEALTH_PAGE';
+            return null;
+        },
+
+        formatCompData: function(compData){
+
+            var compOptions = this.compOptions.read();
+            var unixTimes = [];
+
+            for(var i=0; i< compData.dt.length;i++){
+                var dt = compData.dt[i];
+                unixTimes.push(moment(dt).unix());
+            }
+
+            var intervalSeconds;
+            var end = moment(compOptions.end+"Z");
+            end.seconds(0);
+
+            if(compOptions.interval == "min"){ // nearest five minute below end
+                intervalSeconds = 300;
+                end.minutes(Math.floor(end.minutes()/5) * 5);
+            }
+            else if (compOptions.interval == "day") {
+                intervalSeconds = 86400;
+                end.minutes(0);
+            }
+            else {
+                intervalSeconds = 3600;
+                end.minutes(0);
+            }
+
+            var start = end.unix();
+            start -= intervalSeconds * (compOptions.count);
+
+            var props = ["dt","err","qd","vol","re","dMi"];
+            var seriesData = [];
+            for(var j = 0; j < compOptions.count  ; j++){ // dropping the last in count to avoid partials
+                var f = {};
+                seriesData.push(f);
+                f.unixTime = start + j * intervalSeconds;
+                var srcIndex = unixTimes.indexOf(f.unixTime);
+
+                for(var k= 0; k < props.length;k++){
+                    var p = props[k];
+                    if(srcIndex == -1)
+                        f[p] = 0;
+                    else
+                        f[p] = compData[p][srcIndex];
+                }
+            }
+
+            // remap onto originals
+
+            for(var n= 0; n < props.length;n++){
+                var prop = props[n];
+                var arr = compData[prop] = [];
+                for(var m = 0; m < compOptions.count  ; m++){ // dropping the last in count to avoid partials
+                    arr.push(seriesData[m][prop]);
+                }
+            }
+
+
+            compData.seriesData = [];
+            var nowTime = moment(new Date()).unix() - (new Date().getTimezoneOffset() * 60);
+            var trimLast=false;
+            for (n=0; n<seriesData.length; n++){
+                if (seriesData[n].unixTime <= nowTime) {
+                    compData.seriesData.push(seriesData[n]);
+                }
+                else {
+                    trimLast=true;
+                }
+            }
+            if (trimLast) compData.seriesData.pop();
+
+
+
+        },
+
+        requestData: function(){
+
+            var options = this.mapItem.createParams({span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility",msg_type:"messageType"});
+
+            var duration = options.span;
+            var endDate = moment(options.end);
+
+            endDate.seconds(0);
+
+            if( duration <= 3600) {
+                options.span = Number(options.span)  ;
+                options.count = Math.round(duration / 300)  ;
+                options.interval = "min";
+                endDate.minutes(Math.floor(endDate.minutes()/5) * 5);
+            } else if (duration > 86400){
+                options.span = Number(options.span)  ;
+                options.count = Math.round(duration / 86400)  ;
+                options.interval = "day";
+                endDate.minutes(0);
+            }
+            else {
+                options.span = Number(options.span);
+                options.count = Math.round(duration / 3600)  ;
+                options.interval = "hour";
+                endDate.minutes(0);
+            }
+            options.end= endDate.format('YYYY-MM-DDTHH:mm:ss');
+
+            this.compOptions.write(options);
+
+            this.compHist_svc.request(options);
+            this.platformHealth_svc.request({span:options.span,end:options.end});
+        }
+
+    });
+
+</script>

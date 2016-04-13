@@ -1,0 +1,36 @@
+<blueprint>
+    <alias name="ICON_BUTTON_RENDERER" url="iconButtonRenderer.html" />
+    <alias name="TEXT_BUTTON_RENDERER" url="textButtonRenderer.html" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" source="run defineButtons" item="data options" />
+    <prop find="activeSiteDomain" />
+</blueprint>
+
+<display>
+    <div id="holder"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        defineButtons: function() {
+
+            // todo  this is a hack to limit cases to cdm
+            var items = [
+//                {value: 'openCase', tell: 'openCaseClick', style: 'fa fa-briefcase'},
+                {value: 'applyFilter', tell: 'filterClick', style: 'fa fa-filter'}
+            ];
+
+            if(this.activeSiteDomain.read() !== 'cdm')
+                items.shift();
+
+            return {
+
+                tell: 'sliceAction',
+                url: 'ICON_BUTTON_RENDERER',
+                items: items
+            };
+        }
+
+    });
+</script>

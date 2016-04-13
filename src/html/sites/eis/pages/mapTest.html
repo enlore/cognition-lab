@@ -1,0 +1,553 @@
+<blueprint>
+
+
+    <require url="topojson.v1.min.js" path="JS_LIB" />
+    <alloy url="stateMapData.html" />
+
+    <data name="selMeasure" prop="true" />
+    <data name="selOverall" prop="true" />
+    <data name="showState" prop="true" />
+
+    <data name="measureOptions" value="run getMeasureOptions" prop="true" />
+    <sensor watch="measureOptions" transform="getFirst" pipe="selMeasure" auto="true" />
+    <sensor watch="selMeasure" change="true" run="selMeasureChanged" auto="true"/>
+
+    <data name="overallOptions" value="run getOverallOptions" prop="true" />
+    <sensor watch="overallOptions" transform="getFirst" pipe="selOverall" auto="true" />
+    <sensor watch="selOverall" change="true" run="selOverallChanged" auto="true"/>
+
+    <prop find="getStateMapData" is="method" />
+    <prop find="getPublicHealthData" is="method" />
+    <prop find="getFacilityData" is="method" />
+
+
+    <cog find="measureMenu" url="KATANA_BUTTON_MENU" source="run getMeasureMenuOptions" item="data options" />
+    <cog find="overallMenu" url="KATANA_BUTTON_MENU" source="run getOverallMenuOptions" item="data options" />
+
+    <sensor watch="showState" change="true" run="renderStatePanel" />
+
+</blueprint>
+
+<display>
+
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; font-size: 1.1em; color: #cdf;">
+        <div style="display: flex; flex: 3 3 750px; flex-direction: column; padding: 6px;">
+            <div class="katana_panel_bright" style="padding-bottom: 0;" >
+                <div id="content"  >
+                    <div id="measureMenu" style="padding-bottom: 6px;" ></div>
+                    <div id="overallMenu" style="padding-bottom: 6px; position: relative;" ></div>
+                    <svg id="svg" width="100%" height="100%" viewBox="0 0 900 480" preserveAspectRatio="xMidYMin meet"></svg>
+                </div>
+            </div>
+        </div>
+        <div id="statePanel" style="flex: 1 1 450px;  padding: 6px;">
+            <div class="katana_panel_night" style="display: block; overflow: scroll;  height: 400px; padding-bottom: 0;" >
+                <span id="stateLabel" style="font-size: 1.5em; color: rgb(200,220,240); padding: 24px;" />
+                <div id="facilityList" style="display: block; overflow: scroll; font-size: .9em;  color: rgb(200,220,240); padding: 12px;" >
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!---->
+    <!--<div class="katana_panel" style=" max-width: 900px;">-->
+        <!--<div id="measureMenu" style="padding-bottom: 12px;" ></div>-->
+        <!--<svg id="svg"></svg>-->
+
+    <!--</div>-->
+</display>
+
+<script>
+
+    $.cog({
+
+        renderStatePanel: function(d){
+
+            var self = this;
+
+            if(!d){
+                self.stateLabel.text('');
+                self.facilityList.empty();
+                return;
+            }
+
+            self.stateLabel.text(d.properties.state);
+
+            var facilities = d.properties.facilities;
+            var content = "";
+            for(var i = 0; i < facilities.length; i++){
+                var f = facilities[i];
+                content += "<div>" + f + "</div>";
+            }
+
+            self.facilityList.html(content);
+
+
+        },
+
+        getFillId: function(name){
+            return this.mapItem.uid + '_fill_' + name;
+        },
+
+        getFillIdString: function(name){
+            var id = this.getFillId(name);
+            return 'url(#' + id + ')';
+        },
+
+        rolloutLevels: [
+            {title: "No HCA Presence", colors: ["rgb(180,180,180)","rgb(150,150,150)"]},
+            {title: "Not Engaged", colors: ["rgb(166,158,79)","rgb(146,138,59)"]},
+            {title: "Onboarding", colors: ["rgb(158,169,103)","rgb(128,139,83)"]},
+            {title: "Testing / QA", colors: ["rgb(91,141,85)","rgb(71,121,65)"]},
+            {title: "Live / Production", colors: ["rgb(28,100,40)","rgb(18,90,30)"]}
+        ],
+
+        getMeasureOptions: function(){
+            return [
+                {title: 'Overall', value: 'Overall'},
+                {title: 'Electronic Lab Records', value: 'ELR', abbr: 'ELR'},
+                {title: 'Syndromic Surveillance', value: 'SS', abbr: 'SS'},
+                {title: 'Immunizations', value: 'IMM', abbr: 'IMM'}
+            ];
+        },
+
+        getOverallOptions: function(){
+            return [
+
+                {title: 'minimum', value: 'minimum'},
+                {title: 'average', value: 'average'},
+                {title: 'maximum', value: 'maximum'},
+                {title: 'range', value: 'range'}
+            ];
+        },
+
+        getFirst: function(list) {
+            return list && list[0] && list[0].value;
+        },
+
+
+        getMeasureMenuOptions: function(){
+            return {
+                url: 'KATANA_TEXT_BUTTON_RENDERER',
+                class: 'katana_nav_button',
+                show: 'selMeasure',
+                menuStyle: {'justify-content': 'center'},
+                items: this.measureOptions.read()
+            }
+        },
+
+        getOverallMenuOptions: function(){
+            return {
+                url: 'KATANA_TEXT_BUTTON_RENDERER',
+                class: 'katana_text_button',
+                show: 'selOverall',
+                menuStyle: {'justify-content': 'center'},
+                items: this.overallOptions.read()
+            }
+        },
+
+        init: function(){
+
+
+            console.log('map test');
+
+            var self = this;
+
+            var getter = this.mapItem.findMethod('getStateMapData');
+            var state = getter();
+
+
+            var width = 900;
+            var height = 480;
+
+            var selectedData = null;
+            var hoverData = null;
+
+            var active = d3.select(null);
+
+
+            var projection = d3.geo.albersUsa()
+                    .scale(1000)
+                    .translate([width / 2 - 20, height / 2])
+                    .precision(.1);
+
+            var path = d3.geo.path()
+                    .projection(projection);
+
+            var svg = d3.select(this.svg[0]);
+//                    .attr("width", width)
+//                    .attr("height", height);
+
+
+            var rolloutData = this.getPublicHealthData(); // by state abbr
+            var facilityData = this.getFacilityData(); // by state abbr
+
+            var stateFeatures = topojson.feature(state, state.objects.usStates).features;
+
+
+            for(var i = 0; i < stateFeatures.length; i++){
+                var feature = stateFeatures[i];
+                feature.properties.rollout = rolloutData[feature.id] || {ELR: 0, SS: 0, IMM: 0 , note: ''};
+                feature.properties.facilities = facilityData[feature.id] || [];
+            }
+
+
+            var defs = svg.append("defs");
+
+
+            var legendGrads = self.legendGrads = defs.selectAll("[name=legendGrad")
+                    .data(self.rolloutLevels);
+
+            legendGrads.enter()
+                    .append('linearGradient')
+                    .attr('name','legendGrad')
+                    .attr("x1", 0)
+                    .attr("x2", 0)
+                    .attr("y1", "0%")
+                    .attr("y2", "100%")
+                    .attr("id", function(d, i) { return self.getFillId("legendFill" + i); });
+
+            legendGrads.append('stop')
+                    .attr("offset", "10%")
+                    .style("stop-color",  function(d,i) { return self.rolloutLevels[i].colors[0]});
+
+            legendGrads.append('stop')
+                    .attr("offset", "90%")
+                    .style("stop-color",  function(d,i) { return self.rolloutLevels[i].colors[1]});
+
+            var grads = self.gradSel = defs.selectAll("[name=stateGrad]")
+                    .data(topojson.feature(state, state.objects.usStates).features);
+
+            grads.enter()
+                    .append('linearGradient')
+                    .attr('name','stateGrad')
+                    .attr("x1", 0)
+                    .attr("x2", 0)
+                    .attr("y1", "0%")
+                    .attr("y2", "100%")
+                    .attr("id", function(d, i) { return self.getFillId("stateFill" + i); });
+
+            grads.append('stop')
+                   .attr("offset", "10%")
+                   .style("stop-color",  self.rolloutLevels[0].colors[0]);
+
+            grads.append('stop')
+                    .attr("offset", "90%")
+                    .style("stop-color",  self.rolloutLevels[0].colors[1]);
+
+
+            var mapArea = svg.append('g').attr('name','mapArea');
+
+            var statesArea = svg.append("g")
+                    .attr('name','statesArea')
+                    .style("stroke-width", "1px")
+                ;//    .attr('transform','translate(-20,0)');
+
+            var borderArea = svg.append("g")
+                    .attr('name','borderArea')
+                    .style("stroke-width", "1px")
+                ;//    .attr('transform','translate(-20,0)');
+
+            var stateSel = self.stateSel = statesArea.selectAll("path")
+                        .data(stateFeatures);
+
+            var borderSel = self.borderSel = borderArea.selectAll("path")
+                    .data(stateFeatures);
+
+            stateSel
+                    .enter()
+                    .append("path")
+                    .attr("d", path)
+                    .style("stroke", 'rgb(223, 229, 187)')
+                    .style('stroke-width','1px')
+                    .style('fill', function(d,i){
+                        return self.getFillIdString('stateFill'+i);
+                    });
+
+
+            borderSel
+                    .enter()
+                    .append("path")
+                    .attr("d", path)
+                    .style("stroke",'rgb(233, 249, 197)')
+                    .style('stroke-opacity', 0)
+                    .style('stroke-width','1px')
+                    .style('fill', 'transparent')
+                    .style('pointer-events','all')
+                    .on('mouseenter', function(d,i){
+                        d3.select(this).transition().duration(1).style('stroke-opacity',1)
+                                .style('stroke-width','3px')
+                               ;
+                        hoverData = d;
+                        self.showState.write(selectedData || hoverData);
+
+                    })
+                    .on('mouseleave', function(d,i){
+                        d3.select(this).transition().duration(750).style('stroke-opacity',0)
+                                .style('stroke-width','1px')
+                               ;
+                        hoverData = null;
+                        self.showState.write(selectedData || hoverData);
+                    })
+                    .on("click", clicked);
+
+
+            borderSel
+                    .call(d3.kodama.tooltip()
+                            .attr({class: 'katana_tooltip'})
+                            .prep(function(d,i){
+
+                                var props = d.properties;
+                                var rollout = props.rollout;
+                                var facilities = props.facilities;
+
+                                var items = [];
+
+                                if(facilities){
+                                    items.push({title: 'Facilities', value: facilities.length})
+                                }
+
+                                var measureOptions = self.measureOptions.read();
+                                for(var j = 0; j < measureOptions.length; j++){
+                                    var m = measureOptions[j];
+                                    if(m.value === 'Overall')
+                                        continue;
+                                    var status = rollout[m.value];
+                                    if(status === 0) // no presence
+                                        continue;
+                                    var level = self.rolloutLevels[status];
+                                    items.push({title: m.abbr, value: level.title})
+                                }
+                                return {
+                                    title: props.state,
+                                    items: items
+
+                                };
+                            })
+            );
+
+
+            var measureOptions = self.measureOptions.read();
+            //console.log('options!');
+            //console.log(measureOptions);
+
+            var legendArea = svg.append("g")
+                    .attr('name','legendArea')
+                            .attr('transform','translate(745,360)')
+                    ;
+
+            legendArea.append('rect')
+                    .attr('width',160)
+                    .attr('height',125)
+                    .attr('x',-12)
+                    .attr('y',-10)
+                    .attr('rx', '4px')
+                    .attr('ry', '4px')
+                    .style('fill','rgb(2, 38, 68)')
+                    .style('stroke','rgb(180, 172, 133)');
+
+
+
+            var legendSelection =
+                    legendArea
+
+                            .selectAll('.legend')
+                            .data(self.rolloutLevels);
+
+            var legendEnter = legendSelection
+                            .enter()
+                            .append('g')
+                            .attr('pointer-events','all')
+                            .attr('transform', function(d,i){
+                                return 'translate(0,' + (i * 22) + ')';
+                            })
+                            .attr('class', 'legend')
+                            .on('click', function(){
+//                                var fieldDef = self.fields[field_name];
+//                                fieldDef.active = !fieldDef.active;
+//
+//                                d3.select(this)
+//                                        .attr('opacity', fieldDef.active ? 1 : .4);
+//
+//                                self.processData();
+//                                self.render();
+                            })
+
+                    ;
+
+            legendEnter
+                    .append('rect')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('width', 12)
+                    .attr('height', 18)
+                    .style('fill', function(d,i){
+                        return self.getFillIdString('legendFill'+i);
+                    });
+
+            legendEnter
+
+                    .append('text')
+                    .attr('transform', 'translate(20,14)')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '14px')
+                    .attr('fill', 'rgb(181,169,108)')
+                    .text(function (d) {
+                        return d.title;
+                    });
+
+
+
+
+            function clicked(d) {
+
+                if (active.node() === this) return reset();
+
+                selectedData = d;
+
+                self.showState.write(selectedData || hoverData);
+
+                active.classed("active", false);
+                active = d3.select(this).classed("active", true);
+
+                var bounds = path.bounds(d),
+                        dx = bounds[1][0] - bounds[0][0],
+                        dy = bounds[1][1] - bounds[0][1],
+                        x = (bounds[0][0] + bounds[1][0]) / 2,
+                        y = (bounds[0][1] + bounds[1][1]) / 2,
+                        scale = .6 / Math.max(dx / width, dy / height),
+                        translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+                statesArea.transition()
+                        .duration(750)
+                        .style("stroke-width", 1.0 / scale + "px")
+                        .attr("transform", "translate(" + translate + ") scale(" + scale + ")");
+
+                borderArea.transition()
+                        .duration(750)
+                        .style("stroke-width", 1.0 / scale + "px")
+                        .attr("transform", "translate(" + translate + ") scale(" + scale + ")");
+
+            }
+
+
+
+            function reset() {
+
+                selectedData = null;
+
+                self.showState.write(selectedData || hoverData);
+
+                active.classed("active", false);
+                active = d3.select(null);
+
+                statesArea.transition()
+                        .duration(750)
+                        .style("stroke-width", "1.5px")
+                        .attr("transform", "");
+
+                borderArea.transition()
+                        .duration(750)
+                        .style("stroke-width", "1.5px")
+                        .attr("transform", "");
+
+            }
+
+        },
+
+        selMeasureChanged: function(){
+
+            var self = this;
+
+            var measureId = self.selMeasure.read();
+
+            var showOverall = measureId === 'Overall';
+
+            var menuSel = d3.select(self.overallMenu[0]);
+
+            if(showOverall)
+                menuSel
+                    .style('opacity', 0)
+                    .style('left', '-200px');
+
+
+                menuSel
+                        .transition()
+                        .duration(350)
+                        .ease('cubic-out')
+                        .style('opacity', showOverall ? 1: 0)
+                        .style('left', showOverall ? '0px' : '200px');
+
+            self.showColors();
+
+        },
+
+        selOverallChanged: function(){
+            this.showColors();
+        },
+
+        showColors: function(){
+
+            var self = this;
+
+            var measureId = self.selMeasure.read();
+            var overallId = self.selOverall.read();
+
+            var showOverall = measureId === 'Overall';
+
+
+            self.gradSel
+                .transition()
+                    .duration(1000)
+                    .selectAll('stop')
+                    .style('stop-color', function(d,i){
+
+                        var level;
+                        var rollout = d.properties.rollout;
+
+                        if(showOverall) {
+
+                            var vals = [];
+                            var sum = 0;
+
+                            for(var measureName in rollout){
+                                if(measureName === 'note')
+                                    continue;
+                                var m = rollout[measureName];
+                                sum += m;
+                                vals.push(m);
+                            }
+                            vals = vals.sort().reverse();
+
+                            if(overallId === 'average'){
+                                level = Math.round(sum / 3.0);
+                            } else if(overallId === 'minimum'){
+                                level = vals[2];
+                            } else if(overallId === 'maximum'){
+                                level = vals[0];
+                            } else if(i === 0) { // lowest in range
+                                level = vals[2];
+                            } else { // highest in range
+                                level = vals[0];
+                            }
+
+
+                        } else {
+                            level = rollout[measureId];
+
+                        }
+
+                        return self.rolloutLevels[level].colors[i];
+
+
+                    });
+
+    }
+
+
+
+
+    });
+
+</script>

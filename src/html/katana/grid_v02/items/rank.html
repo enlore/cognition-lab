@@ -1,0 +1,42 @@
+<blueprint>
+    <prop find="column" />
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%;" >
+        <span id="span" style="text-align: right;"></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        render: function(d){
+
+            var n = +d || 0;
+
+            var suffix = "th";
+            var last1 = n % 10;
+            var last2 = n % 100;
+
+            if (last2 < 11 || last2 > 20){
+                if(last1 === 1)
+                    suffix = 'st';
+                else if(last1 === 2)
+                    suffix = 'nd';
+                else if(last1 === 3)
+                    suffix = 'rd';
+            }
+
+            var t = numeral(n).format('0,0');
+            this.span.text(t + suffix);
+
+        }
+
+
+    });
+
+</script>

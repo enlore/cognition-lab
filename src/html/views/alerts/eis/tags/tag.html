@@ -1,0 +1,32 @@
+<blueprint>
+    <prop find="tag" />
+    <sensor watch="tag" run="render" auto="true" />
+    <sensor node="tagWidget" on="click" transform="pickTagName" pipe="selectedTag" />
+    <sensor watch="selectedTag" auto="true" run="determineHighlight" />
+</blueprint>
+
+<script>
+    $.cog({
+        render: function render (tag) {
+            this.name.text(tag.label);
+        },
+
+        pickTagName: function pickTagName (ev) {
+            return this.tag.read().name // grab the string off the data point from above
+        },
+
+        determineHighlight: function determineHighlight (selectedName) {
+            if (selectedName === this.tag.read().name)
+                this.tagWidget.css({"background-color": "#0665B1", color: "rgb(224, 224, 196)" })
+            else
+                this.tagWidget.css({"background-color":"transparent",color: "rgb(89, 151, 217)"});
+
+        }
+    })
+</script>
+
+<display>
+    <div id="tagWidget" style="background-color:transparent; color: rgb(89, 151, 217);">
+        <span id="name" style="padding: 0 4px; "></span>
+    </div>
+</display>

@@ -1,0 +1,618 @@
+<blueprint>
+    <data name="mode" value="stacked" prop="true" />
+
+    <data name="notes" prop="true" />
+    <sensor watch="notes" run="drawIndicators" change="true" />-->
+
+    <prop find="uiSelectBar" />
+
+    <sensor need="qualityChartData,notesData" transform="calculateNotes" change="true" pipe="notes" />-->
+
+    <sensor need="qualityChartData,notes" run="drawChart" auto="true" />
+
+    <cog find="modeMenu" url="modeMenu.html" />
+</blueprint>
+
+<display>
+    <style type="text/css">
+        text {
+            font: .75em sans-serif;
+            fill: #4c96c6;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #4c96c6;
+            shape-rendering: crispEdges;
+        }
+    </style>
+
+    <div style="display: flex; width: 100%; height: 1em; margin-bottom: 1.5em;" >
+        <div id="title" style="display: flex; flex: 1 1; justify-content: flex-start; font-size: 1em; color: #b5a96c; margin: 6px 0 0 28px;" />
+        <div id="modeMenu" style="display: flex; flex: 1 1; justify-content: flex-end; margin: 5px 28px 4px 0;" />
+    </div>
+
+    <svg id="svg" width="100%" height="100%" viewBox="0 0 1027 220" preserveAspectRatio="xMidYMin meet">
+        <defs>
+            <!--  tracked  -->
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="tracked_fill">              <!--  green  -->
+                <stop offset="10%" stop-color="rgb(18, 138, 13)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(35, 105, 33)" stop-opacity="1"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="mis_ts_fill">               <!--  yellow  -->
+                <stop offset="10%" stop-color="rgb(182, 201, 51)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(124, 123, 21)" stop-opacity="1"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="no_dest_fill">              <!--  red  -->
+                <stop offset="10%" stop-color="rgb(159, 31, 66)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(128, 20, 60)" stop-opacity="1"></stop>
+            </linearGradient>
+
+            <!--  errors  -->
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="lost_fill">                 <!--  red  -->
+                <stop offset="10%" stop-color="rgb(159, 31, 66)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(117, 16, 58)" stop-opacity="1"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="nak_fill">                  <!--  purple  -->
+                <stop offset="10%" stop-color="rgb(155, 90, 206)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(110, 55, 139)" stop-opacity="1"></stop>
+            </linearGradient>
+
+            <!--  latency  -->
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="b1_fill">                   <!--  green  -->
+                <stop offset="10%" stop-color="rgb(18, 138, 13)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(40, 94, 40)" stop-opacity="1"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="b2_fill">                   <!--  blue  -->
+                <stop offset="10%" stop-color="rgb(12, 110, 191)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(1, 87, 167)" stop-opacity="1"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="b3_fill">                   <!--  blue purple  -->
+                <stop offset="10%" stop-color="rgb(91, 73, 191)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(91, 44, 167)" stop-opacity="1"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="b4_fill">                   <!--  purple  -->
+                <stop offset="10%" stop-color="rgb(155, 90, 206)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(95, 43, 117)" stop-opacity="1"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="b5_fill">                   <!--  magenta  -->
+                <stop offset="10%" stop-color="rgb(203, 44, 206)" stop-opacity="1"></stop>
+                <stop offset="100%" stop-color="rgb(139, 38, 130)" stop-opacity="1"></stop>
+            </linearGradient>
+        </defs>
+    </svg>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        drawChart: function(msg) {
+            /* --- get data & save "this" --- */
+
+            var qualityChartData = msg.qualityChartData;
+            var aspect = qualityChartData.aspect;
+            var notes = msg.notes;
+
+            var self = this;
+
+
+
+            /* --- title each chart --- */
+
+            this.title.text(aspect);
+
+
+
+            /* --- set up fields --- */
+
+            var fields = [],
+                uiSelectLayer = {};
+
+            function setFields() {
+                switch (aspect) {
+                    case "tracked":
+                        fields = [
+                             { field:"tracked", active:true }
+                            ,{ field:"mis_ts",  active:true }
+                            ,{ field:"no_dest", active:true }
+                        ];
+                        break;
+                    case "errors":
+                        fields = [
+                             { field:"lost", active:true }
+                            ,{ field:"nak",  active:true }
+                        ];
+                        break;
+                    case "latency":
+                        fields = [
+                             { field:"b1", active:true }
+                            ,{ field:"b2", active:true }
+                            ,{ field:"b3", active:true }
+                            ,{ field:"b4", active:true }
+                            ,{ field:"b5", active:true }
+                        ];
+                        break;
+                }
+            }
+
+            d3.select(this).call(setFields);
+
+
+
+            /* --- build layers data --- */
+
+            var i,
+                j,
+                q = qualityChartData.layers,
+                layers = [],
+                sums = [],
+                l,
+                sum,
+                parseDate   = d3.time.format("%Y-%m-%d").parse,
+                commaFormat = d3.format("0,000");
+
+            for (i = 0; i < q.length; i++) {
+                layers[i] = [];
+                for (j = 0; j < q[i].dates.length; j++) {
+                    l = layers[i][j] = {};
+                    sum = sums[j];
+
+                    /* save date in original string form (e.g., "2015-05") */
+                    l.rawDate    = q[i].dates[j].date;
+                    /* save date as date object */
+                    l.date       = parseDate(q[i].dates[j].date);
+                    /* save date as formatted string (e.g., "May 2015") */
+                    l.niceDate   = moment(q[i].dates[j].date).format("MMMM YYYY");
+                    l.x          = j;
+                    l.y          = q[i].dates[j].messages;
+                    l.y0         = sum || 0;
+                    l.layerIndex = i;
+                    l.field      = q[i].field;
+                    l.layer      = q[i].layer;
+
+                    sums[j] = l.y + l.y0;
+                }
+            }
+
+            for (i = 0; i < layers.length; i++) {
+                for (j = 0; j < layers[i].length; j++) {
+                    l = layers[i][j];
+                    /* include the bar's total value */
+                    l.total = sums[j];
+                    /* calculate the layer's percentage of total */
+                    l.pct = l.y / l.total;
+                }
+            }
+
+
+
+            /* --- set up chart --- */
+
+            var layerCount = layers.length,
+                dateCount  = layers[0].length;
+
+            var yStackMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y0 + d.y; }); }),
+                yGroupMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y;        }); });
+
+            var margin = { top:1, right:180, bottom:40, left:100 },
+                width  = 1000 - margin.left - margin.right,
+                height = 210 - margin.top - margin.bottom,
+                barPadPct = .03;
+
+            var x = d3.scale.ordinal()
+                    .domain(d3.range(dateCount))
+                    .rangeRoundBands([0, width], barPadPct);
+
+            var y = d3.scale.linear()
+                    .domain([0, yStackMax])
+                    .range([height, 0]);
+
+            var xAxis = d3.svg.axis()
+                    .scale(x)
+                    .tickSize(6)
+                    .tickFormat("");
+
+            var yAxis = d3.svg.axis()
+                    .scale(y)
+                    .orient("left")
+                    .tickFormat(d3.format(".2s"))
+                    .tickPadding(6)
+                    .ticks(5);
+
+
+
+            /* --- create chart --- */
+
+            var svg = d3.select(this.svg.get(0)).append("g")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var layer = svg.selectAll(".layer")
+                    .data(layers)
+                    .enter().append("g")
+                    .attr("class", "layer")
+                    .style("fill", function(d) {
+                        return "url(#" + self[d[0].field + "_fill"].attr("id") + ")";
+                    });
+
+            var bar = layer.selectAll("rect")
+                    .data(function(d) { return d; })
+                    .enter().append("rect")
+                    .attr("x", function(d) { return x(d.x); })
+                    .attr("y", height)
+                    .attr("width", x.rangeBand())
+                    .attr("height", 0)
+                    .style("opacity", 1)
+                    .call(d3.kodama.tooltip(layers)
+                            .attr({class: "katana_tooltip"})
+                            .prep(function(layers) {
+                                return getTipData(layers)
+                            }))
+                    .on("click", function(d) {
+                        var selected = { date:d.rawDate, aspect:aspect };
+                        console.log("selected:", selected);
+                        self.uiSelectBar.write(selected);
+                    });
+
+
+
+            /* --- define transition for initial drawing of chart --- */
+
+            bar.transition()
+                    .delay(function(d, i) { return i * 40; })
+                    .ease("linear")
+                    .attr("y", function(d) { return y(d.y0 + d.y); })
+                    .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); });
+
+
+
+            /* --- create axes --- */
+
+            /* append x axis path */
+            svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis);
+
+            var xTick = svg.select(".axis").selectAll("g.tick")
+                    .data(notes);
+
+            /* append x axis ticks and abbreviated month names as labels */
+            xTick.append("text")
+                    .attr("transform", "translate(0, 19)")
+                    .style("fill", "#4c96c6")
+                    .attr("text-anchor", "middle")
+                    .on("mouseover", function() { d3.select(this).style("cursor", "default") })
+                    .text(function(d) { return moment(d.date).format("MMM") });
+
+            /* append y axis path, ticks, and labels */
+            svg.append("g")
+                    .attr("class", "y axis")
+                    .on("mouseover", function() { d3.select(this).style("cursor", "default") })
+                    .call(yAxis);
+
+            /* save xTick for use in drawing annotation indicators */
+            this.xTick = xTick;
+
+            /* call the function to draw annotation indicator marks */
+            this.drawIndicators();
+
+
+
+            /* --- create legend --- */
+
+            var legendRectWidth = 8,
+                legendRectHeight = 13,
+                legendSpacing = 4,
+                legendRectPadding = 2,
+                legendOffset = 50,
+                legendHeight = legendRectHeight + legendSpacing + legendRectPadding,
+                hz = 748;
+
+
+            var legend = svg.selectAll(".legend")
+                    .data(layers)
+                    .enter()
+                    .append("g")
+                    .attr("class", "legend")
+                    .attr("transform", function(d, i) {
+                        /* roughly center the legend vertically */
+                        var vt = legendOffset + (i * (legendHeight));
+                        return "translate(" + hz + "," + vt + ")";
+                    });
+
+            legend.append("rect")
+                    .attr("width",  legendRectWidth)
+                    .attr("height", legendRectHeight)
+                    .style("fill", function(d) {
+                        return "url(#" + self[d[0].field + "_fill"].attr("id") + ")";
+                    });
+
+            legend.append("text")
+                    .attr("x", legendRectWidth * 2)
+                    .attr("y", legendRectHeight - legendSpacing)
+                    .text(function(d, i) {
+                        return (aspect == "errors" && i == 0)
+                                ? "Not Reconciled (No NAK)"
+                                : d[0].layer;
+                    })
+                    .style("fill", "#b5a96c")
+                    .attr("transform", "translate(0,1)");
+
+            /* define click area */
+            legend.append("rect")
+                    /* set width to entire width of legend */
+                    .attr("width",  160)
+                    /* set height to full height of each legend line */
+                    .attr("height", legendRectHeight + legendSpacing)
+                    /* move up half the height of legend spacing */
+                    .attr("transform", "translate(0," + (-legendSpacing / 2) + ")")
+                    .style("fill", "rgba(255,255,255,0)")
+                    /* toggle the appropriate layer on click */
+                    .on("click", function(d) { toggleLayer(d) })
+                    .on("mouseover", function() {
+                        d3.select(this).style("cursor", function() {
+                            /* display "alias" cursor if alt or option key is held down */
+                            if (d3.event && d3.event.altKey) return "alias";
+                            /* otherwise display default cursor rather than text cursor */
+                            return "default";
+                        })
+                    });
+
+
+
+            /* --- define view mode click behavior --- */
+
+            this.modeMenu.on("click", function () {
+                var mode = self.mode.read();
+
+                if (mode == "stacked") d3.select(this).call(transitionStacked);
+                if (mode == "grouped") d3.select(this).call(transitionGrouped);
+                if (mode == "individual") {
+                    /* reset all fields to active:true */
+                    d3.select(this).call(setFields);
+                    /* make first layer inactive */
+                    fields[0].active = false;
+
+                    d3.select(this).call(transitionIndividual);
+                }
+            });
+
+
+
+            /* --- set up logging --- */
+
+            function logLayerStatus() {
+                var isLayerActive = fields.map(function(field) { return field.active; });
+                //console.log("isLayerActive:", isLayerActive);
+            }
+
+
+
+            /* --- toggle layer visibility --- */
+
+            function toggleLayer(d) {
+                var mode = self.mode.read();
+                /* if text menu isn't set to "individual" already, switch to "individual" */
+                mode != "individual" ? self.mode.write("individual") : mode = null;
+
+                uiSelectLayer = fields[d[0].layerIndex];
+
+                if (d3.event && d3.event.altKey) {
+                    /* reset all fields to active:false */
+                    fields.forEach(function(d) { d.active = false; });
+                    /* make selected layer active */
+                    uiSelectLayer.active = true;
+                } else {
+                    /* toggle selected layer's active flag */
+                    uiSelectLayer.active = !uiSelectLayer.active;
+                }
+
+                /* transition the legend */
+                d3.select(this).call(transitionLegend);
+
+                /* switch to "grouped" mode if a lone inactive layer becomes active again */
+                if (fields.every(function(element) { return element.active; })) {
+                    self.mode.write("grouped");
+                    d3.select(this).call(transitionGrouped);
+                }
+                /* switch to or remain in "individual" mode */
+                else d3.select(this).call(transitionIndividual);
+            }
+
+
+
+            /* --- define variables for transitions --- */
+
+            var activeLayers = [];
+            var yIndividualMax, yLastMax;
+
+
+
+            /* --- define transitions --- */
+
+            function transitionLegend() {
+                legend.style("opacity", function(d) {
+                    /* fade any legend line whose layer is inactive */
+                    if (!fields[d[0].layerIndex].active) return .4;
+                    /* give full opacity to the legend line of active layers */
+                    return 1;
+                });
+            }
+
+            function transitionStacked() {
+                y.domain([0, yStackMax]);
+
+                d3.select(this)
+                        /* reset all fields to active:true */
+                        .call(setFields)
+                        .call(transitionLegend)
+                        .call(logLayerStatus);
+
+                svg.select(".y.axis")
+                        .transition()
+                        .duration(500)
+                        .ease("linear")
+                        .call(yAxis);
+
+                bar.transition()
+                        .duration(500)
+                        .delay(function(d, i) { return i * 60; })
+                        .attr("width", x.rangeBand())
+                        .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); })
+                        .attr("y", function(d) { return y(d.y0 + d.y); })
+                        .transition()
+                        .attr("x", function(d) { return x(d.x); });
+            }
+
+            function transitionGrouped() {
+                y.domain([0, yGroupMax]);
+
+                d3.select(this)
+                        /* reset all fields to active:true */
+                        .call(setFields)
+                        .call(transitionLegend)
+                        .call(logLayerStatus);
+
+                svg.select(".y.axis")
+                        .transition()
+                        .delay(700)
+                        .duration(750)
+                        .ease("linear")
+                        .call(yAxis);
+
+                bar.transition()
+                        .duration(500)
+                        .delay(function(d, i) { return i * 60; })
+                        .attr("x", function(d, i, j) { return x(d.x) + x.rangeBand() / layerCount * j; })
+                        .transition()
+                        .attr("y", function(d) { return y(d.y); })
+                        .attr("height", function(d) { return height - y(d.y); })
+                        .attr("width", x.rangeBand() / layerCount);
+            }
+
+            function transitionIndividual() {
+                /* save the most recent max value in case all layers are turned inactive */
+                yLastMax = yIndividualMax;
+
+                /* calculate max of active layers */
+                activeLayers = layers.filter(function(d) { return fields[d[0].layerIndex].active; });
+                yIndividualMax = d3.max(activeLayers, function(layer) { return d3.max(layer, function(d) { return d.y; }); });
+
+                /* keep the y scaling static if all layers are turned inactive */
+                yIndividualMax = (yIndividualMax) ? yIndividualMax : yLastMax;
+
+                y.domain([0, yIndividualMax]);
+
+                d3.select(this)
+                        .call(transitionLegend)
+                        .call(logLayerStatus);
+
+                svg.select(".y.axis")
+                        .transition()
+                        .delay(700)
+                        .duration(750)
+                        .ease("linear")
+                        .call(yAxis);
+
+                bar.transition()
+                        .duration(500)
+                        .delay(function(d, i) { return i * 60; })
+                        .attr("x", function(d, i, j) { return x(d.x) + x.rangeBand() / layerCount * j; })
+                        .attr("width", function(d) {
+                            /* narrow to zero any inactive layer */
+                            if (!fields[d.layerIndex].active) return 0;
+                            /* give standard width to active layers */
+                            return x.rangeBand() / layerCount;
+                        })
+
+                        .transition()
+                        .attr("y", function(d) { return y(d.y); })
+                        .attr("height", function(d) { return height - y(d.y); });
+            }
+
+
+
+            /* --- define bar tooltip data --- */
+
+            function getTipData(d) {
+                var pctMsg = (d.pct > 0.999 && d.pct < 1)
+                           ? "99.9+%"
+                           : numeral(d.pct).format("0.0%")         ;
+                var msgMsg = commaFormat(d.y) + " (" + pctMsg + ")";
+                var total  = commaFormat(d.total)                  ;
+
+                return {
+                    title: d.layer,
+                    items: [
+                         { title:"Messages",       value:msgMsg     }
+                        ,{ title:"Total Messages", value:total      }
+                        ,{ title:"Date",           value:d.niceDate }
+                    ]
+                }
+            }
+        },
+
+        calculateNotes: function(msg) {
+
+            var notesFeed = msg.notesData.data,
+
+                notes = [],
+                noteObj = {},
+                i,
+                q = msg.qualityChartData.layers;
+
+            for (i = 0; i < q.length; i++) {
+                for (var j = 0; j < q[i].dates.length; j++) {
+                    /* populate notes with each date in qualityChartData */
+                    notes[j] = {};
+                    notes[j].date = q[i].dates[j].date;
+                }
+            }
+
+            //if (qcd.aspect == "tracked") console.log("notesFeed:", notesFeed);
+
+            for (i = 0; i < notesFeed.length; i++) noteObj[notesFeed[i].date] = notesFeed[i];
+
+            for (i = 0; i < notes.length; i++) {
+                if (noteObj[notes[i].date]) notes[i].noteObj = noteObj[notes[i].date];
+            }
+
+            return notes;
+        },
+
+        /* draws indicators in the correct places */
+        /* draws new indicators immediately when a note is saved */
+        /* and removes an indicator when a note is deleted */
+        /* logs each notes object */
+        drawIndicators: function() {
+            if (!this.xTick || !this.notes.read()) return;
+
+            var notes = this.notes.read();
+
+            var indicator = this.xTick
+                    .data(notes);
+
+            indicator.append("rect")
+                    .attr("transform", "translate(-8,26)")
+                    .attr("width", 16)
+                    .attr("height", 1)
+                    .style("fill", "none");
+
+            indicator.select("rect")
+                    .style("fill", function(d, i) {
+//                        if (self.qualityChartData.read().aspect == "tracked") console.log("notes[i]:", notes[i]);
+                        if (notes[i].noteObj) return "orange";
+                        return "none";
+                    });
+        }
+    });
+
+</script>

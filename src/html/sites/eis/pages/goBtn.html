@@ -1,0 +1,21 @@
+<blueprint>
+    <prop find="uiSelectBuild" />
+    <prop find="record" />
+</blueprint>
+<display>
+    <div id="btn" style="display: flex; flex: 1; justify-content: center;">
+        <i class="fa fa-area-chart fa-lg" style="padding-top: 3px;"></i>
+    </div>
+</display>
+
+<script>
+    $.cog({
+        init: function(){
+            var self = this;
+            this.btn.on('click', function(e){
+                e.preventDefault();
+                self.uiSelectBuild.write(self.record.read());
+            });
+        }
+    });
+</script>

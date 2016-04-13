@@ -1,0 +1,76 @@
+<blueprint>
+
+    <alias name="TOTAL_RL_RENDERER" url="totalRLRenderer.html" />
+    <alias name="HOST_INST_RENDERER" url="hostInstRenderer.html" />
+    <alias name="TEXT_RENDERER" url="textRenderer.html" />
+
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <sensor watch="statusChartData" transform="updateChart" pipe="records" auto="true" />
+
+    <cog find="grid" url="KATANA_GRID" />
+</blueprint>
+
+<display>
+    <div id="grid" />
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        defineOptions: {
+            headerHeight: 28,
+            rowHeight: 40,
+            paneHeight: 200
+        },
+
+        defineColumns: [
+             { field:"location",     title:"Group",          noSort:true, flex:"1 0 140px" }
+            ,{ field:"activeQD",     title:"Active",         noSort:true, flex:"3 0 50px", clickable:true, renderer:"TEXT_RENDERER" }
+            ,{ field:"dehydratedQD", title:"Dehydrated",     noSort:true, flex:"3 0 70px", clickable:true, renderer:"TEXT_RENDERER" }
+            ,{ field:"readyToRunQD", title:"ReadytoRun",     noSort:true, flex:"3 0 70px", clickable:true, renderer:"TEXT_RENDERER" }
+            ,{ field:"msmqQD",       title:"MSMQ",           noSort:true, flex:"3 0 50px", clickable:true, renderer:"TEXT_RENDERER" }
+            ,{ field:"totalQD",      title:"Total Queue",    noSort:true, flex:"3 0 70px", clickable:true, renderer:"TEXT_RENDERER" }
+            ,{ field:"suspended",    title:"Suspended",      noSort:true, flex:"3 0 65px", clickable:true, renderer:"TEXT_RENDERER" }
+            ,{                       title:"Host Instances", noSort:true, flex:"0 0 93px", clickable:true, renderer:"HOST_INST_RENDERER" }
+            ,{                       title:"Rcv Locations",  noSort:true, flex:"0 0 93px", clickable:true, renderer:"TOTAL_RL_RENDERER" }
+        ],
+
+        updateChart: function(statusChartData) {
+            for (var i = 0; i < statusChartData.length; i++) {
+                var d = statusChartData[i],
+                    commaFormat = d3.format("0,000"),
+                    totalQD = (d.activeQD     || 0)
+                            + (d.dehydratedQD || 0)
+                            + (d.msmqQD       || 0)
+                            + (d.readyToRunQD || 0);
+
+                d.totalQD = commaFormat(totalQD);
+
+                /* display an en dash when a value isn't reported */
+                if (d.activeQD     == null) d.activeQD     = "–";
+                if (d.dehydratedQD == null) d.dehydratedQD = "–";
+                if (d.msmqQD       == null) d.msmqQD       = "–";
+                if (d.readyToRunQD == null) d.readyToRunQD = "–";
+                if (d.suspended    == null) d.suspended    = "–";
+
+                /* format with commas */
+                if (d.activeQD     > 0) d.activeQD     = commaFormat(d.activeQD);
+                if (d.dehydratedQD > 0) d.dehydratedQD = commaFormat(d.dehydratedQD);
+                if (d.msmqQD       > 0) d.msmqQD       = commaFormat(d.msmqQD);
+                if (d.readyToRunQD > 0) d.readyToRunQD = commaFormat(d.readyToRunQD);
+                if (d.suspended    > 0) d.suspended    = commaFormat(d.suspended);
+            }
+
+            return statusChartData;
+        }
+
+    });
+</script>

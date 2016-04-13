@@ -1,0 +1,74 @@
+<blueprint>
+
+
+    <data name="test1" adapt="prop meow1" />
+    <data name="test2" adapt="prop meowfunc" value="cow" />
+
+    <sensor watch="test1" emit="cow" adapt="prop moofunc" run="logger" auto="true" />
+    <sensor watch="test2" adapt="prop meow1" run="logger" auto="true" />
+
+
+    <alloy url="aliases.html" />
+    <alloy url="services.html" />
+
+    <alloy url="/html/core/funds_mgmt.html" />
+
+    <data name="contentPage" value="loading.html" />
+    <sensor watch="configData" transform="getUrl" pipe="contentPage" auto="true" once="true" />
+    <cog find="content" url="data contentPage" />
+
+    <prop find="activeSiteMenu" />
+    <prop find="activeSiteCog" />
+    <prop find="activeSiteDomain" />
+    <prop find="pageMenuOptions" />
+    <prop find="activePageUrl" />
+
+</blueprint>
+
+
+<display>
+    <div id="content" style="width: 100%;"></div>
+</display>
+
+
+<script>
+    $.cog({
+
+        meow1: 'bunny',
+        meowfunc: function(msg, topic, tag){
+            return msg + ':' + topic + ':' + tag;
+        },
+        moofunc: function(msg, topic, tag){
+            return 'moo' + msg + ':' + topic + ':' + tag;
+        },
+
+        init: function() {
+
+            this.activePageUrl.write(null);
+            this.activeSiteDomain.write('fm');
+            this.pageMenuOptions.write(this.getPageMenuOptions());
+        },
+
+        logger: function(msg, topic, tag){
+
+            console.log('TEST:ADAPT:',msg, topic, tag);
+        },
+
+        getUrl: function() { return "content.html"; },
+
+        getPageMenuOptions: function(){
+            return {
+                url: 'KATANA_TEXT_BUTTON_RENDERER',
+                class: 'katana_nav_button',
+                default: 'pages/fileHistory.html',
+                show: 'activePageUrl',
+                menuStyle: {'flex-direction':'column'},
+                items: [
+                    {value: 'pages/fileHistory.html'    , title:'File History'}
+                ]
+            };
+        }
+
+    });
+
+</script>

@@ -1,0 +1,113 @@
+<blueprint>
+
+    <alloy name="echoFile" url="/html/util/echoFile.html" prop="true" />
+
+    <command name="cmd_Download" run="downloadSortedRecords" />
+
+    <sensor watch="pagedRecords" run="determinePageNum" auto="true" />
+    <sensor watch="pagedRecords" run="determineVis" auto="true" />
+    <sensor watch="pagedRecords,pageNum" batch="true" run="render" auto="true" />
+
+    <prop find="options" />
+    <sensor watch="options" run="displayBtnDownload" />
+
+    <prop find="sortedRecords" />
+    <prop find="pagedRecords" />
+    <prop find="pageNum" />
+    <prop find="refreshDomainFilters" />
+
+    <cog find="btnFirst" url="/html/views/lib/button.html" source="prop getFirst" item="data button" />
+    <cog find="btnPrev" url="/html/views/lib/button.html" source="prop getPrev" item="data button" />
+    <cog find="btnNext" url="/html/views/lib/button.html" source="prop getNext" item="data button" />
+    <cog find="btnLast" url="/html/views/lib/button.html" source="prop getLast" item="data button" />
+    <cog find="btnDownload" url="/html/views/lib/button.html" source="prop getDownload" item="data button" />
+
+</blueprint>
+
+<display>
+    <div id="pager" style="display: flex; justify-content: flex-end; font-size: 11px; padding: 4px; font-family: Verdana, 'Helvetica Neue', Helvetica, Arial, sans-serif;" >
+        <div id="btnFirst" />
+        <div id="btnPrev" />
+        <div style="padding: 5px;">
+            <span id="txtAtPage" ></span>
+        </div>
+        <div id="btnNext" />
+        <div id="btnLast" />
+        <div id="btnDownload" style="display: none;"/>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        displayBtnDownload: function(){
+            if (this.options.read().exportName)
+                this.btnDownload.css('display', 'block');
+        },
+
+        downloadSortedRecords: function(){
+            var reportName = (this.options.read() || {}).exportName || 'gridExport';
+            this.echoFile.download(this.sortedRecords.read() || [], reportName);
+        },
+
+        init: function(){
+        //  console.log("item!");
+            this.pager.rawContent().onselectstart = function(){
+                return false;
+            }
+        },
+
+        determinePageNum: function(){
+//            console.log('this.refreshDomainFilters.read():', this.refreshDomainFilters.read());
+
+            /* retain pageNum if build filter is applied */
+            if (String(this.refreshDomainFilters.read()).indexOf('build') != -1) return;
+            /* otherwise, jump to the first page */
+            this.pageNum.write(0);
+        },
+
+        determineVis: function(pages){
+            this.pager.css('visibility', pages && pages.length ? 'visible' : 'hidden');
+        },
+
+        toZero: function(){
+            return 0;
+        },
+
+        render: function(){
+            var pages = this.pagedRecords.read() || [];
+            var last = pages.length;
+            var n = this.pageNum.read() + 1;
+            var text = 'Page ' + n + ' of ' + last;
+            this.txtAtPage.text(text);
+        },
+
+        getFirst: {
+            tell: 'firstPageCmd',
+            title: 'first'
+        },
+
+        getPrev: {
+            tell: 'prevPageCmd',
+            title: 'prev'
+        },
+
+        getNext: {
+            tell: 'nextPageCmd',
+            title: 'next'
+        },
+
+        getLast: {
+            tell: 'lastPageCmd',
+            title: 'last'
+        },
+
+        getDownload: {
+            tell: 'cmd_Download',
+            title: 'download'
+        }
+
+    });
+
+</script>

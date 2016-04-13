@@ -1,0 +1,97 @@
+<blueprint>
+
+
+    <alias name="VOLUME_STATUS_RENDERER" url="volumeStatusRenderer.html" />
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <sensor watch="refreshAllFilters" batch="true" run="requestData" auto="true" />
+
+    <prop find="anomalyList" />
+    <sensor watch="anomalyList" run="updateGrid" />
+    <cog find="grid" url="KATANA_GRID_V2" source="prop gridOptions" item="data options" />
+</blueprint>
+
+<display>
+    <div id="title" style="font: 12px sans-serif; margin: 15px 0 -24px 8px;" />
+    <div id="grid" />
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        requestData: function(){
+            var options = this.mapItem.createParams({
+                span:'duration',
+                end:'endDateTime',
+                network:'network',
+                app:'sourceApp',
+                dc:'dataCenter',
+                facility:'facility',
+                msg_type:'messageType'
+            });
+
+            this.anomalyList.request(options);
+        },
+
+        gridOptions: {
+            headerHeight: 22,
+            rowHeight: 25,
+            paneHeight: 500,
+            perPage: 20,
+            sort: { field: 'sortedStatus', dir: 'asc' },
+            columns: [
+                { field:'sortedStatus', title:'Status',       flex:'1 0 130px', renderer:'VOLUME_STATUS_RENDERER' },
+                { field:'dc_short',     title:'Data Center',  flex:'1 1 90px' },
+                { field:'network',      title:'Network',      flex:'1 1 90px' },
+                { field:'app',          title:'App',          flex:'1 1 70px' },
+                { field:'facility',     title:'Facility',     flex:'1 1 110px' },
+                { field:'msg_type',     title:'Message Type', flex:'1 1 130px' },
+                { field:'sent',         title:'Sent',         flex:'1 1 90px' },
+                { field:'completed',    title:'Completed',    flex:'1 1 90px' },
+                { field:'err',          title:'Errors',       flex:'1 1 90px' },
+                { field:'expected',     title:'Expected',     flex:'1 1 100px' },
+                { field:'tolerance',    title:'Tolerance',    flex:'1 1 100px' }
+            ],
+            exportName: 'DataFlowAnomalies'
+        },
+
+        updateGrid: function(anomalyList) {
+            var anomalyListData = anomalyList.data;
+            this.records.write(anomalyListData);
+
+            /* comma format item count */
+            var anomalyCount = d3.format('0,000')(anomalyListData.length);
+
+            var noDataCount = 0,
+                highCount   = 0,
+                lowCount    = 0;
+
+            for (var i = 0; i < anomalyListData.length; i++) {
+                var d = anomalyListData[i];
+                if (d.status === 'dead') {
+                    d.sortedStatus = '0_dead';
+                    noDataCount += 1;
+                } else if (d.status === 'cold') {
+                    d.sortedStatus = '1_cold';
+                    lowCount    += 1;
+                } else if (d.status === 'hot') {
+                    d.sortedStatus = '2_hot';
+                    highCount   += 1;
+                } else {
+                    d.sortedStatus = d.status;
+                }
+            }
+
+            /* write grid title */
+            this.title.text('Anomalies: ' + anomalyCount + ' Items (' + noDataCount + ' No Data, ' + lowCount + ' Low Volume, ' + highCount + ' High Volume)');
+        }
+
+    });
+</script>

@@ -1,0 +1,174 @@
+<blueprint>
+    <data name="uiSelCell" prop="true" />
+    <sensor watch="uiSelCell" run="getDetailsUrl" />
+
+    <data name="fieldData" value="prop fields" />
+
+    <data name="detailsUrl" prop="true" />
+
+    <cog find="summaryGrid" url="summaryGrid.html" />
+    <cog find="details" url="data detailsUrl" />
+</blueprint>
+
+<display>
+    <div style="display: flex; flex-direction: column; padding: 4px; color: #cdf;" >
+        <div style="display: flex;" >
+            <div id="summaryGrid" class="small" style="flex: 1 1 800px; padding: 4px;" />
+        </div>
+        <div style="display: flex;" >
+            <div id="details" style="flex: 1 0 800px;" />
+        </div>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        getDetailsUrl: function() {
+            this.detailsUrl.write('details.html');
+        },
+
+        fields: {
+            rdb_status: {
+                gridTitle: 'RDB Status',
+                summaryTipTitle: 'Sites with Down Recovery Database',
+                detailsTipTitle: 'Recovery Database Status',
+                fieldType: 'bool',
+                service: 'clHealthSite'
+            },
+            rdb_size: {
+                gridTitle: 'RDB Size in MB',
+                summaryTipTitle: {
+                    hi: 'Sites with Recovery Database Size > 70 MB',
+                    lo: 'Sites with Recovery Database Size > 30 MB'
+                },
+                detailsTipTitle: 'Recovery Database Size',
+                fieldType: 'tri',
+                t1: 30000000,
+                t2: 70000000,
+                service: 'clHealthSite'
+            },
+            rdb_q: {
+                gridTitle: 'RDB Queue',
+                summaryTipTitle: {
+                    hi: 'Sites with > 5,000 Recovery Database Queue',
+                    lo: 'Sites with > 2,000 Recovery Database Queue'
+                },
+                detailsTipTitle: 'Recovery Database Queue Size',
+                fieldType: 'tri',
+                t1: 2000,
+                t2: 5000,
+                service: 'clHealthSite'
+            },
+            edb_status: {
+                gridTitle: 'EDB Status',
+                summaryTipTitle: 'Sites with Down Error Database',
+                detailsTipTitle: 'Error Database Status',
+                fieldType: 'bool',
+                service: 'clHealthSite'
+            },
+            edb_size: {
+                gridTitle: 'EDB Size in MB',
+                summaryTipTitle: {
+                    hi: 'Sites with Error Database Size > 70 MB',
+                    lo: 'Sites with Error Database Size > 30 MB'
+                },
+                detailsTipTitle: 'Error Database Size',
+                fieldType: 'tri',
+                t1: 30000000,
+                t2: 70000000,
+                service: 'clHealthSite'
+            },
+            edb_q: {
+                gridTitle: 'EDB Queue',
+                summaryTipTitle: {
+                    hi: 'Sites with > 500 Error Database Queue',
+                    lo: 'Sites with > 100 Error Database Queue'
+                },
+                detailsTipTitle: 'Error Database Queue Size',
+                fieldType: 'tri',
+                t1: 100,
+                t2: 500,
+                service: 'clHealthSite'
+            },
+            cleanup: {
+                gridTitle: 'Cleanup Run',
+                summaryTipTitle: 'Sites with No Cleanup Run',
+                detailsTipTitle: 'Cleanup Run',
+                fieldType: 'bool',
+                service: 'clHealthSite'
+            },
+            lock_mgr: {
+                gridTitle: 'Lock Manager',
+                summaryTipTitle: 'Sites with Down Lock Manager',
+                detailsTipTitle: 'Lock Manager',
+                fieldType: 'bool',
+                service: 'clHealthSite'
+            },
+            monitor_d: {
+                gridTitle: 'Monitor Daemon',
+                summaryTipTitle: 'Sites with Down Monitor Daemon',
+                detailsTipTitle: 'Monitor Daemon',
+                fieldType: 'bool',
+                service: 'clHealthSite'
+            },
+            process: {
+                gridTitle: 'Processes',
+                detailsGridTitle: 'Process',
+                summaryTipTitle: 'Processes Hung for > 1 Hour',
+                detailsTipTitle: 'Process Status',
+                detailsTipValue: {
+                    0: 'Hung for > 1 Hour',
+                    1: 'Running'
+                },
+                fieldType: 'arr',
+                service: 'clHealthProcess'
+            },
+            thread: {
+                gridTitle: 'Threads',
+                detailsGridTitle: 'Dead Thread',
+                summaryTipTitle: 'Threads Dead for > 30 Minutes',
+                detailsTipTitle: 'Thread Status',
+                detailsTipValue: 'Dead for > 30 Minutes',
+                fieldType: 'arr',
+                service: 'clHealthThread'
+            },
+            cpu_util_pct: {
+                gridTitle: 'CPU % Used',
+                simpleField: 'cpu',
+                summaryTipTitle: 'Highest CPU Usage for > 30 Minutes',
+                detailsTipTitle: 'CPU Usage',
+                fieldType: 'usage',
+                t1: 80,
+                t2: 90,
+                service: 'clHealthMachine'
+            },
+            mem_util_pct: {
+                gridTitle: 'Memory % Used',
+                simpleField: 'memory',
+                summaryTipTitle: 'Highest Memory Usage',
+                detailsTipTitle: 'Memory Usage',
+                fieldType: 'usage',
+                t1: 60,
+                t2: 70,
+                service: 'clHealthMachine'
+            },
+            disk_util_pct: {
+                gridTitle: 'Disk % Used',
+                simpleField: 'disk',
+                summaryTipTitle: 'Highest Disk Usage',
+                detailsTipTitle: 'Disk Usage',
+                fieldType: 'usage',
+                t1: 70,
+                t2: 80,
+                service: 'clHealthMachine'
+            }
+        }
+
+    });
+
+</script>

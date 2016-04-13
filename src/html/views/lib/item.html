@@ -1,0 +1,65 @@
+<blueprint>
+    <data name="itemData" prop="true" />
+    <data name="renderer" value="itemRenderer.html" prop="true" />
+    <cog find="item" url="data renderer" />
+
+    <!-- make these wait on all using need=all -->
+    <sensor watch="rowHeight" run="setHeight" auto="true" />
+    <sensor watch="column,record" batch="true" run="determineItemData" auto="true" />
+    <sensor watch="column" run="determineRenderer" auto="true" />
+
+    <prop find="rendererPath" />
+    <prop find="column" />
+    <prop find="record" />
+    <prop find="rowHeight" />
+</blueprint>
+
+<display>
+    <div id="item" class="katana_item" />
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+        //  console.log("item!");
+        },
+
+        setHeight: function(){
+            var h = Number(this.rowHeight.read());
+            this.item.css('height', h)
+        },
+
+        determineItemData: function(){
+
+            var c = this.column.read();
+            var r = this.record.read();
+
+            var data = r[c.field];
+            this.itemData.write(data);
+
+        },
+
+        determineRenderer: function(column){
+
+            var c = column;
+            if(c.flex)
+                this.item.css('flex', c.flex);
+
+            if(c.clickable || c.edit)
+                this.item.toggleClass('clickable',true);
+
+            if(c.renderer) {
+                this.mapItem.path = this.rendererPath.read();
+                this.renderer.write(c.renderer);
+            } else if (c.type === 'bool'){
+                this.renderer.write('itemCheckbox.html');
+            }
+
+        }
+
+
+    });
+
+</script>

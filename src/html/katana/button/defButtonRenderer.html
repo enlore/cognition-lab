@@ -1,0 +1,95 @@
+<blueprint>
+
+    <prop find="button" />
+    <prop find="showValue" />
+
+    <data name="hovering" prop="true" />
+
+    <sensor watch="button" run="resolveStyles" auto="true" />
+    <sensor watch="button,showValue,hovering" batch="true" run="render" auto="true" />
+    <sensor find="frame" detect="mouseenter" transform="toTrue" pipe="hovering" />
+    <sensor find="frame" detect="mouseleave" transform="toFalse" pipe="hovering" />
+
+
+</blueprint>
+
+<display>
+    <div id="frame" style="display: flex; ">
+        <span id="item"></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            this.frame[0].onselectstart = function(){
+                return false;
+            }
+
+        },
+
+        toTrue: function(){
+            return true;
+        },
+        toFalse: function(){
+            return false;
+        },
+
+
+
+        buttonStyles: {
+
+            common: {
+
+            },
+            normal: {
+
+            },
+            hover: {
+
+            },
+            active: {
+
+            }
+
+        },
+
+        textStyles: {},
+
+        resolveStyles: function(b){
+
+            b.buttonStyles = b.buttonStyles || this.buttonStyles;
+            b.textStyles = b.textStyles || this.textStyles;
+
+            this.frame.css(b.buttonStyles.init || {});
+            this.item.css(b.textStyles.init || {});
+
+        },
+
+        render: function(){
+
+            var b = this.button.read();
+            var v = this.showValue.read();
+
+            this.item.text(b.title);
+
+            var state = 'normal';
+
+            if(b.match === v){
+                state = 'active';
+            } else if (this.hovering.read()) {
+                state = 'hover';
+            }
+
+            this.frame.css(b.buttonStyles[state] || {});
+            this.item.css(b.textStyles[state] || {});
+
+        }
+
+
+    });
+
+</script>

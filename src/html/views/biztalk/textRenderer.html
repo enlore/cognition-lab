@@ -1,0 +1,37 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="uiSelectStatusGroup" />
+    <prop find="record" />
+
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%;" >
+        <span id="span" style="text-align: left;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+            var self = this;
+            this.holder.on("click", function(e){
+                e.preventDefault();
+                self.uiSelectStatusGroup.write(self.record.read().location);
+            });
+        },
+
+        render: function(itemData) {
+            var t = String(itemData);
+            var c = this.column.read();
+            var f = c.align || 'right';
+            this.span.css('text-align',f);
+            this.span.text(t);
+        }
+
+    });
+
+</script>

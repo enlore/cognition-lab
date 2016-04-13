@@ -1,0 +1,167 @@
+
+<blueprint>
+    <sensor watch="compData" run="render" />
+    <prop find="nak" />
+    <prop find="sourceApp" />
+
+</blueprint>
+
+<display>
+
+<div id="sourceTile" class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+    <div class="panel panel-default text-center">
+        <div class="panel-heading">
+            <h2 class="panel-title text-center-big" id="titleDisplay" > </h2>
+        </div>
+
+        <div class="panel-body"  style="font-size: 1.1em; color: #cdf;">
+            <span id="sparkDisplay" style="display:table;margin:0 auto;">&nbsp;</span>
+            <span id="statDisplay"></span>
+            <br/>
+            <span id="sparkDisplay2" style="display:table;margin:0 auto;">&nbsp;</span>
+            <span id="statDisplay2"></span>
+            <br/>
+            <span id="errorDisplay" style="font-size: .8em;">&nbsp;</span>
+        </div>
+
+    </div>
+</div>
+</display>
+
+<script>
+
+    $.cog({
+
+                filterID:null,
+                init: function(){
+
+                    this.sourceTile.on('click',this.doFilter.bind(this));
+                    this.errorDisplay.on('click',this.doFilterNak.bind(this));
+
+                },
+
+                doFilter: function () {
+                    this.nak.write(0);
+                    this.sourceApp.write(this.filterID);
+
+                },
+                doFilterNak: function () {
+                    this.nak.write(4);
+                    this.sourceApp.write(this.filterID);
+                    return false;
+                },
+
+                render: function(data){
+
+                    this.filterID = data.name;
+
+                    var max = Math.max.apply(null, data.sent);
+
+                    var n = _.reduce(data.sent, function(sum, n) {
+                        return Number(sum) + Number(n);
+                    }, 0);
+
+                    var errs = _.reduce(data.err, function(sum, errs) {
+                        return Number(sum) + Number(errs);
+                    }, 0);
+
+                    var comp = _.reduce(data.completed, function(sum, comp) {
+                        return Number(sum) + Number(comp);
+                    }, 0);
+
+                    this.statDisplay.html(kendo.toString(n,"n0")
+                                    + "&nbsp;(" + kendo.toString(100.0*comp / n, "n1") + "%)"
+                    );
+
+                    var total=0;
+                    var totalcomp=0;
+
+                    for (var s=0; s<data.completed.length; s++) {
+                        if (data.b1[s]) {total+=data.b1[s]*data.b1_avg[s]; totalcomp+=data.b1[s];}
+                        if (data.b2[s]) {total+=data.b2[s]*data.b2_avg[s]; totalcomp+=data.b2[s];}
+                        if (data.b3[s]) {total+=data.b3[s]*data.b3_avg[s]; totalcomp+=data.b3[s];}
+                    }
+                    if (totalcomp>0) total=Math.floor(total/totalcomp);
+
+                    var th='';
+                    var tm='';
+                    var ts='';
+                    if (total>0 && comp>0 && totalcomp>0) {
+                        th = '' + Math.floor(total/3600);
+                        tm = '' + Math.floor((total % 3600)/60);
+                        ts = '' + Math.floor((total % 60));
+                    }
+                    switch (th.length) {
+                        case 1: th='0'+th;break;
+                        case 0: th='00';
+                    }
+                    switch (tm.length) {
+                        case 1: tm='0'+tm;break;
+                        case 0: tm='00';
+                    }
+                    switch (ts.length) {
+                        case 1: ts='0'+ts;break;
+                        case 0: ts='00';
+                    }
+                    var tf = th + ':' + tm +':'+ ts;
+
+                    this.statDisplay2.html('Latency:&nbsp;' + tf  );
+
+                    this.titleDisplay.text(data.name);
+                    this.errorDisplay.html('NAK&nbsp;count:' + kendo.toString(errs,"n0"));
+                    $(this.sparkDisplay.raw()).sparkline(data.sent, {
+                        type: 'bar',
+                        barColor: '#cdf',
+                        tooltipClassname: 'tooltipSpark',
+                        chartRangeMin: 0,
+                        chartRangeMax: max,
+                        disableHiddenCheck: true
+                    });
+
+                    $(this.sparkDisplay.raw()).sparkline(data.completed, {
+                        type: 'bar',
+                        barColor: '#1c1',
+                        tooltipClassname: 'tooltipSpark',
+                        chartRangeMin: 0,
+                        chartRangeMax: max,
+                        disableHiddenCheck: true,
+                        composite:true
+                    });
+
+                    $(this.sparkDisplay2.raw()).sparkline(data.b1, {
+                        type: 'bar',
+                        barColor: '#1c1',
+                        tooltipClassname: 'tooltipSpark',
+                        chartRangeMin: 0,
+                        chartRangeMax: max,
+                        disableHiddenCheck: true,
+                        zeroColor:'#cdf'
+                    });
+
+                    $(this.sparkDisplay2.raw()).sparkline(data.b2, {
+                        type: 'bar',
+                        barColor: '#cc1',
+                        tooltipClassname: 'tooltipSpark',
+                        chartRangeMin: 0,
+                        chartRangeMax: max,
+                        disableHiddenCheck: true,
+                        composite:true,
+                        zeroColor:'#cdf'
+                    });
+
+                    $(this.sparkDisplay2.raw()).sparkline(data.b3, {
+                        type: 'bar',
+                        barColor: '#c11',
+                        tooltipClassname: 'tooltipSpark',
+                        chartRangeMin: 0,
+                        chartRangeMax: max,
+                        disableHiddenCheck: true,
+                        composite:true,
+                        zeroColor:'#cdf'
+                    });
+
+
+                }
+            });
+
+</script>

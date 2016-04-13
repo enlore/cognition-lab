@@ -1,0 +1,251 @@
+<blueprint>
+
+
+    <sensor watch="filterRegenOptions" run="refreshOptions" auto="true" />
+    <sensor watch="filterPathPartial" change="true" run="refreshOptions" auto="true" />
+    <sensor watch="filterPath" run="clearSelectionIfEmpty" auto="true" />
+
+    <!--<sensor watch="activeSiteCog" run="refreshOptions" auto="true" />-->
+
+    <sensor watch="selCategory" change="true" run="refreshOptions" auto="true" />
+
+    <sensor watch="selCategory" change="true" run="focusSelector" auto="true" />
+
+    <sensor watch="uiFilterNext" batch="true" run="focusSelector" />
+
+    <prop find="selCategory" />
+    <prop find="filterCategoryList" />
+    <prop find="filterList" />
+    <prop find="filterDefs" />
+    <prop find="filterReplaceLast" />
+    <prop find="activeSiteCog" />
+
+</blueprint>
+
+<display>
+    <input type="hidden" id="holder">
+</display>
+
+<script>
+
+    $.cog({
+
+        focusSelector: function(){
+            console.log('*********focs!!!');
+            if(this.allowFocus && this.selectize)
+                this.selectize.focus();
+        },
+
+        init: function(){
+
+//            this.holder.select2({
+//                width: '100%',
+//                data: []
+//            });
+
+        },
+
+        start: function(){
+              this.allowFocus = true;
+        },
+
+        clearSelectionIfEmpty: function(){
+
+            var filterList = this.filterList.read();
+            if (filterList === undefined) return;
+            if(filterList.length === 0)
+                this.refreshOptions();
+        },
+
+//        replaceLastFilterWithNewCategoryDefault: function(category){
+//
+//            var defs = this.filterDefs.read();
+//            var defsByName = this.mapItem.hash(defs, 'name');
+//            var filterDefOfCategory = defsByName[category];
+//            var defaultValue = (filterDefOfCategory) ? filterDefOfCategory.default : 'all';
+//            var newFilter = {name: category, optionId: defaultValue};
+//
+//            this.filterReplaceLast.write(newFilter);
+//
+//        },
+
+//        regenOptions: function(){
+//            var s = this.selectize;
+//            var selCategory = this.selCategory.read();
+//            var categoryList = this.filterCategoryList.read();
+//
+//            var items = this.getOptionItems(selCategory, categoryList);
+//            var groups = this.getOptionGroups(selCategory, categoryList);
+//
+//
+//        },
+
+        refreshOptions: function(){
+
+            var filterList = this.filterList.read();
+            if (filterList === undefined) return;
+
+            var selCategory = this.selCategory.read();
+            var categoryList = this.filterCategoryList.read();
+
+            var items = this.getOptionItems(selCategory, categoryList);
+            var groups = this.getOptionGroups(selCategory, categoryList);
+
+            var i;
+
+            // destroying just to clear option groups
+
+            var self = this;
+            var s = this.selectize;
+
+            if(s) {
+                s.clear();
+                s.destroy();
+            }
+
+            s = this.selectize = ($(this.holder.rawContent()).selectize({
+                valueField: 'id',
+                labelField: 'name', // change to abbrv name toggle later
+                optgroupValueField: 'name',
+                optgroupLabelField: 'title',
+                searchField: 'name',
+                sortField: 'name',
+                maxItems: 1
+            }))[0].selectize;
+
+
+
+            s.on('change', function(id){
+
+                if(!id) // clearing
+                    return;
+
+                var itemsById = _.chain(items).indexBy('id').value();
+
+                var selOption = itemsById[id] || {};
+                var newFilter = {name: selOption.optgroup, optionId: id || undefined};
+                self.filterReplaceLast.write(newFilter);
+//                console.log('option =');
+//                console.log(selOption);
+
+            });
+
+            for(i = 0; i < items.length; i++){
+                var item = items[i];
+                s.addOption(item);
+            }
+            for(i = 0; i < groups.length; i++){
+                var group = groups[i];
+                s.addOptionGroup(group.name, group);
+            }
+
+            var selectedId;
+
+            var lastFilter = (filterList.length > 0) ? filterList[filterList.length-1] : {};
+
+            selectedId = lastFilter.optionId;
+
+            if(selectedId)
+                s.addItem(selectedId);
+
+            var defs = this.filterDefs.read();
+
+            function findTitle() {
+                var count = defs && defs.length;
+                for (var i = 0; i < count; i++) {
+                    var obj = defs[i];
+                    if (obj.name === selCategory) return obj.title;
+                }
+            }
+
+            var filterSelection = findTitle() || selCategory;
+
+            if(groups.length)
+                s.settings.placeholder = 'Search...';
+            else
+                s.settings.placeholder = 'Select ' + filterSelection + '...';
+
+            /* reverse the sort order for builds */
+            if(selCategory === 'build') {
+                s.settings.sortField = [{field: 'name', direction: 'desc'}];
+            }
+
+
+            s.updatePlaceholder();
+            s.refreshOptions(false);
+
+
+
+        },
+
+        getOptionItems: function(selCategory, categoryList){
+
+            var filterList = this.filterList.read();
+            var filterDefs = this.filterDefs.read();
+
+            if (filterDefs === undefined)
+                return [];
+
+            var activeSiteCogId = this.activeSiteCog.read();
+            if (!activeSiteCogId) return [];
+
+            var appCog = this.mapItem.findCogById(activeSiteCogId);
+            if(!appCog) return [];
+
+            var defsByName = _.chain(filterDefs).indexBy('name').value();
+
+            var crossFilters = [].concat(filterList);
+            if(crossFilters.length > 0)
+                crossFilters.pop(); // don't consider final filter
+
+            var crossFilterValuesByName = _.chain(crossFilters).indexBy('name').mapValues('optionId').value();
+
+            var allItems = []; // all items, possibly from multiple categories
+
+            for(var i = 0; i < categoryList.length; i++){
+
+                var cat = categoryList[i];
+
+                if(cat.name === 'all') // no items in the 'all' category
+                    continue;
+
+                if(selCategory !== 'all' && selCategory !== cat.name) // does not match current selection
+                    continue;
+
+                var sieve = defsByName[cat.name].sieve; // to filter
+                var allOptions = appCog.findData(cat.name + 'Options', 'first', true);
+                var itemsById = (allOptions && allOptions.read()) || {};
+
+                var items = [];
+                for(var id in itemsById) {
+                    items.push(itemsById[id]);
+                }
+
+                for(var j = 0; j < items.length; j++) {
+                    var item = items[j];
+                    if(sieve && !sieve(item, crossFilterValuesByName))
+                        continue;
+                    item.optgroup = cat.name;
+                    allItems.push(item);
+                }
+
+            }
+            return allItems;
+
+        },
+
+        getOptionGroups: function(selCategory, categoryList){
+
+            return (selCategory !== 'all') ? [] : categoryList;
+
+        },
+
+
+
+
+        destroy: function() {
+          // this.holder.select2('destroy');
+        }
+
+    });
+</script>

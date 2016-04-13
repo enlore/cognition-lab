@@ -1,0 +1,31 @@
+<blueprint>
+
+    <sensor watch="button,show" run="render" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; ">
+    <span id="span" ></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        render: function(msg){
+
+
+            var b = msg.button;
+            var v = msg.show;
+
+            this.span.text(b.title);
+            this.span.toggleClass('katana_active',(b.match === v));
+
+        }
+
+
+    });
+
+</script>

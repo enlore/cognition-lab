@@ -1,0 +1,96 @@
+<blueprint>
+
+    <prop find="options" />
+    <data name="showValue" prop="true"/>
+    <sensor watch="showValue" change="true" run="render" auto="true" />
+    <sensor watch="options" run="build" auto="true" />
+
+</blueprint>
+
+
+<display>
+    <div>
+        <div id="label" class="katana_element_title" >
+            <span id="labelSpan" />
+        </div>
+        <div id="selector" ></div>
+    </div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+        build: function(options){
+
+            var self = this;
+
+            var label = self.label;
+            var labelSpan = self.labelSpan;
+            var selector = $(self.selector.rawContent());
+            var items = options.items;
+
+            label.css(options.labelStyle || {});
+            labelSpan.text(options.label);
+
+            options.show = options.show || options.tell;
+            options.tell = options.tell || options.show;
+
+            var tellPlace = self.mapItem.find(options.tell);
+            var showPlace = self.mapItem.find(options.show);
+
+            var selectizeOptions = {
+                maxItems: 1,
+                valueField: options.value || 'value',
+                labelField: options.title || 'title',
+                sortField: options.title || options.value || 'value',
+                searchField: options.title || 'title',
+                placeholder: options.placeholder || 'Select Site...'
+            };
+
+            var s = self.selectize = (selector.selectize(selectizeOptions))[0].selectize;
+
+            for(var i = 0; i < items.length; i++){
+                var item = items[i];
+                s.addOption(item);
+            }
+
+            s.on('change', function(value){
+
+                if(!value) // clearing
+                    return;
+                if(showPlace.read() == value)
+                    return; // this should be solved with sensors....
+
+                tellPlace.write(value);
+
+            });
+
+            var selectedValue = showPlace && showPlace.read();
+
+            if(selectedValue)
+                s.addItem(selectedValue);
+
+            s.updatePlaceholder();
+            s.refreshOptions(false);
+
+            self.mapItem.createSensor(options.show).pipe(self.showValue).autorun();
+
+        },
+
+        render: function(selectedValue){
+
+
+            var s = this.selectize;
+            s.clear(true);
+            s.addItem(selectedValue);
+            s.refreshOptions(false);
+
+        }
+
+
+
+    });
+
+</script>

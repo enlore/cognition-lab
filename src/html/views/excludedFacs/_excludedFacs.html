@@ -1,0 +1,74 @@
+<blueprint>
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <prop find="activePageDef" />
+
+    <prop find="excludedFacilities_svc" />
+    <sensor watch="excludedFacilities_svc" transform="stripData" pipe="records" />
+
+    <cog find="grid" url="KATANA_GRID"  />
+
+</blueprint>
+
+<display>
+
+    <div style="padding: 8px" >
+        <div class="katana_panel" style="padding: 6px;">
+
+        <div id="grid" ></div>
+        </div>
+    </div>
+
+</display>
+
+<script>
+
+    $.cog({
+
+
+        pageDef: function(){
+
+
+            return {
+                title: 'Excluded Facilities',
+                domain: 'none',
+                time: 'none'
+            };
+
+        },
+
+        init: function() {
+            var def = this.pageDef();
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+            this.excludedFacilities_svc.req();
+        },
+
+        stripData: function(msg){
+            return msg.data;
+        },
+
+        defineOptions: {
+              headerHeight: 30,
+              rowHeight: 25,
+              paneHeight: 400
+
+        },
+
+        defineColumns: [
+                { field: "Facility", title: "Facility", flex: 2},
+                { field: "Name", title: "Name", flex:2},
+                { field: "Status", title: "Status", flex:2},
+                { field: "CL_Site", title: "CL Site", flex:2},
+                { field: "Owner", title: "Owner", flex:2},
+                { field: "Network", title: "Network", flex:2},
+                { field: "Unit", title: "Unit", flex:2},
+                { field: "DC", title: "DC", flex:1},
+                { field:"Reason", title:"Reason", flex:2},
+                { field: "Last_Msg", type: 'date', format: 'calendar', title: "Last Msg", flex:2}
+         ]
+
+    });
+</script>

@@ -1,0 +1,76 @@
+<blueprint>
+
+
+    <alias name="FILE_HIST_RENDERER" url="fileHistoryRenderer.html" />
+    <cog find="grid" url="KATANA_GRID_V2" source="prop gridOptions" item="data options" />
+
+</blueprint>
+
+<display>
+    <div class="katana_panel"
+    style="flex: 1 1 auto;
+    margin-top: 6px; margin-bottom: 6px;"
+        >
+
+
+
+        <div style="
+    display: flex;
+    justify-content: space-between;
+">
+            <!--<div style="-->
+    <!--padding-left: 12px;-->
+    <!--position: relative;-->
+    <!--font-size: 13px;-->
+    <!--top: 4px;-->
+    <!--color: rgba(171, 189, 149, 1);-->
+<!--">-->
+                <!--<span>KPIs Over the Last 24 Hours Relative to: </span>-->
+                <!--<span id="subtitle" style="-->
+    <!--color: rgb(231, 232, 206);-->
+    <!--font-size: 11px;-->
+<!--">National Group (104 locations)</span>-->
+            <!--</div>-->
+            <div id="menu"></div>
+            </div>
+    <div id="grid" >
+
+    </div>
+        </div>
+</display>
+
+
+<script>
+    $.cog({
+
+        init: function(){
+//            rec.expected = fileInfo.expected;
+//            rec.ftpFile = fileInfo.ftpFile;
+//            rec.ftpTo = fileInfo.ftpTo;
+//            rec.process = fileInfo.process;
+//            rec.site = fileInfo.toName;
+        },
+
+        gridOptions: {
+            hoverShow: 'hoverFile',
+            selShow: 'selFile',
+//            selTell: 'uiClickFilter',
+            headerHeight: 22,
+            rowHeight: 24,
+            paneHeight: 525,
+            sort: {field: 'troubleRank', dir: 'desc'},
+            columns: [
+                { field: "desc", title: "Description", flex: '1 1 70px' },
+                { field: "frmLabel", title: "From", flex: '1 1 50px' },
+                { field: "toLabel", title: "To", flex: '1 1 50px' },
+                { field: "ftpFile", title: "File", flex: '1 1 25px' },
+                { field: "thread", title: "Thread",flex: '1 1 50px' },
+                { field: "site", title: "Site",flex: '1 1 25px' },
+                { field: "troubleRank", renderer: 'FILE_HIST_RENDERER', title: "Transfer History", flex: '0 0 350px' }
+            ]
+
+        }
+
+
+    });
+</script>

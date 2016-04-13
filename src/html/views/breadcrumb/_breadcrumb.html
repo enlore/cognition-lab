@@ -1,0 +1,44 @@
+
+<blueprint>
+    <sensor watch="msgFilters" batch="true" run="render" />
+</blueprint>
+
+<display>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="row">
+            <div style="display: block; position: relative; width: 100%; clear: both; height: 36px; " >
+                <div style="position: relative; float: right;">
+                        <span id="bc" style="padding: 12px;text-align: right;font-size: 1.2em;color: #bdba98;text-shadow: 1px 1px 0px rgba(0,0,0,.75);"></span>
+                </div>
+            </div>
+        </div>
+     </div>
+</div>
+</display>
+
+
+
+<script>
+
+    $.cog({
+
+        init: function () {
+            this.render();
+        },
+
+        render: function () {
+
+            var mi = this.mapItem;
+
+            var s = $(this.bc);
+            var t = mi.findMethod("breadcrumbText")(mi);
+            s.text(t);
+
+        }
+
+    });
+
+</script>
+
+

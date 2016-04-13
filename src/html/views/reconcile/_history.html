@@ -1,0 +1,65 @@
+<blueprint>
+
+    <data name="historyView" value="true" />
+    <data name="snapToFullDays" value="true" />
+
+    <data name="showCreateCaseDialog" value="false" />
+    <data name="selGroupBy" value="date" />
+    <data name="selAspect" value="tracked" />
+
+    <data name="reconSlicePage" value="reconSlice.html" prop="true" />
+
+    <prop find="activeSiteDomain" />
+    <prop find="activePageDef" />
+
+    <sensor watch="refreshDomainFilters" batch="true" run="refreshPage" auto="true"/>
+
+    <cog find="sliceHolder" url="data reconSlicePage" />
+    <!--<cog find="dialogHolder" url="CREATE_CASE_DIALOG" />-->
+
+</blueprint>
+
+<display>
+<div>
+
+   <div id="dialogHolder"></div>
+
+   <div style="padding: 4px;">
+                          <div id="sliceHolder" style="padding: 4px;"></div>
+    </div>
+
+</div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+        init: function() {
+            var def = this.pageDef();
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+        },
+
+
+        pageDef: function(){
+
+            var domain = this.activeSiteDomain.read();
+
+            return {
+                title: 'Reconciliation History',
+                domain: domain,
+                time: 'none'
+            };
+
+        },
+
+        refreshPage: function () {
+            this.reconSlicePage.write(null);
+            this.reconSlicePage.write('reconSlice.html');
+
+        }
+
+    });
+
+</script>

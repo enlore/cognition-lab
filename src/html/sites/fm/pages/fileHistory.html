@@ -1,0 +1,337 @@
+<blueprint>
+
+    <net name="fileHist" url="FTP_LOGS_HIST" request="true" prop="true" />
+    <net name="fileRaw" url="FTP_LOGS_RAW" request="true" prop="true" />
+    <net name="annotations" url="ANNOTATIONS" params="prop method_get" request="true" prop="true" note="current records" />
+    <net name="annotationsEdit" url="ANNOTATIONS" prop="true" note="service to write to"/>
+
+
+    <data name="hoverFile" />
+    <data name="selFile" prop="true" />
+    <data name="selDayIndex" route="true" prop="true" />
+
+    <data name="viewFileTransferDetails" prop="true" />
+
+    <data name="files" prop="true" />
+    <data name="logs" prop="true" />
+
+    <sensor watch="fileHist" transform="toFiles" pipe="files" />
+    <sensor watch="fileRaw" transform="toLogs" pipe="logs"  />
+    <sensor need="files,logs,annotations"  run="toRecords"  />
+    <sensor watch="files" transform="toLegendRecords" pipe="legendRecords" />
+
+    <sensor need="selFile,selDayIndex" retain="true" run="renderFileTransferDetails" auto="true" />
+
+    <sensor watch="refreshAllFilters" run="requestFileHist" />
+
+    <sensor watch="annotations" run="debug" />
+
+    <data name="records" prop="true" />
+    <data name="legendRecords" prop="true" />
+
+    <prop find="fileOptions" />
+
+    <prop find="activePageDef" />
+
+    <cog find="histGrid" url="histGrid.html" />
+    <cog find="legend" url="legend.html" />
+    <cog find="detail" url="fileDetail.html" />
+    <cog find="detail" url="notes.html" />
+    <cog find="detail" url="transferDetail.html" />
+
+
+</blueprint>
+
+<display>
+
+    <div style="display: flex; flex: 1 1 auto; flex-wrap:wrap ; flex-direction: row; font-size: 1.1em; color: #cdf; padding: 4px; ">
+
+        <div id="mainContent" style="display: flex; flex-wrap: wrap; width: 100%; margin: 4px;">
+            <div style="display: block; padding: 4px; flex: 2 1 700px;">
+                <div id="histGrid" class="small" ></div>
+            </div>
+            <div style="display: block; padding: 4px; flex: 1 1 200px;">
+                <div id="legend" class="small" style="flex: 1 1;" ></div>
+                <div id="detail" class="small" style="flex: 1 1;" ></div>
+            </div>
+
+        </div>
+    </div>
+
+</display>
+
+<script>
+    $.cog({
+        init: function(){
+            this.activePageDef.write(this.pageDef);
+
+        },
+    debug: function(msg){ console.log(msg); },
+
+        method_get: {method: 'get'},
+
+        renderFileTransferDetails: function(){
+
+            var file = this.selFile.read();
+            var day = this.selDayIndex.read();
+            this.viewFileTransferDetails.write(file.dailyStats[day]);
+            //console.log(file.dailyStats[day]);
+        },
+
+        toLegendRecords: function(records){
+
+            var legend = [
+                {count_today: 0, count_total: 0, status: 'no_record', title: "No FTP Record", colors: ["rgb(220,30,10)", "rgb(170,0,0)"]},
+                {count_today: 0, count_total: 0, status: 'failed', title: "FTP Failure", colors: ["rgb(240,20,220)", "rgb(170,0,150)"]},
+                {count_today: 0, count_total: 0, status: 'anomaly', title: "Unexpected File", colors: ["rgb(20,200,255)", "rgb(0,130,200)"]},
+                {count_today: 0, count_total: 0, status: 'success', title: "FTP Success", colors: ["rgb(20,200,20)", "rgb(0,130,0)"]},
+                {count_today: 0, count_total: 0, status: 'pending', title: "FTP Pending", colors: ["rgb(200,200,10)", "rgb(150,150,0)"]},
+                {count_today: 0, count_total: 0, status: 'not_fresh', title: "Monitor Down", colors: ["rgb(170,170,190)", "rgb(130,130,150)"]}
+            ];
+
+            var legendByStatus = _.indexBy(legend, 'status');
+
+            for(var i = 0; i < records.length; i++){
+                var r = records[i];
+                for(var j = 0; j < r.dailyStats.length; j++){
+                    var d = r.dailyStats[j];
+                    var legendItem = legendByStatus[d.status];
+                    if(legendItem){
+                        legendItem.count_total++;
+                        if(j === 0){
+                            legendItem.count_today++;
+                        }
+                    }
+                }
+            }
+
+            //console.log("LEGEND", legend);
+            return legend;
+
+        },
+
+        requestFileHist: function(){
+
+            this.fileHist.request();
+            this.fileRaw.request();
+            this.annotations.request();
+
+        },
+
+        pageDef: {
+
+            title: 'FTP File History',
+            domain: 'none',
+            time: 'none'
+
+        },
+
+        toRecords: function(msg){
+
+            var records = msg.files;// // this.files.read();
+            var logs = msg.logs; //this.logs.read();
+            var annotations = msg.annotations.data;
+
+            for(var i = 0; i < records.length; i++){
+                var rec = records[i];
+                var log = logs && logs[rec.thread];
+                if(!log){
+                    console.log('missing ' + rec.thread, rec);
+                    continue;
+                }
+                var stats = rec.dailyStats;
+                for(var j = 0; j < stats.length; j++){
+                    var statDay = stats[j];
+                    if(statDay.logDate && log[statDay.logDate]) {
+                        statDay.rawLog = log[statDay.logDate];
+                      //  console.log('LOGD',statDay);
+                    }
+
+
+                    for(var k = 0; k < annotations.length; k++){
+                        var anno = annotations[k];
+                        if(rec.fileId == anno.fileid && statDay.logDateShort == anno.date){
+                            statDay.annotation = anno;
+                            anno.status = anno.note ? anno.note.split('|')[0] : '';
+                            anno.text = (anno.note && anno.note.length > 1) ? anno.note.split('|')[1] : '';
+                            //console.log('match k',statDay, anno);
+                        }
+                    }
+
+                }
+
+
+
+               // console.log("REC",rec);
+            }
+
+            console.log('rec:',this.files.read());
+
+
+            this.records.write(this.files.read());
+
+        },
+
+        toLogs: function(msg){
+
+            return msg.data;
+//            var byThread = msg.data;
+//            for(var threadName in byThread){
+//                var logsByDateForThread = byThread[threadName];
+//                for(var date in logsByDateForThread){
+//                    var dateText = moment.utc(date).format('ddd, MMM Do YYYY');
+//
+//                }
+//            }
+        },
+
+        toFiles: function(msg){
+
+            var data = msg.data;
+            var filesById = this.fileOptions.read();
+
+            for (var i = 0; i < data.length; i++) {
+                var rec = data[i];
+                var fileInfo = filesById[rec.fileId];
+
+                for(var p in fileInfo){
+                    rec[p] = fileInfo[p];
+                }
+
+                rec.troubleRank = 0;
+
+                var age = moment.utc(rec.jobTime).twix(moment.utc(rec.systemTime));
+                rec.minutesSinceLastCheck= age.length('minutes');
+                rec.ageOfLastCheckText = age.humanizeLength();
+
+                var dailyStats = rec.dailyStats = [];
+                var statData;
+
+                for(var k = 0; k < 15; k++){
+
+                    var day =  moment.utc(rec.today).subtract(k, 'days');
+
+                    statData = {
+                        fileInfo: rec,
+                        completed: false,
+                        ftpStart: false,
+                        ftpComplete: false,
+                        dateText: day.format('ddd, MMM Do YYYY'),
+                        logDateShort: day.format('YYYY-MM-DD'),
+                        dayOfWeek: day.isoWeekday(),
+                        dayOfMonth: day.date(),
+                        dayIndex: k,
+                        needed: false,
+                        status: 'quiet'
+                    };
+
+                    statData.overdue = statData.dayIndex > 0;
+
+                    if(rec.freq === 'daily'){
+                        if(rec.day_array.indexOf(statData.dayOfWeek) !== -1)
+                            statData.needed = true;
+                    } else if(rec.freq === 'monthly'){
+                        if(rec.day_array.indexOf(statData.dayOfMonth) !== -1)
+                            statData.needed = true;
+                    }
+                    //if (rec.excpBank && statData.today==rec.)
+
+                    dailyStats.push(statData);
+                }
+
+                for(var j = 0; j < rec.history.length; j++){
+
+                    var ftpData = rec.history[j];
+                    day = moment.utc(ftpData.logDate);
+                    ftpData.dayIndex = day.twix(moment.utc(rec.today)).length('days');
+
+                    statData = dailyStats[ftpData.dayIndex];
+
+                    statData.logDate = ftpData.logDate;
+                    //statData.logDateShort = ftpData.logDate.split("T")[0];
+                    statData.dayIndex = ftpData.dayIndex;
+                    statData.completed = ftpData.completed;
+                    statData.ftpComplete = ftpData.ftpComplete && moment(moment.utc(ftpData.ftpComplete).toDate());
+                    statData.ftpStart = ftpData.ftpStart && moment(moment.utc(ftpData.ftpStart).utc().toDate());
+
+                    statData.ftpRange = statData.completed && statData.ftpStart && statData.ftpComplete ? moment(statData.ftpComplete).twix(statData.ftpStart) : null;
+                    statData.startText = statData.ftpStart ? statData.ftpStart.format('h:mm:ss A') : 'Unknown';
+                    statData.completeText = statData.ftpComplete ? statData.ftpComplete.format('h:mm:ss A') : 'Unknown';
+                    statData.durationText = statData.ftpRange ? statData.ftpRange.humanizeLength() : 'Unknown';
+                    statData.fileInfo = rec;
+
+                }
+
+                for(k = 0; k < rec.dailyStats.length; k++){
+
+                    statData = rec.dailyStats[k];
+                    statData.status = this.determineStatus(statData);
+                    statData.statusTitle = this.titleFromStatus(statData.status);
+
+                }
+
+                var rank = 0;
+                for(var m = 0; m < dailyStats.length; m++){
+
+                    var trouble = !dailyStats[m].completed;
+                    if(trouble)
+                        rank += 1 / (m * m + 1);
+
+                }
+
+                rec.troubleRank = rank;
+
+            }
+
+
+            return data;
+
+        },
+
+        titleFromStatus: function(status){
+            return {
+                'not_fresh': 'Monitor Down',
+                'no_record': 'No FTP Record',
+                'failed': 'FTP Failed',
+                'pending': 'FTP Pending',
+                'anomaly': 'Unexpected File',
+                'success': 'FTP Success',
+                'quiet': 'No Activity and None Expected'
+
+            }[status];
+        },
+
+        determineStatus: function(d){
+
+
+            if(!d.completed && d.fileInfo.minutesSinceLastCheck > 75 && d.dayIndex === 0)
+                return 'not_fresh';
+
+            if(d.needed && d.overdue && !d.ftpStart && !d.completed)
+                return 'no_record';
+
+            if(d.needed && d.overdue && !d.completed)
+                return 'failed';
+
+            if(d.ftpStart && !d.completed)
+                return 'failed'; // and was unexpected, new color?
+
+            if(d.needed && !d.overdue && !d.completed)
+                return 'pending';
+
+            if(d.completed && !d.needed)
+                return 'anomaly';
+
+            if(d.completed)
+                return 'success';
+
+            return 'quiet';
+
+        },
+
+        ftpLogsHistSvc: {
+            url: 'FTP_LOGS_HIST'
+        }
+
+    })
+</script>

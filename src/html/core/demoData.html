@@ -1,0 +1,413 @@
+<blueprint>
+
+    <method name="makeDemoData" />
+    <method name="demoObject" />
+    <method name="getDemoDefs" />
+
+</blueprint>
+
+<script>
+    $.cog({
+
+        makeDemoData: function(data, owners, prefixes, things, suffixes){
+
+            var f = this.mapItem.findMethod('demoObject');
+
+            alreadyGot = {keys: {}, abbs: {}};
+
+            for(var i = 0; i < data.length; i++){
+                  var d = data[i];
+                  f(d, owners, prefixes, things, suffixes, alreadyGot);
+            }
+
+        },
+
+        demoObject: function(d, owners, prefixes, things, suffixes, alreadyGot){
+
+            function capOne(str) {
+                return str.length === 0 ? '' : str.charAt(0).toUpperCase();
+            }
+
+            function getRandomThing(){
+
+                var mustHave = Math.floor(Math.random()*2 +.9);
+
+                var owner = (Math.random() < .05 || mustHave === 0) ? Math.floor(owners.length * Math.random()) : -1;
+                var prefix = (Math.random() < .15 || mustHave === 1) ? Math.floor(prefixes.length * Math.random()) : -1;
+                var thing = Math.floor(things.length * Math.random());
+                var suffix = (Math.random() < .15 || mustHave == 2) ? Math.floor(suffixes.length * Math.random()) : -1;
+
+                var key = owner + ":" + prefix + ":" + thing + ":" + suffix;
+
+                if(alreadyGot.keys[key])
+                    return null;
+
+                var t1 = owner >= 0 ? owners[owner] + ' ' : '';
+                var t2 = prefix >= 0 ? prefixes[prefix] + ' ' : '';
+                var t3 = things[thing];
+                var t4 = suffix >= 0 ? suffixes[suffix] : '';
+
+                var name = t1 + t2 + t3;
+                if(t4 !== '')
+                    name += ' of ' + t4;
+                
+                var abbr = capOne(t1) + capOne(t2) + capOne(t3) + capOne(t4);
+
+                var i = 1;
+                var base = abbr + '';
+                while(alreadyGot.abbs[abbr] !== undefined){
+                    i++;
+                    abbr = base + i;
+                }
+
+                alreadyGot.keys[key] = true;
+                alreadyGot.abbs[abbr] = true;
+
+                return {name: name, abbr: abbr};
+
+            }
+
+            var result = getRandomThing();
+            while(!result){
+                result = getRandomThing();
+            }
+
+            d.name = result.name;
+            d.abbr = result.abbr;
+
+        },
+
+        getDemoDefs: function() {
+
+            var defs = {
+
+                owners: [
+
+                    'Scott\'s',
+                    'Landon\'s',
+                    'Jack\'s',
+                    'Ashok\'s',
+                    'Lars\'',
+                    'Sridhar\'s',
+                    'Alan\'s',
+                    'Ryan\'s',
+                    'Kevin\'s',
+                    'Nicole\'s',
+                    'Shannon\'s',
+                    'Mina\'s'
+
+                ],
+
+                prefixes: [
+
+                    'Iron',
+                    'Golden',
+                    'Silver',
+                    'Umbral',
+                    'Grey',
+                    'Stone',
+                    'Granite',
+                    'Marble',
+                    'Abandoned',
+                    'Silent',
+                    'Sepulchral',
+                    'Western',
+                    'Eastern',
+                    'Northern',
+                    'Southern',
+                    'Rusty',
+                    'Grimy',
+                    'Pristine',
+                    'Little',
+                    'Tiny',
+                    'Massive',
+                    'General',
+                    'Black',
+                    'White',
+                    'Red',
+                    'Blue',
+                    'Green',
+                    'Dusty',
+                    'Happy',
+                    'Orderly',
+                    'Cold',
+                    'Endless',
+                    'Towering',
+                    'Small',
+                    'Pastoral',
+                    'Northern',
+                    'Southern',
+                    'Western',
+                    'Eastern',
+                    'Central',
+                    'Dark',
+                    'Bright',
+                    'Coral',
+                    'Ivory',
+                    'Burning',
+                    'Freezing',
+                    'Windy',
+                    'Alpine',
+                    'Dry',
+                        'Blue',
+                        'Purple',
+                        'Striped',
+                        'Spotted',
+                        'Speckled',
+                        'Big',
+                        'Huge',
+                        'Brown',
+                        'Shiny'
+
+
+
+                ],
+
+                animals: [
+
+                        'Tiger',
+                        'Panda',
+                        'Bunny',
+                        'Frog',
+                        'Hamster',
+                        'Goat',
+                        'Falcon',
+                        'Eagle',
+                        'Lizard',
+                        'Elk',
+                        'Mole',
+                        'Beaver',
+                        'Weasel',
+                        'Badger',
+                        'Wolf',
+                        'Giraffe',
+                        'Kangaroo',
+                        'Marmot',
+                        'Groundhog',
+                        'Cat',
+                        'Lion',
+                        'Dog',
+                        'Boar',
+                        'Chicken',
+                        'Ostrich',
+                        'Emu',
+                        'Squirrel',
+                        'Owl',
+                        'Deer',
+                        'Minnow',
+                        'Orca',
+                        'Dolphin',
+                        'Salmon',
+                        'Shark',
+                        'Flounder',
+                        'Sunfish',
+                        'Catfish',
+                        'Bear',
+                        'Elephant',
+                        'Rhino',
+                        'Snake',
+                        'Mouse',
+                        'Rat',
+                        'Otter'
+
+                ],
+
+                suffixes: [
+
+                        'Boundless Fun',
+                        'Games',
+                        'Archery',
+                        'Juggling',
+                        'Mimes',
+                        'Battle',
+                        'Healing',
+                        'Madness',
+                        'Bunnies',
+                        'Kittens',
+                        'Ponies',
+                        'Monsters',
+                        'Fire',
+                        'Lava',
+                        'Secrets',
+                        'Silence',
+                        'Solitude',
+                        'Dark Omens',
+                        'Good Omens',
+                        'Rainbows',
+                        'Discord',
+                        'Happiness',
+                        'Ancient Evil',
+                        'Dragons',
+                        'Wyverns',
+                        'Unicorns',
+                        'Smoke',
+                        'Mist',
+                        'Sand',
+                        'Ferns',
+                        'Mirth',
+                        'Wonder',
+                        'Gargoyles',
+                        'Angst',
+                        'Puppies',
+                        'Mud',
+                        'Rain',
+                        'Salamanders',
+                        'Cows'
+
+
+                ],
+
+
+                realms: [
+
+                    'Tundra',
+                    'Plains',
+                    'Wastes',
+                    'Desert',
+                    'Jungle',
+                    'Valley',
+                    'Peninsula',
+                    'Isthmus',
+                    'Mountain',
+                    'Forest',
+                    'Savanna',
+                    'Taiga',
+                    'Plateau',
+                    'Steppe',
+                    'Meadow',
+                    'Grassland',
+                    'Grove',
+                    'Swamp',
+                    'Delta',
+                    'Pond',
+                    'Lake',
+                    'Marsh',
+                    'Foothills',
+                    'Cliff',
+                    'River',
+                    'Creek',
+                    'Ocean',
+                    'Sea',
+                        'Island',
+                        'Glacier',
+                        'Volcano',
+                        'Lagoon',
+                        'Mesa'
+
+                ],
+
+
+
+                places: [
+
+                    'Complex',
+                        'Compound',
+                        'Campus',
+                    'Hospital',
+                    'Memorial',
+                    'Palace',
+                    'Chamber',
+                    'Dungeon',
+                    'Fortress',
+                    'Outpost',
+                    'Fort',
+                    'Clinic',
+                    'Station',
+                    'Ruins',
+                    'Monument',
+                    'Arch',
+                    'Spire',
+                    'Tower',
+                    'Bridge',
+                    'Office',
+                    'Building',
+                    'Gazebo',
+                    'Porticullis',
+                    'House',
+                    'Tavern',
+                    'Inn',
+                    'Sanitorium',
+                    'Prison',
+                    'Hut',
+                    'Theatre',
+                    'Barn',
+                    'Farm',
+                    'Village',
+                    'Vault',
+                    'Stadium',
+                    'Garden',
+                    'Castle',
+                    'Diner',
+                    'Restaurant'
+
+
+                ],
+
+                spices: [
+
+                    'Allspice',
+                    'Angelica',
+                    'Anise',
+                    'Basil',
+                    'Bay Leaf',
+                    'Borage',
+                    'Cardamom',
+                    'Caraway',
+                    'Cardamom',
+                    'Catnip',
+                    'Cayenne',
+                    'Celery',
+                    'Chicory',
+                    'Chives',
+                    'Cilantro',
+                    'Cinnamon',
+                    'Clove',
+                    'Coriander',
+                    'Cumin',
+                    'Curry Leaf',
+                    'Dill',
+                    'Fennel',
+                    'Fenugreek',
+                    'Galangal',
+                    'Garlic',
+                    'Ginger',
+                    'Horseradish',
+                    'Hyssop',
+                    'Jasmine',
+                    'Juniper',
+                    'Kaffir',
+                    'Lavender',
+                    'Lemon Balm',
+                    'Lime Balm',
+                    'Lemongrass',
+                    'Licorice',
+                    'Mace',
+                    'Marjoram',
+                    'Spearmint',
+                    'Peppermint',
+                    'Nutmeg',
+                    'Oregano',
+                    'Paprika',
+                    'Rosemary',
+                    'Rue',
+                    'Safflower',
+                    'Saffron',
+                    'Sage',
+                    'Savory',
+                    'Sorrel',
+                    'Tarragon',
+                    'Thyme',
+                    'Vanilla',
+                    'Wasabi',
+                    'Watercress',
+                    'Wormwood',
+                    'Mustard'
+
+                ]
+            };
+            return defs;
+        }
+
+    });
+
+</script>

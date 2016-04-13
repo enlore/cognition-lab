@@ -1,0 +1,52 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="gridSort" />
+
+    <sensor watch="column" run="render" auto="true" />
+    <sensor watch="gridSort" run="chooseSortSymbol" auto="true" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="display: block; width: 100%; ">
+        <div style="display: flex;">
+    <span id="span" style="flex: 1 1 auto;" ></span>
+    <span id="sort" style="" ><i id="sortSymbol" class="fa"></i></span>
+        </div>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        render: function(column){
+
+            var c = column;
+            var align = c.align;
+
+            if(align)
+                this.holder.css('text-align', align);
+
+            var t = c.label || c.title;
+            this.span.text(t);
+
+        },
+
+        chooseSortSymbol: function(){
+
+            var col = this.column.read();
+            var sort = this.gridSort.read();
+            var desc = col.field === sort.field && sort.dir === 'desc';
+            var asc = col.field === sort.field && sort.dir === 'asc';
+
+            this.sortSymbol.toggleClass('fa-sort-desc', desc);
+            this.sortSymbol.toggleClass('fa-sort-asc', asc);
+
+        }
+
+
+    });
+
+</script>

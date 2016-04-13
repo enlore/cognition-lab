@@ -1,0 +1,53 @@
+<blueprint>
+    <alloy url="aliases.html" />
+    <alloy url="services.html" />
+
+    <alloy name="eis" url="/html/core/cloverleaf.html" route="true" />
+
+    <data name="contentPage" value="loading.html" />
+    <sensor watch="configData" transform="getUrl" pipe="contentPage" auto="true" once="true" />
+    <cog find="content" url="data contentPage" />
+
+    <prop find="activePageUrl" />
+    <prop find="activeSiteMenu" />
+    <prop find="activeSiteCog" />
+    <prop find="activeSiteDomain" />
+    <prop find="pageMenuOptions" />
+</blueprint>
+
+<display>
+    <div id="content" style="width: 100%;" />
+</display>
+
+<script>
+    $.cog({
+
+        init: function() {
+            this.activePageUrl.write(null);
+            this.activeSiteCog.write(this.mapItem.uid);
+            this.activeSiteDomain.write('cloverleaf');
+            this.pageMenuOptions.write(this.getPageMenuOptions());
+        },
+
+        getUrl: function() { return "content.html"; },
+
+        getPageMenuOptions: function() {
+            return {
+                    url: 'KATANA_TEXT_BUTTON_RENDERER'
+                ,   class: 'katana_nav_button'
+                ,   show: 'activePageUrl'
+                ,   default: 'CL_HISTORY_PAGE'
+//                ,   default: 'CLOVERLEAF_SUMMARY_PAGE'
+//                ,   default: 'WSMQ_HEALTH_PAGE'
+                ,   menuStyle: {'flex-direction':'column'}
+                ,   items: [
+                        {value: 'CL_HISTORY_PAGE',          title: 'Cloverleaf History'}
+                    ,   {value: 'CLOVERLEAF_SUMMARY_PAGE',  title: 'Cloverleaf Health Summary' }
+                    ,   {value: 'WSMQ_HEALTH_PAGE',         title: 'WSMQ Health' }
+                ]
+            };
+        }
+
+    });
+</script>
+

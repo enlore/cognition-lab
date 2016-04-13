@@ -1,0 +1,114 @@
+<blueprint>
+    <prop find="uiSelectRLGroup" />
+
+    <prop find="record" />
+    <sensor watch="record" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%; height: 100%; padding: 5px 5px 5px 30px;" >
+        <svg id="svg" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+            var self = this;
+            this.holder.on("click", function(e){
+                e.preventDefault();
+//                console.log("self.record.read():", self.record.read());
+                self.uiSelectRLGroup.write(self.record.read().location);
+            });
+        },
+
+        render: function(record) {
+            var self = this;
+            var d = record.totalRLData;
+//            console.log("d:", d);
+
+            var data = [
+                { label: "up",   value: d.up   || 1 },
+                { label: "down", value: d.down || 0 }
+            ];
+
+            var w = 30;
+            var h = 30;
+            var r = h/2;
+
+            /* blue used is the blue used in colored boxes or bars in datagrids, dialed back to 95% opacity */
+            var dataColors = d3.scale.ordinal().range(["rgba(0,167,209,.95)", "#e00025"]);
+            var mockColors = d3.scale.ordinal().range(["#15507d"]);
+            var color = (d.total && !d.mock) ? dataColors : mockColors;
+
+            var vis = d3.select(this.svg.get(0))
+                    .append("svg:svg")
+                    .data([data])
+                    .attr("width", w)
+                    .attr("height", h)
+                    .append("svg:g")
+                    .attr("transform", "translate(" + r + "," + r + ")");
+
+            var pie = d3
+                    .layout
+                    .pie()
+                    .value(function(d){return d.value;});
+
+            // declare an arc generator function
+            var arc = d3
+                    .svg
+                    .arc()
+                    .outerRadius(r);
+
+            // select paths & use arc generator to draw
+            var arcs = vis.selectAll("g.slice")
+                    .data(pie);
+
+            var arcsEnter = arcs.enter()
+                    .append("svg:g")
+                    .attr("class", "slice");
+
+            arcsEnter.append("svg:path")
+                    .attr("fill", function(d, i){
+                        return color(i);
+                    })
+                    .attr("d", function (d) {
+                        return arc(d);
+                    });
+
+            function getTipData(){
+                var timestamp  = (d.localDT) ? moment(d.localDT).format("MM/DD h:mm A") : "Not Reported";
+
+                /* concatenate value and percentage; ignore tenths if percentage is 100 */
+                var downAmount = (d.downPct < 1) ? numeral(d.downPct).format("0.0%") : "100%";
+                var upAmount   = (d.upPct   < 1) ? numeral(d.upPct  ).format("0.0%") : "100%";
+
+                /* formulate tooltip display; ignore percentage if value is zero */
+                var downStr    = (d.down)  ? d.down  + " (" + downAmount + ")" : d.down ;
+                var upStr      = (d.up)    ? d.up    + " (" + upAmount   + ")" : d.up   ;
+                var totalStr   = (d.total) ? d.total + " (100%)"               : d.total;
+
+                /* set tooltip message; indicate when no data is reported */
+                var downMsg    = (d.total && !d.mock) ? downStr  : "Not Reported";
+                var upMsg      = (d.total && !d.mock) ? upStr    : "Not Reported";
+                var totalMsg   = (d.total && !d.mock) ? totalStr : "Not Reported";
+
+                return {
+                    id: self.mapItem.uid,
+                    title: record.location,
+                    items: [
+                         { title:"Up Receive Locations",    value:upMsg     }
+                        ,{ title:"Down Receive Locations",  value:downMsg   }
+                        ,{ title:"Total Receive Locations", value:totalMsg  }
+                        ,{ title:"Updated",                 value:timestamp }
+                    ]
+                };
+            }
+
+            self.holder.kodama(getTipData());
+        }
+    });
+
+</script>

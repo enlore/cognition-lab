@@ -1,0 +1,96 @@
+<blueprint>
+
+    <require url="moment.min.js" path="JS_LIB" />
+    <require url="twix.min.js" path="JS_LIB" />
+
+    <require url="numeral.min.js" path="JS_LIB" />
+    <require url="d3.min.js" path="JS_LIB" />
+    <require url="kodama.js" path="JS" />
+    <require url="rei.kodama.js" path="JS" />
+
+    <require url="lodash.min.js" path="JS_LIB" />
+
+    <require url="sankey.js" path="JS_LIB" />
+    <require url="sankeyComp.js" path="JS_LIB" />
+    <require url="gem.js" path="JS_LIB" />
+    <require url="jquery.sparkline.min.js" path="JS_LIB" />
+    <require url="intro.min.js" path="JS_LIB" />
+    <require url="kendo.all.min.js" path="JS_LIB" />
+    <require url="bootstrap.js" path="JS_LIB" />
+
+
+    <alloy url="/html/katana/_katana.html" />
+    <alloy url="/html/kaiten/_kaiten.html" />
+    <alloy url="/html/core/services.html" />
+    <alloy url="/html/core/cases.html"  />
+
+    <alloy url="/html/core/refresh.html" />
+    <alloy url="/html/core/times.html" />
+    <alloy name="gui_state" url="/html/core/gui.html" />
+    <alloy url="/html/core/demoData.html" />
+
+    <cog find="holder" url="nav.html" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="height: 100%;">
+    </div>
+</display>
+
+<script>
+    $.cog(
+            {
+                init: function () {
+
+                    d3.kodama.themeRegistry('tlm', {
+                        frame: {
+                            padding: '4px',
+                            background: 'linear-gradient(to top, rgb(31, 82, 155) 0%, rgb(43, 52, 105) 90%)',
+                            'font-family': '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                            'border': '1px solid rgb(100, 160, 160)',
+                            color: 'rgb(245,240,220)',
+                            'border-radius': '4px',
+                            'font-size': '12px',
+                            'box-shadow': '0px 1px 3px rgba(0,20,40,.5)'
+                        },
+                        pane: {},
+                        title: {'text-align': 'center', 'padding': '4px'},
+                        item_title: {'text-align': 'right', 'color': 'rgb(220,200,120)'},
+                        item_value: {'padding': '1px 2px 1px 10px', 'color': 'rgb(234, 224, 184)'}
+                    });
+
+                    d3.kodama.theme('tlm');
+
+                    /* uses 3px of spacing between tooltip lines instead of the tlm theme's 1px */
+                    d3.kodama.themeRegistry('spacier', {
+                        frame: {
+                            padding: '4px',
+                            background: 'linear-gradient(to top, rgb(31, 82, 155) 0%, rgb(43, 52, 105) 90%)',
+                            'font-family': '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                            'border': '1px solid rgb(100,160,160)',
+                            color: 'rgb(245,240,220)',
+                            'border-radius': '4px',
+                            'font-size': '12px',
+                            'box-shadow': '0px 1px 3px rgba(0,20,40,.5)'
+                        },
+                        title: {'text-align': 'center', 'padding': '4px'},
+                        item_title: {'text-align': 'right', 'color': 'rgb(220,200,120)'},
+                        item_value: {'padding': '3px 2px 3px 10px', 'color': 'rgb(234, 224, 184)'}
+                    });
+
+                    _.mixin({
+                        'findByValues': function(collection, property, values) {
+                            return _.filter(collection, function(item) {
+                                return _.contains(values, item[property]);
+                            });
+                        }
+                    });
+
+                }
+            }
+
+    );
+
+
+</script>

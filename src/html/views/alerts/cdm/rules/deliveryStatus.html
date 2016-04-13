@@ -1,0 +1,41 @@
+<blueprint>
+    <prop find="isSelected" />
+    <sensor watch="rule" run="render" auto="true" />
+</blueprint>
+
+<script>
+    $.cog({
+        inactive: "rgba(33,90,167,.3)",
+        active: "#83baff",
+
+        render: function render (rule) {
+//            var defaultColor = "#215aa7";
+            this.daylight.css("color", this.inactive);
+            this.business.css("color", this.inactive);
+            this.oncall.css("color", this.inactive);
+            this[rule.timebox].css("color", this.active);
+
+            this.phone.css("color", rule.sms ? this.active : this.inactive);
+            this.email.css("color", rule.email ? this.active : this.inactive);
+        }
+    })
+</script>
+
+<display>
+    <div style="display: flex; flex-direction: row; font-size: 16px;">
+        <div id="phone" title="Receive Text Message Alerts" style=""><span style="padding: 4px; margin-top: -2px; font-size: 20px;" class="fa fa-mobile"></span></div>
+        <div id="email" title="Receive Email Alerts" style=""><span style="padding: 4px;" class="fa fa-envelope"></span></div>
+
+        <div id="business" title="During Business Hours" data-timebox-value="business" style="">
+            <span style="padding: 0 3px 0 18px;" class="fa fa-building"></span>
+        </div>
+
+        <div id="daylight" title="During the Daytime" data-timebox-value="daylight" style="">
+            <span style="padding: 1px;" class="fa fa-sun-o"></span>
+        </div>
+
+        <div id="oncall" title="While On-Call" data-timebox-value="oncall" style="">
+            <span style="padding: 4px;" class="fa fa-phone"></span>
+        </div>
+    </div>
+</display>

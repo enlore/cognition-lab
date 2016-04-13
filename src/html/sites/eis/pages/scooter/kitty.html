@@ -1,0 +1,16 @@
+<blueprint>
+    <sensor watch="tiger" run="logger" auto="true" optional="true" />
+
+</blueprint>
+
+<display>
+    <div></div>
+</display>
+
+<script>
+    $.cog({
+       logger: function(msg){
+           console.log('kitty child:'+msg);
+       }
+    });
+</script>

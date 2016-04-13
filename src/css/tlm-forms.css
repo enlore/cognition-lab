@@ -1,0 +1,100 @@
+/*
+ * TLM Form Styles
+ *
+ * This is should be temporary, but it makes the forms
+ * in the public health dash less... fug.
+ */
+
+.stateUpdateControl select,
+.statueUpdateControl label {
+    margin: 4px;
+}
+
+.stateUpdateControl select.disabled {
+    color: grey;
+    cursor: not-allowed;
+}
+
+.stateUpdateControl select {
+    color: black;
+}
+
+.stateUpdateControl label {
+    margin-right: 8px;
+    margin-bottom: 0;
+    padding-left: 4px;
+}
+
+.stateUpdateControl legend{
+    color: rgb(207, 192, 134);
+}
+
+.stateUpdateControl .flash-on-changed {
+    background-color: transparent;
+}
+
+.stateUpdateControl .flash-on-changed.changed {
+    background-color: green;
+    transition: background-color 300ms cubic-bezier(0.1, -0.8, 0.2, 0);
+}
+
+.stateUpdateControl .control-group {
+    padding: 5px;
+}
+
+.stateUpdateControl .no-button {
+    background: transparent;
+    border: none;
+}
+
+.stateUpdateControl .update-unlock.fa-lock {
+    color: red;
+}
+
+.stateUpdateControl .update-unlock.fa-unlock {
+    color: green;
+}
+
+.alerting-selectize .selectize-input {
+   z-index: inherit;
+}
+
+.alerting-selectize .alerting-item h4 {
+    margin-top: 0px;
+}
+
+.alerting-selectize .alerting-item p {
+    margin-bottom: 3px;
+}
+
+.alerting-selectize .alerting-item {
+    overflow: hidden;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-start;
+    border-bottom: 2px solid grey;
+}
+
+.alerting-selectize .alerting-item .heading {
+    flex: 0 1 100%;
+    margin-bottom: 2px;
+    border-bottom: 1px dashed grey;
+}
+
+.alerting-selectize .alerting-item .section {
+    flex: 0 1 auto;
+}
+
+.alerting-selectize .alerting-item div:nth-child(2) {
+    border-right: 1px dashed grey;
+    margin-right: 10px;
+    padding-right: 10px;
+}
+
+.alerting-selectize .alerting-item .acronym {}
+
+.alerting-selectize .alerting-item .translation {
+    font-weight: bold;
+    color: white;
+    display: inline;
+}

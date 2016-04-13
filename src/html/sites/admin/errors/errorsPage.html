@@ -1,0 +1,260 @@
+<blueprint>
+    <alias name="HEAT_MAP_NUM_RENDERER" url="heatmapNum.html" />
+
+    <prop find="activePageDef" />
+    <prop find="SERVICE_ROOT" is="alias" />
+
+    <data name="cmd_Download" />
+    <data name="tlmErrors" url="TLM_ERRORS" prop="true" />
+    <data name="tlmErrorsRaw" url="TLM_ERRORS_RAW" prop="true" />
+
+    <data name="selFileKey" value="0" prop="true" />
+    <data name="selDate" value="0" prop="true" />
+    <data name="rawDayRecords" prop="true" />
+    <data name="errorStatText" prop="true" />
+
+    <data name="errorRecords" />
+    <data name="sortedDates" />
+    <data name="dateColumns" />
+    <data name="keyRecords" note="by key of app-server-error with multi date columns" />
+    <data name="records" />
+
+    <sensor watch="refreshAllFilters" run="requestTlmErrors" auto="true" />
+    <sensor watch="tlmErrors" transform="toErrorRecords" pipe="errorRecords" auto="true" />
+    <sensor watch="tlmErrors" transform="toSortedDates" pipe="sortedDates" auto="true" />
+    <sensor need="errorRecords,sortedDates" group="true" transform="toDateColumns" pipe="dateColumns" auto="true" />
+    <sensor need="dateColumns,errorRecords" group="true" transform="toKeyRecords" pipe="keyRecords" auto="true" />
+
+
+    <sensor watch="refreshAllFilters" run="requestTlmErrorsRaw" auto="true" />
+    <sensor need="tlmErrorsRaw,selFileKey,selDate" retain="true" group="true" transform="toRawDayRecords" pipe="rawDayRecords" auto="true" />
+    <sensor watch="rawDayRecords" transform="toGridTitle" pipe="errorStatText" auto="true" />
+    <sensor need="cmd_Download" run="downloadErrors" auto="true" />
+
+    <sensor node="downloadLink" on="click" pipe="cmd_Download" />
+
+    <cog find="errorsGrid" url="errorsGrid.html" />
+    <cog find="rawGrid" url="rawGrid.html" />
+
+
+</blueprint>
+
+<display>
+    <div  style="flex: 1 1 auto;margin-top: 6px; margin-bottom: 6px; color: #cdf;">
+        <div id="errorsGrid" style="margin: 8px 8px;" ></div>
+        <div id="rawGrid" style="margin: 8px 8px;" ></div>
+        <div style="width: 100%; text-align: right;">
+            <span id="downloadLink" style="text-align: right; width: 100%; padding-right: 12px; text-decoration: underline;">download error records</span>
+        </div>
+    </div>
+
+</display>
+
+
+<script>
+
+    $.cog({
+
+        init: function(){
+            this.activePageDef.write(this.pageDef);
+        },
+
+        pageDef: {
+            title: 'Errors',
+            domain: 'none',
+            time: 'none'
+        },
+
+        determineKey: function(rec){
+
+            var key = [rec.app , rec.error_type, rec.component, rec.server].join('|');
+            return key;
+        },
+
+        toGridTitle: function(msg){
+            if(!msg || !msg.length){
+                return "No errors.";
+            }
+            var r = msg[0];
+            console.log('R',r);
+            return msg.length + ' ' + r.error_type + ' error(s) for ' + r.app + ' via ' + r.component + ' on server ' + r.server + ' (' +
+                    moment(r.raw_date).format('MMMM Do, YYYY') +').';
+        },
+
+        toRawDayRecords: function(msg){
+
+            var result = [];
+            var errors = msg.tlmErrorsRaw.data;
+            for(var i = 0; i < errors.length; i++){
+                var err = errors[i];
+                err.key = this.determineKey(err);
+                err.raw_date =  moment.utc(err.dt).valueOf();
+                if(err.key === msg.selFileKey && err.raw_date === msg.selDate)
+                    result.push(err);
+            }
+
+            console.log('errs', result);
+            return result;
+            //console.log(this.selDate.read(),this.selFileKey.read());
+            //console.log('raw day:', msg);
+        },
+
+        toDateColumns: function(msg){
+
+            var dates = msg.sortedDates;
+            var columns = [];
+
+            for(var i = 0; i < dates.length; i++){
+                var date = dates[i];
+                var column =  { field: '', title: '', flex: '1 1 25px', showZero: false, renderer: 'HEAT_MAP_NUM_RENDERER' };
+                column.field = 'date_' + date;
+                column.title = moment(date).format('Do');
+                column.raw_date = date;
+                columns.push(column);
+            }
+
+            columns = columns.reverse();
+
+            return columns;
+
+        },
+
+        toErrorRecords: function(msg){
+
+
+            var records = msg.data || [];
+            var max_ct = 0;
+            var i, r, d;
+
+            for(i = 0; i < records.length; i++){
+
+                r = records[i];
+                d = moment.utc(r.dt).valueOf();
+                r.dateValue = d;
+                r.key = this.determineKey(r);
+                if(r.ct > max_ct)
+                    max_ct = r.ct;
+
+            }
+
+            for(i = 0; i < records.length; i++){
+
+                r = records[i];
+                r.max_ct = max_ct;
+
+            }
+
+            return records;
+
+        },
+
+        toKeyRecords: function(msg){
+
+            function copyBaseRecord(r){
+
+                var copy = {};
+                copy.server = r.server;
+                copy.app =r.app;
+                copy.component = r.component;
+                copy.error_type = r.error_type;
+                copy.key = r.key;
+                copy.max_ct = r.max_ct;
+
+                return copy;
+            }
+
+            var error_records = msg.errorRecords;
+            var date_columns = msg.dateColumns;
+
+            var records_by_key = {};
+
+            for(var i = 0; i < error_records.length; i++){
+
+                var error_record = error_records[i];
+
+                var key = error_record.key;
+                var key_record = records_by_key[key] = records_by_key[key] || copyBaseRecord(error_record);
+
+                for(var j = 0; j < date_columns.length; j++){
+                    var column = date_columns[j];
+                    if(!key_record.hasOwnProperty(column.field))
+                        key_record[column.field] = 0; // default 0 count
+                }
+
+                var ct_field = 'date_' + error_record.dateValue;
+                key_record[ct_field] = error_record.ct;
+
+            }
+
+            var key_records = [];
+            for(var key in records_by_key){
+                key_records.push(records_by_key[key]);
+            }
+
+            //console.log('KEY:',key_records);
+            return key_records;
+
+        },
+
+        toSortedDates: function(msg){
+
+
+            var records = msg.data || [];
+            var dates = [];
+
+            for(var i = 0; i < records.length; i++){
+
+                var r = records[i];
+                var d = moment.utc(r.dt).valueOf();
+                r.dateValue = d;
+                if(dates.indexOf(d) === -1)
+                    dates.push(d);
+
+            }
+
+            dates.sort();
+
+            var lastDate = dates[dates.length - 1];
+            var currDate = dates[0];
+
+            var newDates = [currDate];
+            while(currDate < lastDate) {
+                var nextDate = moment(currDate).add(1, 'd').valueOf();
+                newDates.push(nextDate);
+                currDate = nextDate;
+            }
+
+            return newDates;
+
+        },
+
+
+        requestTlmErrors: function(){
+            this.tlmErrors.request();
+            this.tlmErrorsRaw.request();
+        },
+
+        downloadErrors: function(msg){
+
+
+            var errors = this.rawDayRecords.read();
+
+            if(!errors) return;
+
+            var mi = this.mapItem;
+            var fileName = 'TLM-errors-' + moment().unix() + '.csv';
+
+            var options = {filename: fileName, data: JSON.stringify(errors)};
+            var paramStr = $.param(options);
+            var serviceStr =  this.SERVICE_ROOT;
+            var downloadLink = serviceStr + "echoFile?" + paramStr;
+            this.mapItem.postToBlankWindow(serviceStr + "echoFile", options);
+
+
+        }
+
+
+
+
+    });
+</script>

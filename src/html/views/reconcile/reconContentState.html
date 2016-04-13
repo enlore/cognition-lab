@@ -1,0 +1,44 @@
+<blueprint>
+
+    <data name="groupContentPage" />
+    <data name="sliceContentPage" />
+    <data name="sliceAction" />
+    <data name="sliceMenuView" value="bars" />
+
+    <sensor watch="sliceMenuView" transform="toSliceUrl" pipe="sliceContentPage" auto="true" />
+    <sensor watch="sliceMenuView" transform="toGroupUrl" pipe="groupContentPage" auto="true" />
+    <sensor watch="sliceAction" run="doSliceAction" />
+
+</blueprint>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+          console.log('recond!');
+        },
+
+        doSliceAction: function(){
+
+        },
+
+        toSliceUrl: function(view){
+            if(view === 'bars' || view === 'grid'){
+                return 'reconGroups.html';
+            } else if (view === 'sample'){
+                return 'reconSamples.html';
+            }
+        },
+
+        toGroupUrl: function(view){
+            if(view === 'bars'){
+                return 'reconBars.html';
+            } else if (view === 'grid'){
+                return 'reconGrid.html';
+            }
+        }
+
+    });
+
+</script>

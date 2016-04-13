@@ -1,0 +1,26 @@
+<blueprint>
+    <alias name="TEXT_BUTTON_RENDERER" url="textButtonRenderer.html" />
+    <alias name="ICON_BUTTON_RENDERER" url="iconButtonRenderer.html" />
+
+    <data name="options" value="prop defineButtons" />
+
+    <!--<cog find="holder" path="LIB" url="buttonMenu.html" />-->
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+    $.cog({
+
+        defineButtons: {
+            url: 'TEXT_BUTTON_RENDERER',
+            show: 'selAspect',
+            items: [
+                { value: 'download', tell: 'downloadClick', style: 'fa fa-download', url: 'ICON_BUTTON_RENDERER' }
+            ]
+        }
+
+    });
+</script>

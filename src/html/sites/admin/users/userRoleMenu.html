@@ -1,0 +1,26 @@
+<blueprint>
+    <data name="options" value="prop defineButtons" />
+    <cog find="holder" and="append" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        defineButtons:  {
+            show: 'userRole',
+            tell: 'assignRole',
+            items: [
+                {value: 'admin'},
+                {value: 'support'},
+                {value: 'user'},
+                {value: 'executive'}
+            ]
+        }
+
+    });
+</script>

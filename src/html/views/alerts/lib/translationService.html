@@ -1,0 +1,121 @@
+<blueprint>
+    <prop find="configEIS" />
+    <prop find="configCDM" />
+</blueprint>
+
+<script>
+    $.cog({
+        init: function init () {
+            this.translators = {
+                "state 11": this.state11,
+                "zero volume": this.zeroVol
+            }
+        },
+
+        translate: function (records) {
+            var records = records
+
+            var self = this
+
+            var translated = records.map(function (record) {
+                return self.translators[record.event_type].call(self, record)
+            })
+
+
+            return translated
+        },
+
+        lookUpTranslation: function (abbrev, terms) {
+            for (var i = 0; i < terms.length; i++ ) {
+                var term = terms[i]
+                if (abbrev === term.abbr || abbrev === term.id)
+                    return term.name
+            }
+
+            return null
+        },
+
+        // Edge case
+        lookUpApp: function (abbrev, terms) {
+            var chunks = abbrev.split("_")
+            var appName = chunks[0]
+
+            for (var i = 0; i < terms.length; i++ ) {
+                var term = terms[i]
+
+                if (appName === term.abbr || appName === term.id)
+                    return term.name
+            }
+
+            return null
+        },
+
+
+        state11: function (record) {
+            record.translations = {}
+
+            var dtFail = 0
+            var siteFail = 0
+            var vendFail = 0
+            var systemFail = 0
+
+            var dict = this.configEIS.read().data
+
+            var datatypeAbbrev = record.datatype
+            var siteAbbrev = record.site
+            var vendorAbbrev = record.vendor
+            var systemAbbrev = record.system
+
+            var datatypeTrans   = this.lookUpTranslation(datatypeAbbrev, dict.datatypes) || ++dtFail && "No translation avail"
+            var siteTrans       = this.lookUpTranslation(siteAbbrev, dict.sites) || ++siteFail && "No translation avail"
+            var vendorTrans     = this.lookUpTranslation(vendorAbbrev, dict.vendors) || ++vendFail && "No translation avail"
+            var systemTrans     = this.lookUpTranslation(systemAbbrev, dict.machines) || ++systemFail && "No translation avail"
+
+            record.datatypeTrans = datatypeTrans
+            record.siteTrans = siteTrans
+            record.vendorTrans = vendorTrans
+            record.systemTrans = systemTrans
+
+            record.translations.datatype = datatypeTrans
+            record.translations.site = siteTrans
+            record.translations.vendor = vendorTrans
+            record.translations.system = systemTrans
+
+            return record
+        },
+
+        zeroVol: function (record) {
+            record.translations = {}
+
+            var facilFailCount      = 0
+            var appFailCount        = 0
+            var msgTypeFailCount    = 0
+            var dcFailCount         = 0
+            var networkFailCount    = 0
+
+            var dict            = this.configCDM.read().data
+
+            var appAbbrev       = record.app
+            var facilityAbbrev  = record.facility
+            var msgTypeAbbrev   = record.msgType
+
+            var appTrans        = this.lookUpApp(appAbbrev, dict.apps) || ++appFailCount && "Nobody here but us chickens"
+            var facilityTrans   = this.lookUpTranslation(facilityAbbrev, dict.facilities) || ++facilFailCount && "No translation avail"
+            var msgTypeTrans    = this.lookUpTranslation(msgTypeAbbrev, dict.messageTypes) || ++msgTypeFailCount && "No translation avail"
+            var dcTrans         = this.lookUpTranslation(record.dc, dict.dcs) || ++dcFailCount && "No translation available"
+            var netTrans        = this.lookUpTranslation(record.network, dict.networks) || ++networkFailCount && "No translation available"
+
+            record.appTrans             = appTrans
+            record.facilityTrans        = facilityTrans
+            record.msgTypeTrans         = msgTypeTrans
+            record.translations.dc      = record.dcTrans = dcTrans
+            record.translations.network = record.networkTrans = netTrans
+
+            record.translations.app         = appTrans
+            record.translations.facility    = facilityTrans
+            record.translations.msgType     = msgTypeTrans
+
+            return record
+        }
+    })
+</script>

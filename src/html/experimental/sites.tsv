@@ -1,0 +1,270 @@
+sid	site	sname
+1	cpcs_aa	Medical Center of Aurora
+2	cpcs_abc	Livingston Regional Hospital
+3	cpcs_ag	Augusta Medical Center
+4	cpcs_ah	Athens Med Center
+5	cpcs_ak	Alaska Regional Hospital
+6	cpcs_ar	Medical Center of Arlington 2
+7	cpcs_as	St. David's South Hospital (South Austin Hosp)
+8	cpcs_ay	Methodist Ambulatory Surgery Hospital
+9	cpcs_ba	Corpus Christi Medical Center
+10	cpcs_bau	North Austin Medical Center
+11	cpcs_bbo	Boynton Beach (OR)
+12	cpcs_bg	Bourbon Community Hospital
+13	cpcs_bh	Frankfort Regional Medical Center
+14	cpcs_bic	Brambleton Imaging Center
+15	cpcs_blm	Baptist Lutheran Medical Center
+16	cpcs_bm	Bayshore Medical Center
+17	cpcs_bmc	Burdick West Medical Center
+18	cpcs_bp	Regional Medical Center Bayonet Point
+19	cpcs_bz	College Station Medical Center
+20	cpcs_ca	Cartersville Medical Center
+21	cpcs_cba	St. David's Medical Center
+22	cpcs_cbe	Ashley Valley Medical Center
+23	cpcs_cbf	Brigham City Community Hospital
+24	cpcs_cbg	Castleview Hospital
+25	cpcs_cbl	Mountain View Hospital
+26	cpcs_cc	Chippenham-Johnston Willis Medical Center
+27	cpcs_cc2	Chippenham-Johnston Willis Medical Center
+28	cpcs_cd	Cheatham Medical Center
+29	cpcs_ce	University of Miami - Cedars
+30	cpcs_cf	Woman's Hospital of Texas
+31	cpcs_cj	Clinch Valley Med Center
+32	cpcs_cl	Clear Lake Regional Medical Center
+33	cpcs_cm	Centerpoint Medical Center
+34	cpcs_cn	Central Florida Regional Hospital (Sanford Med Ct)
+35	cpcs_cocs	Southside Cancer Center
+36	cpcs_coi	Concept Open Imaging (OR)
+37	cpcs_cor	Colorado River Med Center
+38	cpcs_cr	Conroe Regional Medical Center
+39	cpcs_dab	Colleton Medical Center
+40	cpcs_dae	Las Colinas Medical Center
+41	cpcs_dat	Northeast Methodist Surgery Center
+42	cpcs_daw	Riverside Community Hospital
+43	cpcs_dc	Doctors Hospital Columbus
+44	cpcs_de	Summit Medical Center
+45	cpcs_dl	Medical City Dallas Hospital
+46	cpcs_dmm	Danville Medical Center
+47	cpcs_do	Corpus Christi Medical Center
+48	cpcs_doi	Delray Open Imaging (OR)
+49	cpcs_dr	Denton Regional Medical Center
+50	cpcs_dt	Doctors Hospital Sarasota
+51	cpcs_du	Dauterive  Hospital
+52	cpcs_eaf	Lewis-Gale Hospital
+53	cpcs_eap	Southern Tennessee Medical Center
+54	cpcs_eav	AirLife
+55	cpcs_eh	Englewood Community Hospital
+56	cpcs_ei	Parkridge East Hospital
+57	cpcs_ejc	Emory Johns creek Hospita
+58	cpcs_emc	Eunice Community Medical Center
+59	cpcs_er	Edmond Regional Medical Center
+60	cpcs_es	Eastside Medical Center
+61	cpcs_ew	Edward White Hospital
+62	cpcs_fal	Timpanogos Regional Medical Center
+63	cpcs_fas	Southcrest
+64	cpcs_fh	Fawcett Memorial Hospital
+65	cpcs_fi	Spalding  Rehabilitation
+66	cpcs_fn	Saint Francis Med Center
+67	cpcs_fv	Fairview Park Hospital
+68	cpcs_fy	Crockett General Hospital
+69	cpcs_gba	St. David's Rehabilitation Center
+70	cpcs_gbe	Green Oaks Hospital
+71	cpcs_gbt	Regional Medical Center of San Jose
+72	cpcs_gbu	Denton Community Hospitals
+73	cpcs_gc	Gulf Coast Hosp - Ft Myers
+74	cpcs_gcc	North Florida Radiation Oncology – Gainesville
+75	cpcs_gha	Galichia Heart Hospital
+76	cpcs_gl	Bluegrass Community Hospital
+77	cpcs_go	Good Samaritan Hospital
+78	cpcs_gp	St. Petersburg Medical Center
+79	cpcs_gth	Georgetown Hospital
+80	cpcs_gv	Greenview Hospital
+81	cpcs_gy	Greenbrier Valley Med Center
+82	cpcs_hha	Heart Hospital of Austin
+83	cpcs_hm	Horizon Medical Center
+84	cpcs_hn	Hendersonville Hospital
+85	cpcs_hr	Henrico Doctors Hospital
+86	cpcs_hu	Hughston Hospital
+87	cpcs_ica	Appomattox Imaging Center
+88	cpcs_icb	Buford Road Imaging
+89	cpcs_icc	Chesterfield Imaging
+90	cpcs_icf	Carolina Forest Imaging Center
+91	cpcs_icp	Independence Park Imagaing Center
+92	cpcs_icr	Riverside Imaging Center
+93	cpcs_ics	San Bernardino Imaging
+94	cpcs_ict	Three Chopt Imaging
+95	cpcs_id	Eastern Idaho Reg. Med. Ctr.
+96	cpcs_ie	Lake City Medical Center
+97	cpcs_irf	South Florida Integrated Regional Labs (IRL-FL)
+98	cpcs_irl	Integrated Regional Rapid Response Lab
+99	cpcs_jfk	JFK Medical Center
+100	cpcs_joi	Jupiter Open Imaging (OR)
+101	cpcs_jr	John Randolph Hospital
+102	cpcs_kn	Kendall Regional Medical Center
+103	cpcs_kw	Columbia Kingwood Medical Center
+104	cpcs_kx	Hillside Hospital
+105	cpcs_la	River Parish Hospital
+106	cpcs_lad	LAD Imaging LLC, Deltona
+107	cpcs_laf	Lafayette Regional Health Center
+108	cpcs_lb	Lake Cumberland Regional Hospital
+109	cpcs_le	Medical Center Lewisville
+110	cpcs_lg	Longview Regional Medical Center
+111	cpcs_ll	North Florida Cancer Center-Tallahassee
+112	cpcs_lm	Logan Memorial Hospital
+113	cpcs_ln	Medical Center of Southwest Louisiana
+114	cpcs_lq	San Leandro  Hospital
+115	cpcs_lr	Largo Medical Center
+116	cpcs_lrm	Logan Regional Medical Center
+117	cpcs_lsu	Lee Sumit Hospital
+118	cpcs_lv	Lakeview Regional Medical Center
+119	cpcs_lvc	Lander Valley Medical Center
+120	cpcs_lvk	North Florida Cancer Center
+121	cpcs_lw	Blake Medical Center
+122	cpcs_mca	Denton Regional Radiation Oncology
+123	cpcs_mcc	Millcreek Imaging Center
+124	cpcs_men	Menorah Medical Center
+125	cpcs_mhb	Mercy Hospital
+126	cpcs_mi	Willamette Valley Medical Center
+127	cpcs_mj	Medical  Park Hospital
+128	cpcs_mk	North Central Medical Center (McKinney)
+129	cpcs_mmh	Memorial Hospital of Martinsville and Henry County
+130	cpcs_mn	Mainland Medical Center
+131	cpcs_mo	Sunrise Mountain View Hospital
+132	cpcs_ms	Specialty Hospital Jacksonville
+133	cpcs_mso	Methodist Stone Oak Hospital
+134	cpcs_mt	Metropolitan Methodist Hospital
+135	cpcs_mta	Methodist Texsan Hospital
+136	cpcs_mv	Mesa View Hospital
+137	cpcs_mw	Meadowview Regional Hospital
+138	cpcs_mx	Mt. View Regional Medical Center
+139	cpcs_na	Navarro Regional Hospital
+140	cpcs_nb	North Suburban Medical Center
+141	cpcs_nh	North Hills Hospital
+142	cpcs_nmc	Northwest Medical Center
+143	cpcs_np	New Port Richey Hospital
+144	cpcs_npm	National Park Medical Center
+145	cpcs_nr	Northwest Medical Center - Tucson
+146	cpcs_ns	Northside Hospital
+147	cpcs_nv	Skyline Medical Center (Nashville Memorial)
+148	cpcs_nw	Northwest Medical Center - Margate
+149	cpcs_oa	Oakdale Community Hospital
+150	cpcs_oh	Oak Hill Hospital
+151	cpcs_oic	Ogden Imaging Center
+152	cpcs_okc	Muskogee Regional Medical Center
+153	cpcs_os	Osceola Regional Medical Center
+154	cpcs_ovp	Overland Park Reg Medical Center
+155	cpcs_pa	Columbia Hospital - Palm Beach
+156	cpcs_par	Palestine Regional Medical Center
+157	cpcs_pbi	Palm Beach Gardens Open Imaging
+158	cpcs_pc	Parkridge Medical Center
+159	cpcs_pe	Pulaski Community Hospital
+160	cpcs_pf	Palms West Hospital
+161	cpcs_pj	HAADC - Phoebe
+162	cpcs_pl	Medical Center Plano
+163	cpcs_pma	Poinciana Medical Center
+164	cpcs_pv	Pinelake Regional Hospital
+165	cpcs_pz	Plaza Medical Center of Fort Worth
+166	cpcs_qc	Parkland Medical Center
+167	cpcs_qe	Portsmouth Regional Medical Ctr.
+168	cpcs_qh	Camden Clark Memorial Hospital St Joseph Campus
+169	cpcs_qr	Raulerson Hospital
+170	cpcs_ra	Rapides Regional Medical Center
+171	cpcs_rbe	Research Belton Hospital
+172	cpcs_rh	Retreat Hospital
+173	cpcs_rj	Brooks Rehab Center
+174	cpcs_rk	Round Rock Hospital
+175	cpcs_rm	Redmond Regional Medical Center
+176	cpcs_rpc	Research Pyschiatric Center
+177	cpcs_rq	Raleigh General Hospital Center
+178	cpcs_rr	Rio Grande Regional Hospital
+179	cpcs_rs	Northwest Hospital
+180	cpcs_rt	Riverton Memorial Hospital
+181	cpcs_rx	Los Robles Hospital
+182	cpcs_ry	Russellville Hospital
+183	cpcs_rz	River Park Hospital
+184	cpcs_saa	Spotsylvania Regional Medical Center
+185	cpcs_se	South Bay Hospital
+186	cpcs_sg	Georgetown Community Hospital
+187	cpcs_sj	Spring Branch Medical Center
+188	cpcs_sk	Savoy Med Center
+189	cpcs_sl	East Houston Medical Center
+190	cpcs_smc	Sun Coast Hospital
+191	cpcs_smr	St. Marys Regional Medical Center
+192	cpcs_sn	Methodist Spec & Transplant (San Antonio)
+193	cpcs_snm	Memorial Medical Center
+194	cpcs_snv	Southern Hills Medical Center (Las Vegas)
+195	cpcs_so	Southern Hills Medical Center
+196	cpcs_soa	Sisters of Emmanuel
+197	cpcs_sr	Sky Ridge Medical Center
+198	cpcs_st	Las Palmas MC (Columbia Medical Center West)
+199	cpcs_su	Parkridge West Hospital
+200	cpcs_sv	Spring View Hospital
+201	cpcs_sw	Southwest Florida Reg MC
+202	cpcs_sy	Stonecrest Medical Center
+203	cpcs_ta	Capital Med Center
+204	cpcs_te	Texas Orthopedic Hospital
+205	cpcs_tg	Terre Haute Regional Hospital
+206	cpcs_tn	Tennessee Christian Med Center - Madison
+207	cpcs_ts	Thomas Span - Clinic
+208	cpcs_tu	Tulane University Hospital and Clinic
+209	cpcs_tw	Twin Cities Hospital
+210	cpcs_ue	Putnam Medical Center
+211	cpcs_uh	University Hospital & Medical Center
+212	cpcs_us	Andalusia Regional Hospital
+213	cpcs_uu	Garden Park Hospital
+214	cpcs_uv	Lea Regional Medical Center
+215	cpcs_va	Valley Regional Medical Center
+216	cpcs_vg	Vaughan Regional Med Center
+217	cpcs_vh	Del Sol Medical Center (Medical Center East)
+218	cpcs_vk	Oro Valley Hospital
+219	cpcs_vlp	Ville Platte Med Center
+220	cpcs_vo	Northeast Methodist Hospital
+221	cpcs_vt	West Valley Medical Center
+222	cpcs_vvm	Valley View Medical Center
+223	cpcs_vw	Lawnwood Regional Medical Ctr. (Florida)
+224	cpcs_vy	Paradise Valley Hosp
+225	cpcs_wbi	West Boynton Open Imaging
+226	cpcs_wc	Women's & Children's Hospital
+227	cpcs_wf	West Hills Medical Center
+228	cpcs_wg	Wythe County Community Hospital
+229	cpcs_wi	Winn Parish Medical Center
+230	cpcs_wl	Woodland Heights Medical Center
+231	cpcs_wm	Southwest Texas Methodist Hospital
+232	cpcs_wn	Western Plains Regional Hospital
+233	cpcs_wr	West Florida Regional Medical Center
+234	cpcs_ws	Westside Regional Medical Center
+235	cpcs_wu	West Houston Medical Center
+236	cpcs_wvi	West Valley Imaging
+237	cpcs_wy	Wesley Medical Center
+238	cpcs_xg	Port St. Lucie Medical Center
+239	cpcs_xs	DominionHospital
+240	cpcs_xz	Claremore Regional Hospital
+241	cpcs_ye	Rose Medical Center
+242	cpcs_yj	Saint Mark's Hospital
+243	cpcs_yk	Ocala Regional Medical Center
+244	cpcs_yl	North Florida Cancer Center-Lake City
+245	cpcs_ys	Reston Hospital
+246	cpcs_yv	Southwestern Med Center
+247	cpcs_zn	Alleghany Regional Hospital
+248	cpcs_zr	Montgomery Regional Center
+249	cpcs_zs	Swedish Medical  Cente
+250	div_cap	Division Hub - Capital
+251	div_cap_pnav	none
+252	div_cape	Division Hub - Capella
+253	div_con	Division Hub - Continental
+254	div_cwt	Division Hub - Central & West Texas
+255	div_del	Division Hub - Delta
+256	div_efl	Division Hub - East Florida Div
+257	div_fwd	Division Hub - Far West Division
+258	div_gcd	Divison - Gulf Coast
+259	div_hou	none
+260	div_lpt	Division Hub - Lifepoint Corp
+261	div_mtn	Division Hub- Mountain
+262	div_mwd	Division Hub - Midwest Div
+263	div_nfl	Division Hub - North Florida
+264	div_ntx	Division Hub - North Texas
+265	div_sad	Division Hub - South Atlantic
+266	div_san	Division Hub - San Antanio
+267	div_tri	Division Hub - Tristar
+268	div_tri_muse	none
+269	div_wfl	Division Hub - West Florida

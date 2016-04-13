@@ -1,0 +1,196 @@
+<blueprint>
+    <prop find="user" />
+    <prop find="phStateIntegration" />
+
+    <data name="formLocked" prop="true" value="bool true" />
+
+    <sensor watch="formLocked" change="true" run="renderLock" />
+    <sensor node="padlockControl" on="click" run="toggleLock" />
+    <sensor watch="selectState" change="true" run="populateForm" auto="true" />
+
+    <chain url="lockingSelect.html" source="prop formOptions" item="data options" find="selectContainer" />
+
+    <data name="updatedIntegrationType" prop="true" />
+    <sensor watch="phStateIntegration" run="getUpdated" />
+
+</blueprint>
+
+<display>
+    <div id="stateUpdateControl"  class="katana_panel_bright stateUpdateControl" style="display: block; overflow: auto;  height: 220px; padding-bottom: 0; border-top: none;">
+        <!-- form goes here -->
+        <form id="integrationForm" action="" method="">
+            <fieldset style="display: table;">
+                <legend>
+                    State Integration Status
+                    <button id="padlockControl" type="button" class="fa fa-lock no-button update-unlock"></button>
+                </legend>
+
+                <p class="form-hint">Manually change the integration status</p>
+
+                <div id="selectContainer"></div>
+
+                <div id="formFlash"></div>
+            </fieldset>
+        </form>
+
+        <div id="stateUpdateFeedback"></div>
+    </div>
+</display>
+
+<script>
+$.cog({
+    init: function init () {
+        $(this.stateUpdateControl.raw()).hide();
+        $(this.integrationForm.raw()).find("select").prop("disabled", true).addClass("disabled");
+
+        // TODO bind instead self 2015-06-09
+        var self = this;
+        $(this.integrationForm.raw()).on("form-lock", function () {
+          self.renderLock(true)
+        });
+
+        /**
+         * Let's handle stuff
+         */
+        function formCleaner () {
+            $(this.integrationForm.raw()).find('.flash-on-changed').removeClass('changed');
+            $(this.integrationForm.raw()).find('.update-indicator').hide();
+            $(this.formFlash.raw()).empty();
+        }
+
+        var boundFormCleaner = formCleaner.bind(this);
+        $(this.integrationForm.raw()).on("clean", boundFormCleaner)
+    },
+
+    getUpdated: function getUpdated () {
+      this.flashMessage(this.updatedIntegrationType.read())
+    },
+
+    formOptions: [
+        { title: "ELR", field: "ELR", userVal: null },
+        { title: "SS", field: "SS", userVal: null},
+        { title: "IMM", field: "IMM", userVal: null}
+    ],
+
+    renderLock: function renderLock (formLocked) {
+        $(this.padlockControl.raw()).removeClass().addClass("fa no-button update-unlock");
+        $(this.padlockControl.raw()).addClass(formLocked ? "fa-lock" : "fa-unlock");
+
+        $(this.integrationForm.raw()).find("select").each(function (_i, elem) {
+            var $elem = $(elem);
+            $elem.prop("disabled", true).addClass("disabled");
+        })
+    },
+
+    toggleLock: function toggleLock () {
+        this.formLocked.toggle();
+    },
+
+    destroy: function destroy () {
+        $(this.stateUpdateControl).hide();
+        $(this.integrationForm.raw()).trigger("form-lock");
+        $(this.integrationForm.raw()).trigger("clean");
+    },
+
+    renderForm: function renderForm () {
+
+    },
+
+    /**
+     * this is data:
+     * {
+     *     geometry: {},
+     *     id: "KY",
+     *     properties: {
+     *         STATE_ABBR: "KY",
+     *         facilities: ["", ...],
+     *         rollout: {
+     *             ELR: 3,
+     *             IMM: 4,
+     *             SS: 3
+     *         },
+     *         state: "Kentucky",
+     *     },
+     *     type: "Feature"
+     * }
+     */
+    populateForm: function populateForm (data) {
+        if (data === null) {
+            return this.destroy(); // no need to run when data loc has null written to it, also destroy form on unfocus
+        }
+
+        if (data.properties.facilities.length === 0) { // if we don't have any hospitals in this market
+            return this.destroy();
+        }
+
+        $(this.integrationForm.raw()).trigger("clean");
+
+        $(this.integrationForm.raw()).trigger("form-lock");
+
+        // not an admin? no form for you
+        if (!this.user.read().isAdmin) {
+            return
+        }
+
+        $(this.stateUpdateControl.raw()).show();
+
+        function handleSelect (e) {
+            var $select = $(e.target);
+            var selectVal = $select.val()
+              , columnName = $select.attr('name')
+              , payload = {};
+
+            payload.columnName = columnName;
+            payload.val        = selectVal;
+
+            // AJAX
+            // this is bound to the cognition this
+            this.updateIntegrationRecord(data.properties.STATE_ABBR, payload, function (err, res) {
+              if (err) throw err
+
+              console.log(res)
+              $select.trigger('success');
+            })
+        }
+
+        var boundHandleSelect = handleSelect.bind(this);
+
+        $(this.integrationForm.raw()).off("change")
+        $(this.integrationForm.raw()).on("change", "select", boundHandleSelect)
+    },
+
+    /**
+     * Ajaxes an update to our Public Health State Intergration Status API at /api/phStateIntegrationStatus
+     * This will shoot a PUT up the pipe
+     * @param {string} stateCode - Two letter abbreviated state code, e.g. CA
+     * @param {object} payload - Object that contains the new value for the given data point
+     * @param {string} payload.INTEGRATION_PROPERTY - Either IMM, ELR, or SS, string value can be one of Not Engaged, Onboaring, Testing / QA, or Live / Production
+     */
+    updateIntegrationRecord: function updateIntegrationRecord (stateCode, payload, cb) {
+        var params = {
+          method: "put",
+          state: stateCode,
+          ss: "",
+          imm: "",
+          elr: ""
+        };
+
+        // clean column name and set on params as integration status val from form
+        var colName = payload.columnName.toLowerCase();
+        if (params.hasOwnProperty(colName)) params[colName] = payload.val;
+
+        this.phStateIntegration.request(params);
+
+
+        this.updatedIntegrationType.write(payload)
+    },
+
+    flashMessage: function flashMessage (data) {
+
+      var msg = "Updated <b>" + data.columnName + "</b> to <b>" + data.val + "</b>";
+
+        var blob = "<p class='form-helper'>" + msg + "</p>";
+        $(this.formFlash.raw()).html(blob);
+    }
+})
+</script>

@@ -1,0 +1,32 @@
+
+<blueprint>
+    <sensor watch="activeSiteTitle" run="render" auto="true" />
+</blueprint>
+
+
+<display>
+
+      <span id="title" class="katana_panel_title"
+            style="
+    font-weight: 500;
+    font-size: 18px;
+    padding-left: 110px;
+    padding-top: 10px;
+    padding-right: 0px;">
+
+      </span>
+
+</display>
+
+
+<script>
+
+    $.cog({
+
+        render: function(title){
+            this.title.text(title);
+        }
+
+    });
+
+</script>

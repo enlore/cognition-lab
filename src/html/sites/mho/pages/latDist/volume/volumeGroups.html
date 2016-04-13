@@ -1,0 +1,65 @@
+
+<blueprint>
+    <alloy url="volumeGroupState.html" />
+    <alloy url="volumeGroupFeed.html" />
+    <alloy name="echoFile" url="/html/util/echoFile.html" prop="true" />
+
+    <data name="downloadClick" />
+
+    <prop find="volumeRecords" />
+
+    <data name="columnDefs" value="prop columnDefs" />
+
+    <cog find="groupMenu" url="volumeGroupMenu.html" />
+    <cog find="downloadMenu" url="downloadMenu.html" />
+    <cog find="groupContent" url="volumeBars.html" />
+
+    <sensor watch="downloadClick" run="downloadRecords" />
+</blueprint>
+
+<display>
+    <div>
+        <div style="display: flex; width: 100%; height: 20px;">
+             <div id="groupMenu" style="display: flex; flex: 1 1; justify-content: flex-start;" />
+             <div id="downloadMenu" style="display: flex; flex: 1 1; justify-content: flex-end;" />
+         </div>
+         <div id="groupContent" style="padding: 12px 0 2px 0;" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+        init: function(){
+        },
+
+        downloadRecords: function(){
+            var sourceRecords = this.volumeRecords.read();
+            var exportRecords = [];
+            var breadcrumb = 'todo';
+
+            for(var i = 0; i < sourceRecords.length; i++){
+                var r = sourceRecords[i];
+                var e = {};
+
+                for(var p in this.columnDefs){
+                    if(!r.hasOwnProperty(p))
+                        continue;
+                    var def = this.columnDefs[p];
+                    e[def.title] = r[p];
+                }
+
+                e.Breadcrumb = breadcrumb;
+                exportRecords.push(e);
+            }
+
+            this.echoFile.download(exportRecords, 'TLM-LatDist');
+        },
+
+        columnDefs: {
+            abbr:     { field: 'abbr',     title: 'Abbr', flex: '1.5 1.5' },
+            name:     { field: 'name',     title: 'Name', flex: '3 3' },
+            msg_date: { field: 'msg_date', title: 'Date', flex: '3', type: 'date', format: 'MMMM Do' }
+        }
+
+    })
+</script>

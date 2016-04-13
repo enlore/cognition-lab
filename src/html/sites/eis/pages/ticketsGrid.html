@@ -1,0 +1,221 @@
+<blueprint>
+
+    <alias name="TEXT_RENDERER" url="textRenderer.html" />
+    <alias name="TICKET_BTN" url="ticketBtn.html" />
+
+
+    <prop find="build" />
+    <prop find="buildOptions" />
+
+    <prop find="displayMode" />
+    <sensor watch="displayMode" distinct="true" run="vis" autorun="true" />
+
+    <prop find="detailPoint" />
+    <sensor watch="detailPoint" run="renderTimeLabel" auto="true" />
+    <sensor watch="detailPoint" run="requestData" />
+
+    <prop find="clTickets" />
+    <sensor watch="clTickets" run="receiveData" />
+
+    <data name="records" prop="true" />
+    <sensor watch="records" run="renderTitle" />
+
+    <cog find="grid" url="KATANA_GRID_V2" source="prop gridOptions" item="data options" />
+    <cog find="holder" url="KATANA_LOADER_OVERLAY" source="prop configLoader" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="position: relative;" >
+        <svg id="svg" width="100%" height="100%" viewBox="0 0 370 30" preserveAspectRatio="xMidYMid meet" />
+        <div id="title" style="font: 12px sans-serif; margin: 15px 0 -30px 8px;" />
+        <div id="grid" style="padding: 6px;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        configLoader: {show: 'clTickets'},
+        init: function() {
+            var self = this;
+
+            var svg = d3.select(this.svg.get(0));
+
+            self.timeLabel = svg
+                    .append('text')
+                    .attr('transform', 'translate(365,20)')
+                    .attr('text-anchor','end')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '16px')
+                    .attr('fill', 'rgb(181,169,108)');
+
+            self.statusLabel = svg
+                    .append('text')
+                    .attr('transform', 'translate(5,20)')
+                    .attr('text-anchor','start')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '16px')
+                    .attr('fill', 'rgb(181,169,108)');
+
+            this.statusLabel.text('Tickets');
+        },
+
+        requestData: function() {
+            var dateFormat = d3.time.format('%-I:%M %p %a %b %e');
+            console.log('∆  request tickets data   ', dateFormat(new Date()));
+
+            var detailPoint = this.detailPoint.read();
+
+            var options = this.mapItem.createParams({
+                span:'duration',
+                end:'endDateTime',
+                vendor:'vendor',
+                site:'site'
+                , division: "division"
+            });
+
+            options.span = 21 * 3600 * 24; /* 21 days */
+
+            /* get detailPoint's time zone offset */
+            var extract = String(detailPoint.dt).match('GMT(.*)00')[1];
+            /* set the end parameter using (for unclear reasons) twice the offset */
+            options.end = moment(detailPoint.dt).utcOffset(extract * 2).format("YYYY-MM-DDTHH:mm:ss");
+
+            this.clTickets.request(options);
+        },
+
+        filterTickets: function(build) {
+            var ticketData = this.clTickets.read().data,
+                buildOptions = this.buildOptions.read(),
+                sites = buildOptions[build].sites_array.split(','),
+                filteredTickets = [];
+
+            for (var i = 0; i < sites.length; i++) {
+                var batch = ticketData.filter(function(d) { return d.site == sites[i]; });
+                filteredTickets = filteredTickets.concat(batch);
+            }
+
+            return filteredTickets;
+        },
+
+        receiveData: function(msg) {
+            if (msg.data.length < 1) {
+                console.log('tickets data array is empty');
+                console.log('');
+                this.records.write(msg.data);
+                return;
+            }
+
+            /* filter tickets if a build is selected */
+            var build = this.build.read();
+            var tickets = (build == 'All') ? msg.data : this.filterTickets(build);
+
+            /* log the dt of the latest ticket displayed and the ticket count */
+            var niceEndPoint = (tickets[0])
+                             ? moment(tickets[0].Reported_Date).utcOffset(0).format('h:mm A ddd MMM D')
+                             : '–';
+            console.log('latest ticket dt/count   ◦', niceEndPoint, '', tickets.length);
+
+            for (var i = 0; i < tickets.length; i++) {
+                var d = tickets[i],
+                    desc = d.Detailed_Decription,
+                    code = desc.slice(0,6),
+                    prefix = desc.slice(0,2),
+                    extract = [''];
+
+                /* if given, extract site/process/thread */
+                if (desc.indexOf('<') !== -1 && desc.indexOf('>') !== -1) {
+                    extract = desc.match('<(.*)>');
+                } else if (desc.indexOf('>') !== -1) {
+                    extract = desc.match(' (.*)>');
+                } else {
+//                    console.log('ticket without thread details:', d);
+                }
+
+                /* save site/process/thread as Thread and ticket type as Code */
+                if (prefix == 'CL') {
+                    d.Thread = extract[1];
+                    d.Code = code;
+                } else {
+                    d.Thread = d.site;
+                    d.Code = 'none specified';
+                }
+
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                d.Reported_Date = d.Reported_Date.slice(0,-1);
+            }
+            this.records.write(tickets);
+        },
+
+        renderTitle: function(records) {
+            /* comma format item count */
+            var count = d3.format("0,000")(records.length);
+            var ticketNoun = (count == 1) ? ' Ticket' : ' Tickets';
+            this.title.text(count + ticketNoun);
+        },
+
+        renderTimeLabel: function(d){
+            var self = this;
+
+            if (!d) console.log('detailPoint is missing');
+
+            var dateFormat = d3.time.format('%-I:%M %p %a %b %e');
+
+            var timeLabel = (d && d.dt) ? dateFormat(d.dt) : '';
+
+            self.timeLabel.text(timeLabel);
+        },
+
+        vis: function() {
+            var mode = this.displayMode.read();
+            this.holder.toggle(mode === 'tickets');
+        },
+
+        gridOptions: {
+            headerHeight: 22,
+            rowHeight: 25,
+            paneHeight: 500,
+            perPage: 20,
+            sort: { field: 'Reported_Date', dir: 'desc' },
+            columns: [
+                {
+                    field: 'Incident_Number',
+                    flex: '1 2 160px',
+                    title: 'Incident Number',
+                    renderer: 'TEXT_RENDERER'
+                },
+                {
+                    field: 'Status',
+                    flex: '1 5 130px',
+                    title: 'Status',
+                    renderer: 'TEXT_RENDERER'
+                },
+                {
+                    field: 'site',
+                    flex: '1 5 170px',
+                    title: 'Site',
+                    renderer: 'TEXT_RENDERER'
+                },
+                {
+                    field: 'Reported_Date',
+                    flex: '1 2 130px',
+                    type: 'date',
+                    format: 'age',
+                    title: 'Reported',
+                    tz: 'gmt'
+                },
+                {
+                    title: "View",
+                    flex: '0 5 60px',
+                    renderer: 'TICKET_BTN',
+                    clickable: true,
+                    noSort: true
+                }
+            ],
+            exportName: 'RemedyTickets'
+        }
+
+    });
+</script>

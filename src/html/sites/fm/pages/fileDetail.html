@@ -1,0 +1,73 @@
+<blueprint>
+
+    <sensor watch="viewFileTransferDetails" run="render" auto="true" />
+
+
+</blueprint>
+
+<display>
+    <div class="katana_panel" style="flex: 1 1 auto; margin-top: 6px; margin-bottom: 6px;">
+        <div style="color: rgb(211, 232, 255);">
+
+            <div style="padding: 4px; color: rgb(245, 240, 220);  font-size: 12px;">
+                <table><tbody>
+                <tr>
+                    <td style="text-align: right; color: rgb(220, 200, 120);">File:</td>
+                    <td id="file" style="padding: 1px 2px 1px 10px; color: rgb(234, 224, 184);"></td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; color: rgb(220, 200, 120);">From:</td>
+                    <td id="from" style="padding: 1px 2px 1px 10px; color: rgb(234, 224, 184);"></td></tr>
+                <tr>
+                    <td style="text-align: right; color: rgb(220, 200, 120);">To:</td>
+                    <td id="to" style="padding: 1px 2px 1px 10px; color: rgb(234, 224, 184);"></td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; color: rgb(220, 200, 120);">Expected:</td>
+                    <td id="expected" style="padding: 1px 2px 1px 10px; color: rgb(234, 224, 184);"></td>
+                </tr>
+                </tbody></table>
+            </div>
+
+            </div>
+    </div>
+</display>
+
+
+<script>
+    $.cog({
+
+        init: function(){
+
+        },
+
+        render: function(msg){
+            this.file.text(msg.fileInfo.ftpFile || '');
+            this.from.text(msg.fileInfo.frmLabel || '');
+            this.to.text(msg.fileInfo.toLabel || '');
+
+            var expectedText = '';
+            var expectedDays = [];
+            var fi = msg.fileInfo;
+            var days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            if(fi.freq === 'daily'){
+                for(var i = 0; i <= 6; i++){
+                    if(fi.day_array && fi.day_array.indexOf((i+1)) >= 0){
+                        expectedDays.push(days[i]);
+                    }
+                }
+                expectedText = expectedDays.join(', ');
+            } else if (fi.freq === 'monthly' && fi.day_array) {
+                expectedText = 'Day ' + fi.day_array.join(', ') + ' of the Month';
+            } else {
+                expectedText = 'Ad Hoc';
+            }
+
+            this.expected.text(expectedText);
+
+            console.log('render',msg);
+        }
+
+
+    });
+</script>

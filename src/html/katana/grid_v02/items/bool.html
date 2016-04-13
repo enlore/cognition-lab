@@ -1,0 +1,56 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="itemData" />
+    <prop find="record" />
+    <sensor watch="itemData" run="render" auto="true" />
+    <sensor watch="column" run="clickable" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; height: 100%; width: 100%; justify-content: center;">
+        <i id="symbol" class="fa fa-lg fa-check" style="align-self: center; padding-top: 1px;"></i>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        render: function () {
+
+            var selected = this.itemData.read();
+            var c = this.column.read();
+            var editable = c.edit;
+            this.symbol.removeClass();
+
+            this.symbol.toggleClass('katana_not_selected', !selected);
+
+            if (selected) {
+                this.symbol.addClass('fa fa-lg fa-check-square-o');
+            } else if (editable) {
+                this.symbol.addClass('fa fa-lg fa-square-o');
+            }
+
+
+        },
+
+        clickable: function() {
+            var self = this;
+            self.holder.off('click');
+            var c = self.column.read();
+            if(c.edit){
+                self.holder.on('click',function(e){
+                    e.preventDefault();
+                    var r = self.record;
+                    r.read()[c.field] = !self.itemData.read();
+                    r.refresh();
+
+                });
+            }
+
+        }
+
+
+    });
+
+</script>

@@ -1,0 +1,59 @@
+<blueprint>
+
+    <prop find="rule" />
+    <prop find="selectedRule" />
+    <prop find="tag" />
+    <prop find="removeATag" optional="true" />
+
+    <data name="isHovering" value="false" />
+
+    <sensor node="tagWidget" on="click" transform="getTag" run="removeTag" />
+    <sensor node="tagWidget" on="mouseenter" transform="bool true" pipe="isHovering" />
+    <sensor node="tagWidget" on="mouseleave" transform="bool false" pipe="isHovering" />
+    <sensor need="tag" watch="isSelected,isHovering" retain="true" group="true" run="render" auto="true" />
+
+</blueprint>
+
+<script>
+    $.cog({
+
+        render: function render (msg) {
+
+            var tag = msg.tag;
+
+            this.tagType.text(tag.type);
+            this.tagName.text(tag.name);
+
+            var vis = msg.isSelected && msg.isHovering ? 'visible' : 'hidden';
+
+            this.xBtn.css('visibility', vis);
+
+        },
+
+        getTag: function (ev) {
+            return this.tag.read();
+        },
+
+        removeTag: function removeTag  (tag) {
+            if(this.removeATag)
+                this.removeATag.write(tag);
+        }
+    })
+</script>
+
+<display>
+
+
+    <div id="tagWidget" style="display: flex; flex-direction: column; margin-right: 15px; max-width: 160px;">
+
+        <div class="katana_breadcrumb_category" >
+            <span id="tagType"></span>
+            <span id="xBtn" class="fa fa-remove" style="color: white; position: relative; top: -3px; font-size: 10px;"></span>
+        </div>
+        <div class="katana_breadcrumb_option" >
+            <span id="tagName"></span>
+        </div>
+
+    </div>
+
+</display>

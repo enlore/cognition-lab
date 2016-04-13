@@ -1,0 +1,34 @@
+<blueprint>
+
+    <method name="filterBreadcrumbs" bound="true" prop="true" />
+    <prop find="filterCache" is="method" />
+
+</blueprint>
+
+<script>
+
+    $.cog({
+
+        filterBreadcrumbs: function(){
+            var self = this;
+            return {
+
+                breadcrumbText: function(domain, filterList){
+
+                    var optionList = self.filterCache().resolveFilterList(domain, filterList);
+                    var display = [];
+
+                    for(var i = 0; i < optionList.length; i++){
+                        var option = optionList[i];
+                        display.push(option.abbr || option.name);
+                    }
+
+                    return display.join(" / ");
+                }
+            };
+
+        }
+
+    });
+
+</script>

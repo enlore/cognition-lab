@@ -1,0 +1,45 @@
+<blueprint>
+    <prop find="tagVal" />
+    <prop find="tagName" />
+    <prop find="selectedRule" />
+
+    <sensor watch="tagVal" run="populateName" auto="true" />
+    <sensor node="tagValItem" on="click" transform="buildTag" pipe="addTag" />
+    <sensor watch="addTag" run="highlight" auto="true" />
+
+</blueprint>
+
+<script>
+    $.cog({
+        populateName: function populateName (tagVal) {
+            this.tagValItem.text(tagVal.name)
+            var selected = this.selectedRule.read();
+            selected.tags.forEach(function (tag) { this.highlight(tag) }.bind(this));
+        },
+
+        buildTag: function buildTag (ev) {
+            var tag = this.tagVal.read();
+
+            var obj = {
+                type: this.tagName.read(),
+                name: tag.name,
+                value: tag.id,
+                id: tag.id
+            };
+
+            return obj
+        },
+
+        highlight: function (addedTag) {
+            if (addedTag && addedTag.id === this.tagVal.read().id)
+                this.tagValItem.css({"background-color": "#0665B1", color: "rgb(224, 224, 196)" })
+            else
+                this.tagValItem.css({"background-color":"transparent",color: "rgb(89, 151, 217)"});
+        }
+    })
+
+</script>
+
+<display>
+    <div id="tag-val-item"  style="padding: 0 4px;"></div>
+</display>

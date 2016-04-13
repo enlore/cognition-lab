@@ -1,0 +1,21 @@
+<blueprint>
+
+    <prop find="rowHeight" />
+    <chain find="holder" source="columns" item="column" url="item.html" />
+
+</blueprint>
+
+<display>
+    <div id="holder" class="katana_row" ></div>
+</display>
+
+<script>
+    $.cog({
+       init: function(){
+           var isOdd = !!(this.mapItem.itemOrder & 1);
+           this.holder.toggleClass('odd',isOdd);
+
+           this.holder.css('height',this.rowHeight.read() + 'px');
+       }
+    });
+</script>

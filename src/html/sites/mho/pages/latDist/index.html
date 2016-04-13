@@ -1,0 +1,25 @@
+<blueprint>
+    <prop find="activePageDef" />
+    <cog find="holder" url="latDist.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+    $.cog({
+
+        pageDef: {
+            title: 'Latency Distribution',
+            domain: 'none',
+            time: 'none'
+        },
+
+        init: function() {
+            var def = this.pageDef;
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+        }
+
+    });
+</script>

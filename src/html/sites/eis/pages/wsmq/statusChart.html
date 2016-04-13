@@ -1,0 +1,59 @@
+<blueprint>
+    <alias name="CELL_RENDERER" url="cellRenderer.html" />
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <prop find="statusChartData" />
+    <sensor watch="statusChartData" transform="updateChart" pipe="records" auto="true" />
+
+    <cog find="grid" url="KATANA_GRID" />
+</blueprint>
+
+<display>
+    <div style="padding-top: 32px;" >
+        <div id="title" style="font: 12px sans-serif; color: #cdf; margin: -24px 0 9px 8px;" />
+        <div id="grid" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        defineOptions: {
+                headerHeight: 28
+            ,   rowHeight: 40
+            ,   paneHeight: 620
+            ,   sort: { field: 'qDepth', dir: 'desc' }
+        },
+
+        defineColumns: [
+                { field:'qName',    title:'Queue Name',    flex:'3 1 320px', renderer:'CELL_RENDERER' }
+            ,   { field:'qMStatus', title:'Status',        flex:'1 1 130px', renderer:'CELL_RENDERER', showStatus:true }
+            ,   { field:'qMgrName', title:'Queue Manager', flex:'3 1 220px', renderer:'CELL_RENDERER' }
+            ,   { field:'qDepth',   title:'Queue Depth',   flex:'3 1 210px', renderer:'CELL_RENDERER', showStatus:true, showZero:true }
+            ,   { field:'dt',       title:'Updated',       flex:'3 1 210px', renderer:'CELL_RENDERER', format:'age' }
+
+//            ,   { field:'lastGet',  title:'Last Get',                       flex:'2 1 300px', renderer:'CELL_RENDERER', type:'date' }
+//            ,   { field:'lastPut',  title:'Last Put',                       flex:'2 1 300px', renderer:'CELL_RENDERER', type:'date' }
+//            ,   { field:'oldest',   title:'Oldest Message Age (Seconds)',   flex:'2 1 150px', renderer:'CELL_RENDERER' }
+        ],
+
+        updateChart: function(statusChartData) {
+            var count = statusChartData.length;
+            for (var i = 0; i < count; i++) {
+                var d = statusChartData[i];
+                d.updated = moment(d.dt).format('h:mm A ddd MMM D');
+            }
+
+            console.log('\n', 'statusChartData:', statusChartData, '\n\n');
+
+            /* write grid title */
+            this.title.text('WSMQ: ' + count + ' Queues');
+
+            return statusChartData;
+        }
+
+    });
+</script>

@@ -1,0 +1,69 @@
+<blueprint>
+    <alloy url="aliases.html" />
+    <alloy url="services.html" />
+
+    <!--<alloy url="sifterFactory.html" />-->
+    <!--<alloy url="vListFac.html" />-->
+    <!--<alloy url="translationService.html" />-->
+
+
+    <cog find="content" url="content.html" />
+
+    <prop find="activePageDef" />
+    <prop find="activeSiteMenu" />
+    <prop find="activeSiteCog" />
+    <prop find="activeSiteDomain" />
+    <prop find="pageMenuOptions" />
+    <prop find="activePageUrl" />
+
+</blueprint>
+
+
+<display>
+    <div id="content" style="width: 100%;"></div>
+</display>
+
+
+<script>
+    $.cog({
+
+        init: function() {
+
+            this.activePageUrl.write(null);
+            this.activeSiteCog.write(this.mapItem.uid);
+            this.activeSiteDomain.write('admin');
+            this.pageMenuOptions.write(this.getPageMenuOptions());
+
+            this.activePageDef.write(this.pageDef);
+        },
+
+        pageDef: {
+            title: 'User Profile and Alerts',
+            domain: 'none',
+            time: 'none'
+        },
+
+        getUrl: function() { return "content.html"; },
+
+
+        getPageMenuOptions: function(){
+            return {
+                url: 'KATANA_TEXT_BUTTON_RENDERER',
+                default: 'ERRORS_PAGE',
+//                default: 'USERS_PAGE',
+                class: 'katana_nav_button',
+                show: 'activePageUrl',
+                menuStyle: {'flex-direction':'column'},
+                items: [
+                    {value: 'USERS_PAGE'    , title:'Users'},
+                    {value: 'ERRORS_PAGE', title: 'Errors'}
+                    //{value: 'ALERTING_MANAGEMENT_PAGE' , title: 'Alerting - Manage'}
+                ]
+            };
+        }
+
+
+
+    });
+
+</script>

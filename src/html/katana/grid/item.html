@@ -1,0 +1,93 @@
+<blueprint>
+    <data name="itemData" prop="true" />
+    <data name="renderer" value="itemRenderer.html" prop="true" />
+    <cog find="item" url="data renderer" />
+
+    <!-- make these wait on all using need=all -->
+    <sensor watch="rowHeight" run="setHeight" auto="true" />
+    <sensor watch="column,record" batch="true" run="determineItemData" auto="true" />
+    <sensor watch="column" run="determineRenderer" auto="true" />
+
+    <prop find="rendererPath" />
+    <prop find="column" />
+    <prop find="record" />
+    <prop find="rowHeight" />
+</blueprint>
+
+<display>
+    <div id="item" class="katana_item" />
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+        },
+
+        setHeight: function(n){
+           var h = Number(n) + 'px';
+           this.item.css('height', h)
+        },
+
+        determineItemData: function(){
+
+            var c = this.column.read();
+            var r = this.record.read();
+
+            var data = r[c.field];
+            this.itemData.write(data);
+
+        },
+
+        columnTypes: {
+
+            age:      {renderer:'age.html',export:null},
+            bool:     {renderer:'bool.html',export:null},
+            boolean:  {renderer:'bool.html',export:null},
+            date:     {renderer:'date.html',export:null},
+            text:     {renderer:'text.html',export:null},
+            graph:    {renderer:'graph.html',export:null},
+            string:   {renderer:'text.html',export:null},
+            num:      {renderer:'num.html',export:null},
+            number:   {renderer:'num.html',export:null},
+            pct:      {renderer:'percent.html',export:null},
+            percent:  {renderer:'percent.html',export:null},
+            money:    {renderer:'money.html',export:null},
+            button:   {renderer:'button.html',export:null},
+            duration: {renderer:'duration.html',export:null},
+            status:   {renderer:'status.html',export:null}
+        },
+
+
+        determineRenderer: function(column){
+
+            var c = column;
+            if(c.flex)
+                this.item.css('flex', c.flex);
+
+            if(c.clickable || c.edit)
+                this.item.toggleClass('clickable',true);
+
+            if(c.renderer && !c.type) { // explicitly set in config, use local or absolute path
+                this.mapItem.path = this.rendererPath.read();
+                this.renderer.write(c.renderer);
+            } else if (c.type) { // look up renderer for the type
+                var def = this.columnTypes[c.type];
+                var typeRenderer = 'items/' + def.renderer;
+                this.renderer.write(typeRenderer);
+            }
+
+//            if (c.type === 'bool'){
+//                this.renderer.write('itemCheckbox.html');
+//            } else if (c.type === 'pct'){
+//                this.renderer.write('items/percent.html');
+//            }
+
+        }
+
+
+    });
+
+</script>

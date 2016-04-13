@@ -1,0 +1,33 @@
+<blueprint>
+    <alias name="TEXT_BUTTON_RENDERER" url="textButtonRenderer.html" />
+
+    <data name="options" value="prop defineButtons" />
+
+    <cog find="holder" and="append" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+    $.cog({
+
+        defineButtons:  {
+            url: 'TEXT_BUTTON_RENDERER',
+            items: [
+                {value: '1', tell: 'ignoresBucketClick', show: 'ignoresBucket', title: 'ignored'},
+                {value: '1', tell: 'errorBucketClick',   show: 'errorBucket',   title: 'unreconciled'},
+                {value: '2', tell: 'errorBucketClick',   show: 'errorBucket',   title: 'nak'},
+                {value: '1', tell: 'pathBucketClick',    show: 'pathBucket',    title: 'no source'},
+                {value: '1', tell: 'latencyBucketClick', show: 'latencyBucket', title: 'prompt'},
+                {value: '2', tell: 'latencyBucketClick', show: 'latencyBucket', title: 'delayed'},
+                {value: '3', tell: 'latencyBucketClick', show: 'latencyBucket', title: 'extreme'},
+                {value: '4', tell: 'latencyBucketClick', show: 'latencyBucket', title: 'severe'},
+                {value: '5', tell: 'latencyBucketClick', show: 'latencyBucket', title: 'critical'},
+                {value: '6', tell: 'latencyBucketClick', show: 'latencyBucket', title: 'no calc'}
+            ]
+        }
+
+    });
+</script>

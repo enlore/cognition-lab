@@ -1,0 +1,78 @@
+<blueprint>
+    <data name="selGroupByFromGui" prop="true" />
+    <data name="showItemName" value="false" prop="true" />
+    <data name="itemGetterMethod" prop="true" />
+
+    <data name="selSort" inherit="true" value="sort_name" prop="true" />
+    <data name="selOrder" inherit="true" value="asc" prop="true" />
+    <data name="selGroupBy" value="run autoSelectGroupBy" prop="true" />
+
+    <data name="volumeBarClick" />
+    <data name="volumeField" prop="true" />
+
+    <sensor watch="selGroupByFromGui" run="groupFromGui" />
+    <sensor watch="selGroupBy" run="determineItemGetterMethod" auto="true" />
+    <sensor watch="volumeBarClick" run="sortFromGui" />
+</blueprint>
+
+<script>
+    $.cog({
+
+        determineItemGetterMethod: function(){
+            var selGroupBy = this.selGroupBy.read();
+            var name = selGroupBy + 'Options';
+//            console.log('det:'+name);
+            var data = this.mapItem.findData(name, 'first', true);
+            var f = null;
+
+            if (data) {
+                var options = data.read();
+
+                console.log('▶︎    options:', options);
+
+                f = function(id){ return options[id];};
+            }
+
+            this.itemGetterMethod.write(f);
+        },
+
+        groupFromGui: function(){
+            var newGroup = this.selGroupByFromGui.read();
+            var currentGroup = this.selGroupBy.read();
+
+            if(newGroup === currentGroup)
+                this.showItemName.toggle();
+            else
+                this.selGroupBy.write(newGroup);
+        },
+
+        sortFromGui: function(){
+            var newSort = 'latency_count';
+            var currentOrder = this.selOrder.read();
+            var currentSort = this.selSort.read();
+
+            if(newSort === currentSort) { // reverse sort order
+                this.selOrder.write((currentOrder === 'asc') ? 'desc' : 'asc');
+            } else {
+                this.selOrder.write('desc');
+            }
+
+            this.selSort.write(newSort);
+        },
+
+        autoSelectGroupBy: function(){
+            var fields = ['messageType','sourceApp','dataCenter','network','facility'];
+            var vals = this.mapItem.createValues(fields);
+
+            for(var i=0; i < fields.length; i++){
+                var f = fields[i];
+                if(vals[f]==='All'){
+                    return f;
+                }
+            }
+
+            return null;
+        }
+
+    });
+</script>

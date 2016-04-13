@@ -1,0 +1,69 @@
+<blueprint>
+
+    <data name="records" />
+    <data name="options" />
+
+    <cog find="grid" url="KATANA_GRID_V2"  />
+
+    <sensor watch="keyRecords" pipe="records" auto="true" />
+    <sensor watch="dateColumns" transform="toOptions" pipe="options" auto="true" />
+
+
+    <sensor watch="records" run="debug" auto="true" />
+</blueprint>
+
+<display>
+    <div class="small" style="flex: 1 1 auto;
+    margin-top: 6px; margin-bottom: 6px;">
+        <div id="grid" ></div>
+    </div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+        debug: function(msg){
+            console.log('debug:',msg);
+
+        },
+
+        init: function(){
+
+            console.log('init!');
+//            rec.expected = fileInfo.expected;
+//            rec.ftpFile = fileInfo.ftpFile;
+//            rec.ftpTo = fileInfo.ftpTo;
+//            rec.process = fileInfo.process;
+//            rec.site = fileInfo.toName;
+        },
+
+        toOptions: function(msg){
+//            hoverShow: 'hoverFile',
+//            selShow: 'selFile',
+//            selTell: 'uiClickFilter',
+            var date_columns = msg;
+            var options = {
+                headerHeight: 22,
+                rowHeight: 22,
+                paneHeight: 242,
+                perPage: 10,
+                sort: {field: 'app', dir: 'asc'},
+                columns: [
+                    {field: "app", title: "Application", flex: '1 1 90px'},
+                    {field: "server", title: "Server", flex: '1 1 120px'},
+                    {field: "component", title: "Component", flex: '1 1 300px'},
+                    {field: "error_type", title: "Error Type", flex: '1 1 90px'}
+
+                ]
+            };
+
+            options.columns = options.columns.concat(date_columns);
+            return options;
+
+        }
+
+
+    });
+</script>

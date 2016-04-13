@@ -1,0 +1,58 @@
+<blueprint>
+
+    <sensor watch="viewFileTransferDetails" run="render" auto="true" />
+
+
+</blueprint>
+
+<display>
+    <div class="katana_panel" style="flex: 1 1 auto; margin-top: 6px; margin-bottom: 6px;">
+        <div style="color: rgb(211, 232, 255); width: 100%;
+    display: block;">
+
+            <div style="display: flex; justify-content: space-between;">
+                <div id="date">
+
+                </div>
+                <div style="color: rgb(220, 200, 120);" id="status">
+
+                </div>
+            </div>
+
+
+
+
+
+            <p></p>
+            <div style="color: #ace;">
+            <div id="log1" style="padding-bottom: 8px;"></div>
+            <div id="log2" style="padding-bottom: 8px;"></div>
+            <div id="log3" style="padding-bottom: 8px;"></div>
+            </div>
+            </div>
+    </div>
+</display>
+
+
+<script>
+    $.cog({
+
+        init: function(){
+
+        },
+
+        render: function(msg){
+
+            this.date.text(msg.dateText);
+            this.status.text(msg.statusTitle);
+            this.log1.text(msg.rawLog && msg.rawLog.length > 0 ? msg.rawLog[0] + '<p></p>' : '[ No Log Data Available ]');
+            this.log2.text(msg.rawLog && msg.rawLog.length > 1 ? msg.rawLog[1] + '<p></p>': '');
+            this.log3.text(msg.rawLog && msg.rawLog.length > 2 ? msg.rawLog[2] + '<p></p>': '');
+
+        }
+
+
+
+
+    });
+</script>

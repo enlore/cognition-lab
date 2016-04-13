@@ -1,46 +1,61 @@
 <!doctype html>
 <html lang="en">
-    <head>
+<head>
 
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>TLM</title>
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <link href="css/font-awesome.min.css" rel="stylesheet" >
+    <link href="css/kendo.common-bootstrap.min.css" rel="stylesheet">
+    <link href="css/kendo.bootstrap.min.css" rel="stylesheet">
+    <link href="css/kendo.dataviz.min.css" rel="stylesheet">
+    <link href="css/ndash.css" rel="stylesheet">
 
-        <script src="/app/lib/jquery.js"></script>
+    <link href="css/selectize.css" rel="stylesheet">
 
-        <script src="/app/lib/seele.js"></script> <!-- plugins -->
-        <script src="/app/lib/cognition-ajax.js"></script> <!-- net io -->
-        <script src="/app/lib/catbus.js"></script> <!-- data flow -->
-        <script src="/app/lib/rei.js"></script>  <!-- dom control -->
-        <script src="/app/lib/vash.js"></script>  <!-- parsing -->
-        <script src="/app/lib/ohmu.js"></script>  <!-- batch file loader -->
-        <script src="/app/lib/kakashi.js"></script>  <!-- alias/file resolver -->
+    <link href="css/tlm-forms.css" rel="stylesheet">
 
-        <script src="/app/lib/base64-string.js"></script>
-        <script src="/app/lib/lz-string.js"></script>
-        <script src="/app/lib/cognition.js"></script>
+    <title>TLM</title>
 
-    </head>
+    <script src="js/lib/jquery-2.1.1.js"></script>
+    <script src="js/lib/selectize.js"></script>
 
-    <body>
-        <!-- this div becomes the root node for the dom of your app -->
-        <div id="cognition"></div>
+    <script src="js/lib/moment.min.js"></script>
+    <script src="js/lib/twix.min.js"></script>
+    <script src="js/lib/vlist.js"></script>
 
-        <script>
-            $(function () {
-                var appRoot = $("#cognition")[0];
 
-                $.cognition.netDefaults({
-                    accept: "json", // alias of type, which is alias of format
-                    contentType: "json"
-                });
+    <script src="js/seele.js"></script> <!-- plugins -->
+    <script src="js/cognition-ajax.js"></script> <!-- net io -->
+    <script src="js/catbus.js"></script> <!-- data flow -->
+    <script src="js/rei.js"></script>  <!-- dom control -->
+    <script src="js/vash.js"></script>  <!-- parsing -->
+    <script src="js/ohmu.js"></script>  <!-- batch file loader -->
+    <script src="js/kakashi.js"></script>  <!-- alias/file resolver -->
 
-                //$.cognition.init(appRoot, "/app/app.html", "/app/lib/grue.html");
-                $.cognition.init(appRoot, "/app/app.html");
-            });
-        </script>
-    </body>
+
+    <script src="js/lib/base64-string.js"></script>
+    <script src="js/lib/lz-string.js"></script>
+    <script src="js/cognition.js"></script>
+
+    <script>
+
+        $(function(){
+            var node = $("#cognition")[0];
+            $.cognition.buildNum('VERNUM');
+            $.cognition.init(node, "/html/shell/index.html", "/grue/grue.html");
+        });
+
+    </script>
+
+</head>
+
+
+<body style="height: 100%; margin: 0; padding: 0;">
+
+<div id="cognition" style="height: 100%; width: 100%; position: absolute; top: 0; left: 0;"></div>
+
+</body>
 </html>
-

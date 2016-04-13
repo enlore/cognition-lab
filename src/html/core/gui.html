@@ -1,0 +1,495 @@
+<blueprint>
+
+
+    <data name="filterCache"   prop="true" value="run initFilterCache" /> <!-- store filter systems and settings by domain when inactive -->
+    <data name="filterList"  route="true" prop="true"  /> <!-- array of {name,optionId} filters in applied order -->
+    <data name="filterDomain"  prop="true" /> <!-- set of filters in use, messages, cloverleaf, etc. -->
+    <data name="filterTime"  prop="true" note="time filters to display: none, endSpan, end, span, startEnd" />
+    <data name="filterPath" change="true" prop="true"/> <!-- filter list as string for detecting value changes -->
+    <data name="filterPathPartial" change="true" prop="true"/> <!-- filter path lacking last element selected -->
+    <data name="filterPathDataRequest" change="true" prop="true" note="filter path lacking empty 'new filter' -- used to request new data " />
+    <data name="filterDefs" prop="true"/> <!-- definitions/rules for filters in current domain -->
+    <data name="filterCategoryList" prop="true"/> <!-- filter category definitions available via menu -->
+    <data name="filterDropdownOptions" /> <!-- array of {name,optionId} filter options that can be selected as the final filter -->
+    <data name="filterDropdownGroups" /> <!-- groups for the dropdown options when searching 'all' -->
+    <data name="filterNext" /> <!-- trigger request for one more filter in the list -->
+    <data name="filterClear" /> <!-- trigger request to remove this filter in the list -->
+    <data name="filterApply" />  <!-- rule based addition or toggle of filter -->
+    <data name="filterReplaceLast" /> <!-- filter to replace last filter in list -->
+    <data name="filterRegenOptions" /> <!-- trigger to rebuild options, likely new options from feed -->
+
+    <data name="uiFilterNext" /> <!-- trigger, adds new empty 'all' filter to filters list -->
+    <data name="uiFilterClear" /> <!-- filter {name:_,value:_} or name, to remove filter -->
+    <data name="uiFilterApply" /> <!-- rule based addition or toggle of filter -->
+
+    <data name="filterDomainToCache" /> <!-- cmd to add filter domain to cache in gui -->
+
+    <sensor watch="filterCache" run="debugCache" auto="true" />
+
+    <sensor watch="uiFilterNext" pipe="filterNext" />
+    <sensor watch="uiFilterClear" pipe="filterClear" />
+    <sensor watch="uiFilterApply" pipe="filterApply" />
+
+    <sensor watch="filterDomain" change="true" run="restoreFilterCache" />
+    <sensor watch="filterList" run="saveFilterListToCache" />
+    <sensor watch="filterReplaceLast" transform="toReplacedLastInFilterList" pipe="filterList" />
+    <sensor watch="filterList,filterDomain" batch="true" run="generatePaths" auto="true" />
+    <sensor watch="filterNext" run="applyNextFilter" />
+    <sensor watch="filterApply" run="applyFilter" />
+    <sensor watch="filterClear" transform="toFilterClearedFromList" pipe="filterList" />
+    <sensor watch="filterDomainToCache" transform="addFilterDomainToCache" pipe="filterCache" />
+    <sensor watch="filterPathDataRequest" change="true" pipe="refreshDomainFilters" />
+
+    <data name="toggleSidebar" />
+
+    <data name="umidSearch" />
+
+
+    <!-- todo add a mixin construct so these can be bundled -->
+
+    <method name="getOptionItem" />
+    <method name="getDomainFilters" />
+    <method name="getResolvedFilters" />
+    <method name="getBreadcrumbText" />
+    <method name="getTimeText" />
+    <method name="getBreadcrumbAndTimeText" />
+
+</blueprint>
+
+<script>
+    $.cog({
+
+        filterDeepLinkHack: null,
+        init: function(){
+            this.filterDeepLinkHack = this.filterList.read() || null;
+            this.generatePaths();
+        },
+
+        debugCache: function(msg, topic){
+          console.log('CACHE:',msg,topic);
+        },
+
+        initFilterCache: function(){
+          return {
+              none: {
+                  filterDefs: {},
+                  filterList: []
+              }
+
+          };
+        },
+
+        getOptionItem: function(optionType, optionId){
+            var name = optionType + "Options";
+            var data = this.mapItem.findData(name);
+            var options = data.read();
+            return options[optionId];
+        },
+
+        addFilterDomainToCache: function(msg){
+
+            var self = this;
+            var cache = self.filterCache.read();
+            var domain = msg.domain;
+            var defs = msg.defs;
+
+            if(!cache[domain])
+                cache[domain] = {
+                    filterDefs: defs,
+                    filterList: []
+                };
+
+            return cache;
+
+        },
+//
+//        addDomainToCache: function(domain, defs){
+//            var self = this;
+//            var cache = self.filterCache.read();
+//            cache[domain] = {
+//                filterDefs: defs,
+//                filterList: []
+//            };
+//            self.filterCache.write(cache);
+//        },
+
+        saveFilterListToCache: function(filterList){
+            var self = this;
+            var domain = self.filterDomain.read();
+            if(!domain)
+                return;
+            var cache = self.filterCache.read();
+            if(!cache || !cache[domain])
+                return; // todo revisit this logic
+            cache[domain].filterList = filterList;
+            self.filterCache.write(cache);
+        },
+
+        restoreFilterCache: function(domain){
+
+            var self = this;
+
+            var cache = self.filterCache.read();
+            var domainCache = cache[domain] || {};
+
+            self.filterDefs.write(domainCache.filterDefs || []); // def change should cause sensors to set defaults
+            self.filterList.write(self.filterDeepLinkHack || domainCache.filterList || []);
+
+            self.filterDeepLinkHack = null;
+        },
+
+
+        toFilterClearedFromList: function(clearFilter){
+
+            var list = this.filterList.read() || [];
+            var result = [];
+            for(var i = 0; i < list.length; i++){
+                var filter = list[i];
+                if(filter.name === clearFilter.name)
+                    break;
+                result.push(filter);
+            }
+            return result;
+        },
+
+
+        toReplacedLastInFilterList: function(replacementFilter){
+
+            var list = this.filterList.read() || [];
+            list.pop();
+            list.push(replacementFilter);
+            return list;
+
+        },
+
+        generateDropdownOptions: function() {
+
+        },
+
+        getDefaultFilter: function() {
+            return {name:'all',optionId:null};
+        },
+
+        isDefaultFilter: function(filter) {
+            return (typeof filter === 'object' && filter.name === 'all' && filter.optionId === null);
+        },
+
+        getCurrentFilterList: function() {
+
+            // including default 'all' selection
+            var filterList = this.filterList.read() || [];
+            filterList = [].concat(filterList);
+
+            var defaultFilter = this.getDefaultFilter();
+
+            if(filterList.length === 0)
+                filterList.push(defaultFilter);
+
+            return filterList;
+        },
+
+        generatePaths: function() {
+
+            var filterList = this.getCurrentFilterList();
+            var lastFilter = filterList && filterList[filterList.length - 1];
+
+            var list = [];
+            for(var i = 0; i < filterList.length; i++){
+                var filter = filterList[i];
+                list.push(filter.name);
+                list.push(filter.optionId);
+            }
+
+            var path = list.join('|');
+
+            list.pop();
+            list.pop();
+
+            var pathPartial = list.join('|');
+            var categoryList = this.getFilterCategoryList();
+            var pathForDataRequest = (this.isDefaultFilter(lastFilter)) ? pathPartial : path;
+
+            this.filterCategoryList.write(categoryList);
+            this.filterPathPartial.write(pathPartial);
+            this.filterPath.write(path);
+            this.filterPathDataRequest.write(pathForDataRequest);
+
+
+        },
+
+
+
+        getFilterCategoryList: function(includingLastFilter) {
+
+            var filterList = this.getCurrentFilterList();
+
+            var list = [].concat(filterList);
+            if(!includingLastFilter)
+                list.pop(); // the final, current filter does not affect available categories in the current menu
+
+            var i, j, good;
+
+            var filtersByName = _.chain(list).indexBy('name').value();
+
+
+            var filterDefs = this.filterDefs.read() || [];
+            var result = [];
+
+            for(j = 0; j < filterDefs.length; j++){
+
+                var def = filterDefs[j];
+
+                if(filtersByName[def.name])
+                    continue; // already filtered
+
+                if(def.before){ // definition must come before filters in this array
+                    good = true; // supposition
+                    for(i = 0; i < def.before.length; i++) {
+                        var b = def.before[i];
+                        if (filtersByName[b])
+                            good = false;
+                    }
+                    if(!good)
+                        continue; // earlier filter means this one no longer applies...
+                }
+
+                if(def.after){
+                    good = false; // supposition
+                    for(i = 0; i < def.after.length; i++) {
+                        var a = def.after[i];
+                        if (filtersByName[a])
+                            good = true;
+                    }
+                    if(!good)
+                        continue; // missing required preceding filter
+                }
+
+                result.push(def);
+
+            }
+            if(result.length > 1)
+                result.unshift({name: 'all', value: 'all'});
+
+            return result;
+
+        },
+
+       applyNextFilter: function() {
+
+           var defaultFilter = this.getDefaultFilter();
+           var list = this.filterList.read() || [];
+           list.push(defaultFilter);
+           this.filterList.write(list);
+
+       },
+
+        applyFilter: function(filter) {
+
+            var self = this;
+            var defs = this.filterDefs.read() || [];
+            var list = this.filterList.read() || [];
+
+            var filterNames = _.map(list, 'name');
+            var fi = filterNames.indexOf(filter.name);
+            var oldFilter = (fi >= 0) && list[fi];
+            var toggle = oldFilter && oldFilter.optionId === filter.optionId;
+
+//            var parentFilters = self.getParentFilters(filter, defs, list);
+
+            if(toggle) {
+                list.splice(fi, 1);
+            } else if (oldFilter) {
+                oldFilter.optionId = filter.optionId;
+            } else {
+                list.push(filter);
+//                parentFilters.push(filter);
+//                var parentsByName = _.indexBy(parentFilters, 'name');
+//                var merged = {};
+//                var newList = [];
+//
+//                for(var i = 0; i < list.length; i++){
+//                    var f = list[i];
+//                    var p = parentsByName[f.name];
+//                    if(p){
+//                        newList.push(p);
+//                        merged[p.name] = p;
+//                    } else {
+//                        newList.push(f);
+//                    }
+//                }
+//
+//                for(var j = 0; j < parentFilters.length; j++){
+//                    p = parentFilters[j];
+//                    if(!merged[p.name])
+//                        newList.push(p);
+//                }
+//
+//                list = newList; // todo apply def rules to enforce valid calls
+            }
+
+            self.filterList.write(list);
+
+        },
+
+        getParentFilters: function(filter, defs, list) {
+
+            var self = this;
+            var parents = [];
+            var defsByName = _.indexBy(defs, 'name');
+            var filterDef = defsByName[filter.name];
+
+            while(filterDef) {
+
+                var parentFunc = filterDef.parent;
+                if(!parentFunc) break;
+                var optionItem = self.getOptionItem(filter.name, filter.optionId);
+                filter = parentFunc(optionItem);
+                filterDef = defsByName[filter.name];
+                if(filterDef)
+                    parents.unshift(filter);
+            }
+
+            return parents;
+
+        },
+
+        // as a method, within the context of the cog using it, as in reconciliation
+        // converts filters to their actual optionItems
+
+        getResolvedFilters: function(domain, filters){
+
+            var self = this;
+            var mi = self.mapItem;
+            var items = [];
+
+            var i, def, id, item;
+
+            domain = domain || mi.findData('filterDomain').read();
+            var cache = mi.findData('filterCache').read();
+            var defs = (cache[domain] && cache[domain].filterDefs )|| [];
+
+            if(filters){ // explicitly passed in some filters to convert to optionItems if not defaults
+
+                var filtersByName = _.indexBy(filters, 'name');
+
+                for (i = 0; i < defs.length; i++) {
+
+                    def = defs[i];
+                    id = filtersByName[def.name].optionId;
+                    item = self.getOptionItem(def.name, id);
+
+                    if (item && item.id !== def.default)
+                        items.push(item);
+
+                }
+
+            } else { // find filters in this context that are non-defaults
+
+                for (i = 0; i < defs.length; i++) {
+
+                    def = defs[i];
+                    id = mi.findData(def.name).read();
+                    item = self.getOptionItem(def.name, id);
+
+                    if (item && item.id !== def.default)
+                        items.push(item);
+
+                }
+            }
+
+            return items;
+
+        },
+
+        // returns filters in definition order for a domain, allowing explicit filters to be passed in, or include defaults in output
+
+        getDomainFilters: function(domain, filters, includeDefaults){
+
+            var self = this;
+            var mi = self.mapItem;
+            var result = [];
+
+            var i, def, id, item, f;
+
+            domain = domain || mi.findData('filterDomain').read();
+            var cache = mi.findData('filterCache').read();
+            var defs = (cache[domain] && cache[domain].filterDefs )|| [];
+            var filtersByName = filters ? _.indexBy(filters, 'name') : {};
+
+            for (i = 0; i < defs.length; i++) {
+
+                def = defs[i];
+                f = filtersByName[def.name];
+                id = f && f.optionId;
+
+                if (f && (id !== def.default || includeDefaults))
+                    result.push(f);
+
+            }
+
+            return result;
+
+        },
+
+
+        getBreadcrumbText: function(domain, filters){
+
+            var self = this;
+            items = self.getResolvedFilters(domain, filters); // uses current domain
+
+            var display = [];
+
+            for(var i = 0; i < items.length; i++){
+                var item = items[i];
+                display.push(item.abbr || item.name);
+            }
+
+            return display.join(" / ");
+
+        },
+
+        getBreadcrumbAndTimeText: function(domain, filters, times){
+            var bc = this.getBreadcrumbText(domain, filters);
+            var times = this.getTimeText(times);
+
+            var spacer = (bc && times) ? ' / ' : '';
+
+            return bc + spacer + times;
+        },
+
+        getTimeText: function (times) {
+
+            var mi = this.mapItem;
+            var vals = times || mi.mapValues(["snapToFullDays","duration","durationText", "durationSelection", "endDateTime"]);
+            var display = [];
+
+
+            var durationTexts = {3600: '1 hour', 7200: '2 hours', 10800: '3 hours', 21600: '6 hours', 43200: '12 hours', 86400: '1 day', 259200: '3 days'};
+
+            var m = moment(vals.endDateTime);
+            var sum = m.seconds() + m.minutes() + m.hours();
+            if(vals.snapToFullDays) {
+                var thusfar = sum !== 0 ? " (thus far)" : "";
+                var sub = sum === 0 ? 1 : 0;
+                display.push("All of " + moment(vals.endDateTime).subtract("days",sub).format("MMMM Do") + thusfar);
+            } else {
+                display.push(durationTexts[vals.duration || vals.durationSelection] + " before " + moment(vals.endDateTime).format("MMMM Do, h:mm a"));
+            }
+
+            return display.join(" / ");
+        },
+
+        getDomainDefs: function(domain){
+
+            var mi = this.mapItem;
+
+            domain = domain || self.findData('filterDomain').read();
+            var cache = self.findData('filterCache').read();
+            var defs = cache[domain];
+            return defs || [];
+
+        }
+
+
+    });
+</script>

@@ -1,0 +1,38 @@
+<blueprint>
+
+    <alloy url="../core/aliases.html" />
+
+    <data name="user" />
+    <data name="loginPage" value="authorizing.html" />
+
+    <!--<alias name="SERVICE_ROOT" url="http://localhost:3001/api/" />-->
+    <alloy url="../../config.html" ></alloy>
+
+    <data name="authData" path="SERVICE_ROOT" url="auth" req="true" />
+    <sensor watch="authData" pipe="user" once="true" />
+    <sensor watch="user" transform="toUrl" pipe="loginPage" once="true" />
+
+    <cog find="login" url="data loginPage" />
+
+</blueprint>
+
+
+
+<display>
+
+    <div id="login" style="height: 100%; width: 100%; position: relative; ; z-index: 0"></div>
+
+</display>
+
+
+
+<script>
+
+    $.cog({
+
+        toUrl: function(user) {
+            return (user.authorized) ? 'core.html' : 'notAuth.html';
+        }
+
+    });
+</script>

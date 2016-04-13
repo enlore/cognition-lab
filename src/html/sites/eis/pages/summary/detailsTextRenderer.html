@@ -1,0 +1,188 @@
+<blueprint>
+    <prop find="record" />
+
+    <sensor watch="itemData" run="render" auto="true" />
+
+    <prop find="fieldData" />
+
+    <prop find="uiSelCell" />
+
+    <sensor watch="record" run="renderTooltip" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; flex-wrap: nowrap; width: 100%;" >
+        <span id="span" style="text-align: left; padding: 6px;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        render: function(itemData) {
+            /* display an en dash when a value isn't reported */
+            var cellValue = (itemData === '') ? '–' : itemData;
+            this.span.text(String(cellValue));
+        },
+
+        renderTooltip: function(d) {
+            var self = this;
+            var uiSelCell = this.uiSelCell.read();
+            var field = uiSelCell.field;
+            var fieldData = this.fieldData.read();
+            var fieldType = fieldData[field].fieldType;
+            var simpleField     = fieldData[field].simpleField;
+            var summaryTipTitle = fieldData[field].summaryTipTitle;
+            var detailsTipTitle = fieldData[field].detailsTipTitle;
+            var detailsTipValue = fieldData[field].detailsTipValue;
+            var tipTitle,
+                tipTitle_hi,
+                tipTitle_lo;
+            var tipValue = (d[field] === -1 || d[field] === null || d[field] === undefined || d[field] === 'NaN')
+                ? 'Not Reported'
+                : d[field];
+
+            if (fieldType === 'usage') {
+                tipTitle = (d.machine === 'All') ? summaryTipTitle : detailsTipTitle;
+                if (tipValue !== 'Not Reported') tipValue += '%';
+            } else if (d.facility != undefined && field === 'process' && d[field]) {
+                tipTitle = detailsTipTitle;
+                tipValue = detailsTipValue[d[field].charAt(0)];
+            } else if (d.facility != undefined && field === 'thread' && d[field]) {
+                tipTitle = detailsTipTitle;
+                tipValue = detailsTipValue;
+            } else if (fieldType === 'tri') {
+                tipTitle = (d.site) ? detailsTipTitle : summaryTipTitle;
+                tipTitle_hi = summaryTipTitle['hi'];
+                tipTitle_lo = summaryTipTitle['lo'];
+            } else {
+                tipTitle = (d.site) ? detailsTipTitle : summaryTipTitle;
+            }
+
+            if ((field === 'rdb_size' || field === 'edb_size') && tipValue !== 'Not Reported') {
+                /* convert to MB value and round to 2 decimal places  */
+                tipValue = (Math.round((tipValue / 1000000) * 100) / 100);
+                /* comma format values and append ' MB' */
+                tipValue = d3.format('0,000')(tipValue) + ' MB';
+            }
+
+            if (field === 'rdb_q' || field === 'edb_q') {
+                /* comma format values */
+                tipValue = d3.format('0,000')(tipValue);
+            }
+
+//            console.log('▶︎    field:', field);
+//            console.log('▶︎    d:', d);
+//            console.log('▶︎    tipTitle:', tipTitle);
+
+            function getTipData() {
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                d.localDT = (d.dt) ? d.dt.slice(0, -1) : undefined;
+                var updated = (d.localDT)
+                    ? moment(d.localDT).format('h:mm A ddd MMM D')
+                    : 'Not Reported';
+                var title;
+
+                var tier = (d.machine.charAt(2) === 'P')
+                    ? 'Prod'
+                    : 'Test';
+
+                if ((d.facility != undefined) && field === 'process' && d.process) {
+                    var process = d.process.substr(2);
+                    title = d.site + ': ' + process;
+                } else if ((d.facility != undefined) && field === 'thread' && d.thread) {
+                    title = d.site + ': ' + d.thread;
+                } else {
+                    title = (d.site)
+                        ? d.site
+                        : (d.machine === 'All')
+                            ? 'Enterprise (All Machines)'
+                            : d.machine;
+                }
+
+                var introItems = (d.facility != undefined)
+                    ? [
+                        { title: 'Machine',  value: d.machine  || 'Not Reported' },
+                        { title: 'Division', value: d.division || 'Not Reported' }
+                    ]
+                    : [];
+
+                var siteItems = (d.facility != undefined)
+                    ? [
+                        { title: 'Site',  value: d.site  || 'Not Reported' }
+                    ]
+                    : [];
+
+                var facilityItems = (d.facility != undefined)
+                    ? [
+                        { title: 'Facility', value: d.facility || 'Not Reported' }
+                    ]
+                    : [];
+
+                var processItems = ((d.facility != undefined) && field === 'process')
+                    ? [
+                        { title: 'Process', value: process }
+                    ]
+                    : [];
+
+                var threadItems = ((d.facility != undefined) && field === 'thread')
+                    ? [
+                        { title: 'Process', value: d.process || 'Not Reported' },
+                        { title: 'Thread',  value: d.thread  || 'Not Reported' }
+                    ]
+                    : [];
+
+                var fieldItems,
+                    commonFieldItems = [{ title: tipTitle, value: tipValue }],
+                    field_hi,
+                    field_lo;
+
+                if (fieldType === 'tri') {
+                    field_hi = field + '_hi';
+                    field_lo = field + '_lo';
+                    fieldItems = (!d.site)
+                        ? [
+                            { title: tipTitle_hi, value: (d[field_hi] != null) ? d[field_hi] : 'Not Reported' },
+                            { title: tipTitle_lo, value: (d[field_lo] != null) ? d[field_lo] : 'Not Reported' }
+                        ]
+                        : commonFieldItems;
+                } else if (fieldType === 'usage' && d.machine === 'All') {
+                    var highMachineTitle = (d.field === 'cpu_util_pct')
+                        ? 'Machine with Highest ' + detailsTipTitle + ' for > 30 Minutes'
+                        : 'Machine with Highest ' + detailsTipTitle;
+                    var highMachineItems = [
+                        { title: highMachineTitle, value: d[simpleField].machine }
+                    ];
+                    fieldItems = commonFieldItems.concat(highMachineItems);
+                } else if (fieldType === 'usage') {
+                    var machineItems = [
+                        { title: 'Machine',  value: d.machine  || 'Not Reported' }
+                    ];
+                    fieldItems = machineItems.concat(commonFieldItems);
+                } else {
+                    fieldItems = commonFieldItems;
+                }
+
+                var outroItems = [
+                    { title: 'Tier',    value: tier },
+                    { title: 'Updated', value: updated }
+                ];
+
+                var assembledItems = introItems.concat(siteItems, facilityItems, processItems, threadItems, fieldItems, outroItems);
+
+                return {
+                    id: self.mapItem.uid,
+                    title: title,
+                    items: assembledItems
+                };
+            }
+            self.holder.kodama(getTipData());
+        }
+
+    });
+
+</script>

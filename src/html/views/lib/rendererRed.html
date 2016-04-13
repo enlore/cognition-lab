@@ -1,0 +1,25 @@
+<blueprint>
+    <sensor watch="itemData" run="render" autorun="true" />
+</blueprint>
+
+<display>
+    <div>
+    <span id="span" style="color: #843534;">cow</span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        render: function(env){
+
+            this.span.text(env.msg);
+
+        }
+
+
+    });
+
+</script>

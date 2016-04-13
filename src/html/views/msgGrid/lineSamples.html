@@ -1,0 +1,37 @@
+<blueprint>
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <cog find="grid" and="append" url="KATANA_GRID"  />
+
+</blueprint>
+
+<display>
+    <div id="grid" class="small" ></div>
+</display>
+
+<script>
+    $.cog({
+
+        defineOptions: {
+                headerHeight: 22,
+                rowHeight: 26,
+                paneHeight: 260
+        },
+
+        defineColumns: [
+
+                { field: "app", title: "Source App", flex: '3'},
+                { field: "facility", title: "Facility", flex: '3'},
+                { field: "account", title: "Account", flex: '4'},
+                { field: "code", title: "Code", flex: '3'},
+                { field: "dos", title: "DoS", flex: '6', type: 'date'},
+                { field: "factor", title: "Factor", flex: '2'},
+                { field: "src", title: "@ Src",flex: '2', type: 'bool', edit: false },
+                { field: "cl", title: "@ CL",flex: '2', type: 'bool', edit: false },
+                { field: "dest", title: "@ Dest",flex: '2', type: 'bool', edit: false }
+
+        ]
+    });
+</script>

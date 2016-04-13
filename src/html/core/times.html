@@ -1,0 +1,93 @@
+<blueprint>
+
+    <!-- time filters -->
+    <data name="snapToFullDays" value="false" prop="true" />
+    <data name="snapToNow" value="false" prop="true" />
+    <data name="endDateTime" route="true" prop="true" />
+    <data name="endDateTimeSelection" value="run currentEndDateTime" prop="true" />
+    <data name="duration" route="true" value="num 3600" prop="true" />
+    <data name="durationText" value="1 hour" prop="true" />
+    <data name="durationSelection" value="3600" prop="true" />
+    <data name="forceRefresh" /> <!-- causes refresh for listening filter batches  -->
+
+
+
+    <sensor watch="duration" run="debug" auto="true" />
+    <!-- time sensors -->
+    <sensor watch="endDateTimeSelection,durationSelection,snapToFullDays,snapToNow" change="true" run="determineTimeParams" auto="true" />
+    <sensor watch="autoRefreshTrigger" run="endIsNow" />
+
+    <!--<sensor watch="forceRefresh,endDateTime,duration" pipe="timeFilters" batch="true" change="true" auto="true" />-->
+    <!--<sensor watch="timeFilters" pipe="resetAutoRefreshTimer"  />-->
+
+    <sensor watch="forceRefresh,endDateTime,duration" pipe="refreshTimeFilters" batch="true" change="true" auto="true" />
+
+</blueprint>
+
+<script>
+
+$.cog({
+
+    debug: function(msg){
+    console.log('dur:',msg);
+    },
+
+    init: function(){
+        console.log('init: times.html');
+    },
+
+    sinceMidnight: function(end) {
+
+        var midnight = moment(end).startOf('day');
+        return end.diff(midnight, 'seconds');
+
+    },
+
+    endIsNow: function(){
+
+        this.endDateTime.write(moment().format("YYYY-MM-DDTHH:mm:ss"));
+
+    },
+
+    determineTimeParams: function(){
+
+        var endSel = this.endDateTimeSelection.read();
+        var durSel = this.durationSelection.read();
+        var snap = this.snapToFullDays.read();
+
+        var now = moment();
+        var end = moment(endSel);
+
+        if(end.unix() > now.unix())
+            end = now;
+
+        var secondsAfterMidnight = this.sinceMidnight(end);
+        var isToday = (now.year() === end.year() && now.dayOfYear() === end.dayOfYear());
+
+        var dur = Number(durSel);
+
+        if(dur !== 86400)
+            snap = false;
+
+        if(snap){
+            if(secondsAfterMidnight > 0 && isToday){
+                dur = this.sinceMidnight(end);
+            } else {
+                dur = 86400;
+            }
+        }
+
+        var endStr = end.format("YYYY-MM-DDTHH:mm:ss");
+
+        this.endDateTime.write(endStr);
+        this.duration.write(dur);
+        this.snapToFullDays.write(snap);
+
+    },
+
+    currentEndDateTime: function() { return moment().format("YYYY-MM-DDTHH:mm:ss"); }
+
+});
+
+
+</script>

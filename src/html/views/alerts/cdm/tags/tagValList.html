@@ -1,0 +1,80 @@
+<blueprint>
+    <!--list management and rendering-->
+    <prop find="tagsVals" /> <!--this is an object of tag val arrays keyed by tagname-->
+    <data name="tagName" />
+    <data name="canonical" prop="true" />
+    <data name="working" prop="true" />
+    <data name="viewing" />
+
+    <sensor watch="selectedTag" pipe="tagName" auto="true" />
+    <sensor watch="tagName" transform="getList" pipe="canonical" />
+    <sensor watch="canonical" pipe="working" auto="true" />
+    <sensor watch="working" pipe="viewing" auto="true" />
+
+    <!--search-->
+    <data name="searchControl" prop="true" />
+    <data name="corpusControl" />
+    <cog find="nullSearchPlaceholder"  url="SEARCH_INTERFACE" />
+
+    <sensor watch="searchQuery" run="configQuery" emit="search" />
+
+    <sensor watch="canonical" transform="configCorpus" pipe="corpusControl" emit="create" />
+    <sensor watch="searchControl" on="results:tagVals" transform="handleResult" emit="update" pipe="working" />
+
+    <chain find="listOutput" source="viewing" item="tagVal" url="tagVal.html" />
+</blueprint>
+
+<script>
+    $.cog({
+        log: function (msg) {
+
+        },
+
+        getList: function getList (tagName) {
+            var obj = this.tagsVals.read();
+            return obj[tagName];
+        },
+
+        handleResult: function handleResult (result) {
+            var items = result.items;
+            if (items.length === 0)
+                //return this.canonical.read(); // revert to showing the unaltered list
+                return [{name: "No results"}]
+            return items
+        },
+
+        configCorpus: function configCorpus (tagList) {
+            var config = {
+                name: "tagVals",
+                corpus: tagList
+            };
+
+            return config;
+        },
+
+        configQuery : function configQuery (query) {
+            if (query.trim() === "") {
+                return this.working.write(this.canonical.read())
+            }
+
+            var config = {
+                name: "tagVals",
+                query: query,
+                options: {
+                    conjunction: "and",
+                    fields: [
+                        "name"
+                    ]
+                }
+            };
+
+            this.searchControl.write(config, "search");
+        }
+
+    })
+</script>
+
+<display>
+    <div id="list-output"></div>
+   <div id="null-search-placeholder" style="display: none;"></div>
+</display>

@@ -1,0 +1,111 @@
+<blueprint>
+    <alias name="TEXT_BUTTON_RENDERER" path="LIB" url="textButtonRenderer.html" />
+    <alias name="ICON_BIG_BUTTON_RENDERER" url="iconBigButtonRenderer.html" />
+
+    <data name="selCategory" value="all" prop="true" />
+    <data name="menuOptions" />
+    <data name="breadcrumbList" />
+    <data name="filterNextEnabled" value="true" />
+
+    <cog find="trail" path="LIB" url="buttonMenu.html" source="data menuOptions" item="data options" />
+    <cog find="input" url="filterSelectBox.html" />
+    <cog find="newFilter" path="LIB" url="buttonMenu.html" source="run newFilterOptions" item="data options" />
+    <chain find="breadcrumb" source="breadcrumbList" item="breadcrumb" url="breadcrumb.html" />
+
+    <prop find="filterList" />
+    <prop find="filterCategoryList" />
+
+    <sensor watch="filterPathPartial" transform="toMenuOptions" pipe="menuOptions" auto="true" />
+    <sensor watch="filterPath" transform="toBreadcrumbList" pipe="breadcrumbList" auto="true" />
+
+    <sensor watch="menuOptions" transform="toMatchingOption" pipe="selCategory" auto="true" />
+    <sensor watch="filterList" transform="toFilterNextEnabled" pipe="filterNextEnabled" auto="true" />
+
+    <write name="selCategory" value="all" />
+
+</blueprint>
+
+<display>
+    <div style="display: flex; flex: 1 1 auto; flex-direction: row;">
+        <div style="display: flex; flex-direction: column; flex: 0 0 350px; margin-right: 30px;">
+            <div id="trail"></div>
+            <div style="display: inline-flex; padding-top: 2px;">
+                <div id="input" style="flex:0 0 320px;"></div>
+                <div id="newFilter" style="flex: 0 0 40px; margin: 2px 4px;"></div>
+            </div>
+        </div>
+        <div id="breadcrumb" style="display: inline-flex; flex: 1 1 auto;"></div>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        toFilterNextEnabled: function(filterList) {
+
+            if(filterList.length === 0)
+                return false;
+
+            var lastFilter = filterList[filterList.length-1];
+            return (lastFilter.name !== 'all');
+
+        },
+
+        toMatchingOption: function(menuOptions){
+
+            // if currently 'all' --- don't try to focus to a specific category
+            var selCategory = this.selCategory.read();
+            if(selCategory === 'all')
+                return selCategory;
+
+            var list = this.filterList.read() || [];
+            var lastFilter = (list.length > 0) ? list[list.length-1] : null;
+            var categoryName = (lastFilter) ? lastFilter.name : 'all';
+
+            return categoryName;
+
+        },
+
+        toMenuOptions: function(){
+// move to filter category list to add 'all:all'
+            var items = this.filterCategoryList.read() || [];
+
+
+            var options = {
+                show: 'selCategory',
+                tell: 'selCategory',
+                url: 'TEXT_BUTTON_RENDERER',
+                items: items
+            };
+
+            return options;
+
+        },
+
+        toBreadcrumbList: function() {
+
+            var list = this.filterList.read() || [];
+            list = [].concat(list);
+
+            return list;
+        },
+
+        generateDropdownOptionsAndGroups: function(){
+
+        },
+
+        newFilterOptions: function(){
+
+            return {
+                enable: 'filterNextEnabled',
+                tell: 'uiFilterNext',
+                url: 'ICON_BIG_BUTTON_RENDERER',
+                items: [
+                    {value: 'trigger', style: 'fa fa-filter'}
+                ]
+            };
+        }
+
+    });
+</script>

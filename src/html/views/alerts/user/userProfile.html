@@ -1,0 +1,220 @@
+<blueprint>
+
+    <prop find="svc_readUserPrefs" />
+    <prop find="svc_updateUserPrefs" />
+
+    <sensor watch="svc_readUserPrefs" extract="data" pipe="userPrefs" auto="true" />
+    <sensor watch="userPrefs" run="processPrefs" auto="true" />
+
+    <sensor watch="svc_updateUserPrefs" on="status" run="sayChz" />
+
+    <data name="userPrefs" prop="true" />
+    <data name="carrierOptions" value="run getCarrierList" />
+    <data name="carrierSelectOptions" />
+
+    <sensor watch="carrierOptions" transform="toCarrierSelectOptions" pipe="carrierSelectOptions" />
+    <sensor node="btn_save" on="click" run="makeUpdate" />
+
+    <data name="phoneCarrier" prop="true" ></data>
+    <data name="phoneNumber" prop="true"></data>
+    <sensor watch="phoneNumber" auto="true" run="populateNumber" />
+
+    <data name="input_number" prop="true" />
+    <data name="input_carrier" prop="true" />
+
+    <data name="cmd_updatePrefs" prop="true" />
+    <sensor watch="cmd_updatePrefs" run="updatePrefs" auto="true" />
+
+    <cog find="carrierSelector" url="KATANA_SELECT_BOX" source="data carrierSelectOptions" item="data options" />
+
+</blueprint>
+
+
+<display>
+
+    <div style="position: relative; z-index: 1; display: flex; max-width: 792px;">
+
+        <div style="padding: 12px; flex: 1 1 200px;">
+            <div class="katana_element_title" style="padding-bottom: 1px;">
+                <span>Cell Number:</span>
+            </div>
+            <input id="phoneNumberInput" style="width: 100%;" class="katana_dialog_input">
+        </div>
+        <div id="carrierSelector" style=" padding: 12px; flex: 1 1 400px;" ></div>
+        <span id="btn_save" class="katana_button_menu_item" style="height: 34px; margin-top: 30px; line-height: 24px; padding-right: 10px; padding-left: 10px;"> Save </span>
+    </div>
+
+    <div id="flashMsg" style="opacity: 0; padding-left: 12px; transition: opacity 1s; height: 20px;">
+        <p id="flashContent" style="color: #79C4FF; margin: 0;"></p>
+    </div>
+
+</display>
+
+
+<script>
+    $.cog({
+        numberBlacklist: [
+            "911",
+            "411"
+        ],
+
+        sayChz: function (stat) {
+            this.flash("Phone and carrier saved! Woo!")
+            var self = this
+            window.setTimeout(function () {
+                self.flash(null)
+            }, 2000)
+
+            this.fetchUserPrefs()
+        },
+
+        validateNumber: function (number) {
+            // lets validate on length at least (assuming the number was run
+            // through the cleaner first)
+            var len = 10
+
+            if (number.length !== len) {
+                this.flash("Please provide a ten digit phone number, area code first.")
+                return null
+            } else {
+                return number
+            }
+        },
+
+        cleanNumber: function (number) {
+            var wsRe  = /\s/g
+              , numRe = /([^0-9])/g
+
+            number = number.replace(wsRe, '')
+            number = number.replace(numRe, '')
+
+            return number
+        },
+
+        // save:
+        //  get stuff out of ui
+        //  fallback to currentPrefs
+        //  clean and validate #
+        //  package up # and carrier for net io
+        cleanAndValidate: function cleanAndValidate (number) {
+            number = this.cleanNumber(number)
+            number = this.validateNumber(number)
+
+            return number
+        },
+
+        validateCarrier: function validateCarrier (carrier) {
+            if (carrier === "") {
+                this.flash("Please select a carrier from the drop down.")
+                return null
+
+            } else {
+                return carrier
+            }
+        },
+
+        makeUpdate: function makeUpdate () {
+            var currentPrefs = this.userPrefs.read()[0]
+
+            var prefs = {
+                cellNumber: this.phoneNumberInput.val() || currentPrefs.cellNumber,
+                cellCarrier: this.input_carrier.read() || currentPrefs.cellProvider
+            }
+
+            // if it comes back as "" from the server, saving will fail validation
+            prefs.cellNumber = this.cleanAndValidate(prefs.cellNumber)
+            prefs.cellCarrier = this.validateCarrier(prefs.cellCarrier)
+
+            // no val for carrier at this point
+            if (prefs.cellNumber && prefs.cellCarrier) {
+                this.flash(null)
+                this.cmd_updatePrefs.write(prefs)
+            }
+        },
+
+        updatePrefs: function updatePrefs (prefs) {
+            var currentPrefs = this.userPrefs.read()[0]
+
+            var payload = {
+                method: "put",
+                cellNumber: prefs.cellNumber,
+                cellProvider: prefs.cellCarrier,
+                id: currentPrefs.id
+            }
+
+            this.svc_updateUserPrefs.req(payload)
+        },
+
+        flash: function flash (msg) {
+            if (msg === null) this.flashContent.empty() && this.flashMsg.css("opacity", "0")
+            else this.flashContent.text(msg) && this.flashMsg.css("opacity", "1")
+        },
+
+        init: function () {
+            this.fetchUserPrefs()
+        },
+
+        fetchUserPrefs: function fetchUserPrefs () {
+            this.svc_readUserPrefs.req()
+        },
+
+        getNumber: function (ev) {
+            return this.phoneNumberInput.val()
+        },
+
+        processPrefs: function (prefs) {
+            //.cellNumber
+            //.cellProvider
+            var prefs = prefs[0]
+
+            if (prefs.cellNumber === "")
+                this.phoneNumberInput.attr("placeholder", "Please enter a number")
+            else
+                this.phoneNumber.write(prefs.cellNumber)
+
+            this.phoneCarrier.write(prefs.cellProvider)
+        },
+
+        populateNumber: function (number) {
+            this.phoneNumberInput.val(number)
+        },
+
+        toCarrierSelectOptions: function(carriers){
+            return {
+                label: 'Cell Carrier:',
+                title: 'label',
+                value: 'value',
+                tell: 'input_carrier',
+                show: 'phoneCarrier',
+                items: carriers,
+                placeholder: 'Select carrier...'
+            };
+        },
+
+        getCarrierList: function(){
+
+            var carriers = {
+                "at&t": "txt.att.net",
+                "boost mobile": "myboostmobile.com",
+                "cricket": "sms.mycricket.com",
+                "google voice": "txt.voice.google.com",
+                "sprint": "messaging.sprintpcs.com",
+                "t-mobile": "tmomail.net",
+                "verizon": "vtext.com",
+                "virgin mobile": "vmobl.com"
+            };
+
+            var result = [];
+            for(var name in carriers){
+                var carrier = {label: name, value: carriers[name]};
+                result.push(carrier);
+            }
+
+
+            return result;
+
+        }
+
+    });
+
+</script>

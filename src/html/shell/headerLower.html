@@ -1,0 +1,43 @@
+<blueprint>
+
+
+    <sensor watch="filterDomain" run="determineDomainVisibility" />
+    <sensor watch="filterTime" run="determineTimeVisibility" />
+
+    <cog find="filters" url="breadcrumb_filters/filterTypeMenu.html" />
+    <cog find="timeFilters" url="TIME_FILTERS" />
+
+
+</blueprint>
+
+<display>
+
+    <div style="background: linear-gradient(to bottom, rgba(0, 31, 66, 1) 20%,rgba(1, 52, 102, 1) 100%);
+padding-left: 8px;
+border-bottom: 1px solid rgba(0, 69, 107, 1);
+padding-right: 6px;
+padding-top: 6px;
+z-index: 3; width: 100%; display: flex; flex-direction: row;">
+
+        <div id="filters" style="display: flex; flex: 1 1 auto; visibility: hidden;" ></div>
+        <div id="timeFilters" style="display: block; width: 320px; visibility: hidden;" ></div>
+
+    </div>
+
+</display>
+
+<script>
+    $.cog({
+
+        determineDomainVisibility: function(domain){
+            var vis = (domain !== 'none') ? 'visible' : 'hidden';
+            this.filters.css({visibility: vis});
+        },
+
+        determineTimeVisibility: function(time){
+            var vis = (time !== 'none') ? 'visible' : 'hidden';
+            this.timeFilters.css({visibility: vis});
+        }
+
+    });
+</script>

@@ -1,0 +1,80 @@
+<blueprint>
+
+    <sensor watch="pagedRecords" transform="toZero" pipe="pageNum" auto="true" />
+    <sensor watch="pagedRecords" run="determineVis" auto="true" />
+    <sensor watch="pagedRecords,pageNum" batch="true" run="render" auto="true" />
+
+
+    <prop find="pagedRecords" />
+    <prop find="pageNum" />
+
+    <cog find="btnFirst" url="/html/views/lib/button.html" source="prop getFirst" item="data button" />
+    <cog find="btnPrev" url="/html/views/lib/button.html" source="prop getPrev" item="data button" />
+    <cog find="btnNext" url="/html/views/lib/button.html"  source="prop getNext" item="data button" />
+    <cog find="btnLast" url="/html/views/lib/button.html" source="prop getLast" item="data button" />
+
+</blueprint>
+
+<display>
+    <div id="pager" style="display: flex; justify-content: flex-end; font-size: 11px; padding: 0 6px; font-family: Verdana, 'Helvetica Neue', Helvetica, Arial, sans-serif;" >
+        <div id="btnFirst" />
+        <div id="btnPrev" />
+        <div style="padding: 5px;">
+            <span id="txtAtPage" ></span>
+        </div>
+        <div id="btnNext" />
+        <div id="btnLast" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        init: function(){
+        //  console.log("item!");
+            this.pager.raw().onselectstart = function(){
+                return false;
+            }
+        },
+
+        determineVis: function(pages){
+            this.pager.css('visibility', pages && pages.length ? 'visible' : 'hidden');
+        },
+
+        toZero: function(){
+            return 0;
+        },
+
+        render: function(){
+            var pages = this.pagedRecords.read() || [];
+            var last = pages.length;
+            var n = this.pageNum.read() + 1;
+            var text = 'Page ' + n + ' of ' + last;
+            this.txtAtPage.text(text);
+        },
+
+        getPrev: {
+            tell: 'prevPageCmd',
+            title: 'prev'
+        },
+
+        getNext: {
+            tell: 'nextPageCmd',
+            title: 'next'
+        },
+
+        getFirst: {
+            tell: 'firstPageCmd',
+            title: 'first'
+        },
+
+        getLast: {
+            tell: 'lastPageCmd',
+            title: 'last'
+        }
+
+    });
+
+</script>

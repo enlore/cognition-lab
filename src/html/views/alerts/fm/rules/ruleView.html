@@ -1,0 +1,28 @@
+<blueprint>
+    <prop find="rule" />
+
+    <sensor node="holder" on="click" transform="toRule" pipe="selectedRule" />
+
+    <cog find="titleBox" url="titleBox.html" />
+    <cog find="deliveryStatus" url="deliveryStatus.html" />
+</blueprint>
+
+<display>
+    <div id="holder" class="katana_panel" style="height: 70px; margin: 4px 0; border-bottom-width:0;  position: relative;">
+        <div style="display: flex;">
+            <div id="deliveryStatus" style="flex: 0 1 100px;" />
+            <div id="titleBox" style="display: block; width: 100%; max-width: 400px; position: absolute; right: 6px; top: 5px;" />
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        // todo make a type 'read' to pull data value out in transform, transform = 'read rule'
+        toRule: function() {
+            return this.rule.read();
+        }
+
+    })
+</script>

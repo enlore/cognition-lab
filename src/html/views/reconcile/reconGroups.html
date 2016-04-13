@@ -1,0 +1,128 @@
+
+<blueprint>
+
+    <alloy url="reconGroupState.html" />
+    <alloy url="reconGroupFeed.html" />
+    <alloy name="echoFile" url="/html/util/echoFile.html" prop="true" />
+
+    <data name="downloadClick" />
+
+    <prop find="historyView" />
+    <!--<prop find="breadcrumbText" is="method" />-->
+    <!--<prop find="breadcrumbTextTimeless" is="method" />-->
+
+    <prop find="reconRecords" />
+
+    <data name="groupMenuUrl" value="run determineGroupMenu" />
+    <data name="groupContentUrl" />
+
+    <data name="columnDefs" value="prop columnDefs" />
+
+    <cog find="groupMenu" url="data groupMenuUrl" />
+    <cog find="aspectMenu" url="reconAspectMenu.html" />
+    <cog find="groupContent" url="data groupContentUrl" />
+
+    <sensor watch="groupContentPage" change="true" pipe="groupContentUrl" auto="true"/>
+    <sensor watch="downloadClick" run="downloadRecords2" />
+
+</blueprint>
+
+
+<display>
+    <div>
+        <div style="display: flex; width: 100%; height: 20px;">
+             <div id="groupMenu" style="display: flex; flex: 1 1; justify-content: flex-start;"></div>
+             <div id="aspectMenu" style="display: flex; flex: 1 1; justify-content: flex-end; "></div>
+         </div>
+         <div id="groupContent" style="padding: 12px 0px 2px 0px;"></div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+        init: function(){
+           // console.log('recon groups init');
+           // console.log(this.mapItem);
+           // console.log('vv');
+        },
+
+        determineGroupMenu: function(){
+            return this.historyView.read() ? null : "reconGroupMenu.html";
+        },
+
+
+        downloadRecords2: function(){
+
+            //            var breadcrumb = (this.historyView.read()) ? this.breadcrumbTextTimeless(mi) : this.breadcrumbText(mi);
+
+            var sourceRecords = this.reconRecords.read();
+            var exportRecords = [];
+            var breadcrumb = 'todo';
+
+            for(var i = 0; i < sourceRecords.length; i++){
+                var r = sourceRecords[i];
+                var e = {};
+
+                for(var p in this.columnDefs){
+                    if(!r.hasOwnProperty(p))
+                        continue;
+                    var def = this.columnDefs[p];
+//                    var val = r[p];
+                    e[def.title] = r[p];
+                }
+
+                e.Breadcrumb = breadcrumb;
+                exportRecords.push(e);
+            }
+
+            this.echoFile.download(exportRecords, 'TLM-Recon');
+        },
+
+
+        columnDefs: {
+            abbr: { field: "abbr", title: "Abbr",flex: '1.5 1.5' },
+            name: { field: "name", title: "Name", flex: '3 3' },
+            msg_date: { field: "msg_date", type: 'date', format: 'MMMM Do', title: "Date", flex: '3'},
+            no_dest: { field: "no_dest", type: 'num', flex: '2 2', title: "Not at Destination"},
+            no_dest_pct: { field: "no_dest_pct", type: 'pct',  flex: '1 1',label: 'Pct',  title: "Not at Destination Pct"},
+            mis_ts: { field: "mis_ts", type: 'num',  flex: '2 2', title: "Waiting for Source"},
+            mis_ts_pct: { field: "mis_ts_pct", type: 'pct',  flex: '1 1',label: 'Pct',  title: "Waiting for Source Pct"},
+            tracked: { field: "tracked", type: 'num',  flex: '2 2', title: "Reconciled"},
+            tracked_pct: { field: "tracked_pct", type: 'pct', flex: '1 1', label: 'Pct',  title: "Reconciled Pct"},
+            path_count: { field: 'path_count', type: 'num',  flex: '2 2', title: 'Total Tracked Messages'},
+            b1: { field: "b1", type: 'num', flex: '2 2', title: "Prompt"},
+            b1_avg: { field: "b1_avg", type: 'duration', flex: '1 1', label: 'Duration', title: "Prompt Avg Duration"},
+            b1_pct: { field: "b1_pct", type: 'pct',  flex: '1 1', label: 'Pct',  title: "Prompt Pct"},
+            b2: { field: "b2", type: 'num',  flex: '2 2', title: "Delayed"},
+            b2_avg: { field: "b2_avg", type: 'duration', flex: '1 1', label: 'Duration', title: "Delayed Avg Duration"},
+            b2_pct: { field: "b2_pct", type: 'pct',  flex: '1 1', label: 'Pct', title: "Delayed Pct"},
+            b3: { field: "b3", type: 'num',  flex: '2 2', title: "Extreme"},
+            b3_avg: { field: "b3_avg", type: 'duration', flex: '1 1', label: 'Duration', title: "Extreme Avg Duration"},
+            b3_pct: { field: "b3_pct", type: 'pct', flex: '1 1', label: 'Pct', title: "Extreme Pct"},
+
+            b4: { field: "b4", type: 'num',  flex: '2 2', title: "Severe"},
+            b4_avg: { field: "b4_avg", type: 'duration', flex: '1 1', label: 'Duration', title: "Severe Avg Duration"},
+            b4_pct: { field: "b4_pct", type: 'pct', flex: '1 1', label: 'Pct', title: "Severe Pct"},
+
+            b5: { field: "b5", type: 'num',  flex: '2 2', title: "Critical"},
+            b5_avg: { field: "b5_avg", type: 'duration', flex: '1 1', label: 'Duration', title: "Critical Avg Duration"},
+            b5_pct: { field: "b5_pct", type: 'pct', flex: '1 1', label: 'Pct', title: "Critical Pct"},
+
+
+            not_calc: { field: "not_calc", type: 'num',  flex: '2 2', title: "Latency Not Calculated"},
+            not_calc_pct: { field: "not_calc_pct", type: 'pct', flex: '1 1', label: 'Pct', title: "Latency Not Calculated Pct"},
+            nak: { field: "nak", type: 'num', flex: '1 1', title: "NAKs"},
+            nak_pct: { field: "nak_pct", type: 'pct',  flex: '1 1', label: 'Pct', title: "NAKs Pct"},
+            lost: { field: "lost", type: 'num', flex: '2 2', label: 'No Dest, No NAK', title: "Not at Destination, Unreconciled without NAK"},
+            lost_pct: { field: "lost_pct", type: 'pct',  flex: '1 1', label: 'Pct', title: "Unreconciled without NAK Pct"},
+            latency_count: { field: 'latency_count', type: 'num',  flex: '2 2', title: 'Total Latency Messages'},
+            full_count: { field: 'full_count', type: 'num',  flex: '2 2', label: 'Total Messages', title: 'Total Messages including Ignored'},
+            no_dest_full_pct: { field: "no_dest_full_pct", type: 'pct',  flex: '1 1', label: 'Pct', title: "Not at Destination Pct including Ignored"},
+            mis_ts_full_pct: { field: "mis_ts_full_pct", type: 'pct',  flex: '1 1', label: 'Pct', title: "Waiting for Source Pct including Ignored"},
+            tracked_full_pct: { field: "tracked_full_pct", type: 'pct', flex: '1 1', label: 'Pct', title: "Reconciled Pct including Ignored"},
+            ignores: { field: "ignores", type: 'num', flex: '2 2', label: 'Ignored', title: "Ignored Messages"},
+            ignores_full_pct: { field: "ignores_full_pct", type: 'pct', flex: '1 1', label: 'Pct', title: "Ignored Messages Pct"}
+        }
+
+    })
+</script>

@@ -1,0 +1,30 @@
+<blueprint>
+
+    <sensor watch="annotationState" run="debug" auto="true" />
+    <data name="options" value="prop defineButtons" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+
+</blueprint>
+
+<display>
+    <div id="holder"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        debug: function(msg){
+            console.log(msg);
+        },
+        defineButtons:  {
+            show: 'annotationState',
+            items: [
+                {title: 'new', value: 'N'},
+                {title: 'active', value: 'A'},
+                {title: 'resolved', value: 'R'}
+            ]
+        }
+
+    });
+</script>

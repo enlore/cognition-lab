@@ -1,0 +1,26 @@
+<blueprint>
+    <alias name="TEXT_BUTTON_RENDERER" url="textButtonRenderer.html" />
+
+    <data name="options" value="prop defineButtons" />
+
+    <cog find="holder" and="append" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+    $.cog({
+
+        defineButtons:  {
+            url: 'TEXT_BUTTON_RENDERER',
+            show: 'mode',
+            items: [
+                 { value:'stacked' }
+                ,{ value:'grouped' }
+            ]
+        }
+
+    });
+</script>

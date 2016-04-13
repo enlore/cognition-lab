@@ -1,0 +1,140 @@
+<blueprint>
+    <sensor watch="endDateTime" auto="true" run="pickerUpdate" />
+    <sensor watch="snapToFullDays" auto="true" run="fullDayActive" />
+
+    <prop find="endDateTimeSelection" />
+    <prop find="snapToFullDays" />
+</blueprint>
+
+<display>
+    <div data-n-item="endDateTimeFilter">
+
+
+    <div class="filter-holder">
+         <span class="filter-title" style="float:left;padding-bottom: 0px;">
+
+        <div id="backBtn" class="mini-button" style="float: left;">
+            <span class="glyphicon glyphicon-backward"></span>
+        </div>
+
+        <div id="nowBtn" class="mini-button" style="float: left;">
+            Now
+        </div>
+         <div id="fullDayBtn" class="mini-button" style="float: left;">
+             Full Day
+         </div>
+        <div id="forwardBtn" class="mini-button" style="float: left;">
+            <span class="glyphicon glyphicon-forward"></span>
+        </div>
+
+     </span>
+     <span class="filter-title" style="float:right; padding-bottom: 0px; margin-top: 3px;">
+        Date and Time
+    </span>
+
+    <div class="filter-body">
+        <input id="input" style="width: 100%" />
+    </div>
+
+</div>
+        </div>
+
+</display>
+
+<script>
+
+    $.cog({
+
+                init: function(){
+
+                    this.picker = $(this.input).kendoDateTimePicker({
+                        change: this.pickerSelect.bind(this)
+                    }).data("kendoDateTimePicker");
+
+                    var mi = this.mapItem;
+
+                    var endDateTimePlace = mi.findData("endDateTime");
+                    var endDateTimeSelectionPlace = mi.findData("endDateTimeSelection");
+
+                    var snapPlace = mi.findData("snapToFullDays");
+                    var durationPlace = mi.findData("durationSelection");
+                    var forceRefreshPlace = mi.findData("forceRefresh");
+
+                    $(this.nowBtn).on("click",function(){
+
+                        endDateTimeSelectionPlace.write(moment().format("YYYY-MM-DDTHH:mm:ss"));
+                    });
+
+                    $(this.backBtn).on("click",function(){
+                        var d = moment(endDateTimeSelectionPlace.read());
+                        var snap = snapPlace.read();
+                        if(snap && (d.hours() !== 0 || d.minutes() !== 0 || d.seconds() !== 0)) {
+                            d.hours(0);
+                            d.minutes(0);
+                            d.seconds(0);
+                        } else {
+                            d.subtract('days', 1);
+                        }
+
+                        endDateTimeSelectionPlace.write(d.format("YYYY-MM-DDTHH:mm:ss"));
+                    });
+
+                    $(this.forwardBtn).on("click",function(){
+                        var d = moment(endDateTimeSelectionPlace.read()).add("days",1);
+                        if(d.unix() > moment().unix())
+                            d = moment();
+                        endDateTimeSelectionPlace.write(d.format("YYYY-MM-DDTHH:mm:ss"));
+                    });
+
+                    $(this.fullDayBtn).on("click",function(){
+                        snapPlace.toggle();
+
+                        var d = moment(endDateTimeSelectionPlace.read());
+                        var snap = snapPlace.read();
+                        if(snap && (d.hours() !== 0 || d.minutes() !== 0 || d.seconds() !== 0)) {
+                            d.hours(0);
+                            d.minutes(0);
+                            d.seconds(0);
+                        }
+                        if(snap) {
+                            d.add('days', 1);
+                        }
+
+                        var now = moment();
+
+                        if(d.unix() > now.unix())
+                            d = now;
+
+                        endDateTimeSelectionPlace.write(d.format("YYYY-MM-DDTHH:mm:ss"));
+                        durationPlace.tell(86400);
+                        forceRefreshPlace.tell(true); // force a refresh when no filter data has changed
+                    });
+                },
+
+                fullDayActive: function(snap){
+                    this.fullDayBtn.toggleClass('active',snap);
+                },
+
+                pickerUpdate: function(msg){
+                    var val = moment(msg).clone().toDate(); //format("YYYY-MM-DDTHH:mm:ss");
+                    this.picker.value(val);
+                },
+
+                pickerSelect: function() {
+
+                    var val = this.picker.value();
+                    var end = moment(val);
+                    var sum = end.seconds() + end.minutes() + end.hours();
+                    if(sum )
+                    this.snapToFullDays.write(false);
+                    this.endDateTimeSelection.write(end);
+
+                },
+
+
+                destroy: function(){
+                    this.picker.destroy();
+                }
+            });
+
+</script>

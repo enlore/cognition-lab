@@ -1,0 +1,29 @@
+<blueprint>
+    <prop find="activeSiteDomain" />
+    <prop find="activePageDef" />
+
+    <cog find="holder" url="wsmq.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+    $.cog({
+
+        pageDef: function(){
+            return {
+                title: 'WSMQ Health',
+                domain: 'none',
+                time: 'endSpan'
+            };
+        },
+
+        init: function() {
+            var def = this.pageDef();
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+        }
+
+    });
+</script>

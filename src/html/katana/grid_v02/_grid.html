@@ -1,0 +1,381 @@
+<blueprint>
+
+
+    <alloy name="echoFile" url="/html/util/echoFile.html" prop="true" />
+
+    <data name="rendererPath" value="run getPath" />
+
+    <data name="gridSort" inherit="true" prop="true" />
+    <data name="gridCmd" prop="true" />
+    <data name="gridTitle" prop="true" />
+
+    <data name="firstPageCmd" />
+    <data name="prevPageCmd" />
+    <data name="nextPageCmd" />
+    <data name="lastPageCmd" />
+
+    <data name="records" prop="true" />
+    <data name="hoverRecord" prop="true" />
+    <data name="selRecord" prop="true" />
+
+    <data name="sortedRecords" prop="true" />
+    <data name="pagedRecords" prop="true" />
+    <data name="viewingRecords" prop="true" />
+
+    <data name="columns" prop="true" />
+    <data name="rowHeight" prop="true" />
+    <data name="headerHeight" prop="true" />
+    <data name="paneHeight" prop="true" />
+    <data name="perPage" value="num 0" prop="true" note="max records per page, 0 is no paging" />
+    <data name="pageNum" value="num 0" prop="true" />
+    <data name="showAll" value="false" prop="true" />
+
+    <sensor watch="gridCmd" run="doGridCmd" />
+    <sensor watch="gridTitle" run="renderTitle" auto="true" />
+
+    <sensor watch="options" run="applyOptions" auto="true" />
+
+    <sensor watch="gridSort,records,columns" group="true" transform="toSortedRecords" pipe="sortedRecords" auto="true"/>
+    <sensor watch="sortedRecords" batch="true" transform="toPagedRecords" pipe="pagedRecords" auto="true" />
+    <sensor watch="pagedRecords,pageNum,perPage" batch="true" transform="toViewingRecords" pipe="viewingRecords" auto="true" />
+    <sensor watch="viewingRecords,perPage" batch="true" run="determineScrollY" auto="true" />
+
+
+    <sensor watch="firstPageCmd" transform="toFirstPage" pipe="pageNum" />
+    <sensor watch="prevPageCmd" transform="toPrevPage" pipe="pageNum" />
+    <sensor watch="nextPageCmd" transform="toNextPage" pipe="pageNum" />
+    <sensor watch="lastPageCmd" transform="toLastPage" pipe="pageNum" />
+
+    <sensor watch="selRecord" batch="true" transform="toPageOfSel" pipe="pageNum" />
+
+    <sensor watch="perPage,gridTitle" batch="true" run="renderTitleBar" auto="true" />
+
+    <sensor watch="hoverRecord" run="debugHover" />
+    <prop find="options" />
+
+
+    <preload url="item.html" />
+    <preload url="row.html" />
+
+    <chain find="header" source="columns" item="column" url="headerItem.html" />
+    <chain find="body" source="viewingRecords" item="record" url="row.html" />
+
+    <cog find="pager" url="pager.html" />
+
+    <sensor watch="viewingRecords" emit="view" run="debug" auto="true" />
+    <sensor watch="sortedRecords" emit="sort" run="debug" auto="true" />
+    <sensor watch="pagedRecords" emit="page" run="debug" auto="true" />
+
+</blueprint>
+
+<display>
+
+    <div id="titleBar" style="display: flex;">
+        <span id="title" style="flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; padding: 9px 4px 4px 4px; font-family: Verdana, 'Helvetica Neue', Helvetica, Arial, sans-serif;"></span>
+        <div id="pager" style="flex: 1 0 180px; text-align: right;"></div>
+    </div>
+
+    <div class="katana_grid">
+
+        <div class="katana_header" id="header">
+            <div id="bumper" class="katana_header_item" style="order: 999999; max-width: 15px;"></div>
+        </div>
+
+        <div id="pane" class="katana_grid_pane" >
+            <div id="body" class="katana_grid_body" ></div>
+
+        </div>
+
+
+
+    </div>
+
+</display>
+
+<script>
+
+    $.cog({
+
+        downloadSortedRecords: function(){
+
+            var options = this.options.read() || {};
+            this.downloader.download(this.sortedRecords.read(), options.exportName || 'dataGridExport');
+        },
+        debug: function(msg, topic){
+
+        },
+
+        init: function(){
+
+            this.applyOptions();
+
+
+        },
+
+        renderTitle: function(){
+            var title = this.gridTitle.read();
+            this.title.text(title);
+        },
+
+        toFirstPage: function(){
+
+            return 0;
+
+        },
+
+        toPrevPage: function(){
+
+            var n = this.pageNum.read() || 0;
+            return Math.max(n - 1, 0);
+
+        },
+
+        toNextPage: function(){
+
+            var pages = this.pagedRecords.read() || [];
+            var n = this.pageNum.read() || 0;
+            return Math.min(n + 1, pages.length - 1);
+
+        },
+
+        toLastPage: function(){
+
+            var pages = this.pagedRecords.read() || [];
+            return pages.length - 1;
+
+        },
+
+        toPageOfSel: function(){
+            var sel = this.selRecord.read();
+            var options = this.options.read() || {};
+            if(!options.jumpsToSelected || sel === null) return 0;
+
+            var sortedRecords = this.sortedRecords.read();
+            var perPage = this.perPage.read();
+
+            var sortedRecordIds = sortedRecords.map(function(obj) { return obj.id; });
+            var position = sortedRecordIds.indexOf(sel.id);
+
+//            console.log('position, zero-indexed    ', position);
+//            console.log('page, zero-indexed        ', Math.floor(position / perPage));
+
+            return Math.floor(position / perPage);
+        },
+
+        debugHover: function(msg){
+      //      console.log('hover');
+      //      console.log(msg);
+        },
+
+        renderTitleBar: function(){
+
+            var perPage = this.perPage.read();
+            var title = this.gridTitle.read();
+            var disp = perPage || title ? 'flex' : 'none';
+            this.titleBar.css('display', disp);
+
+        },
+
+        getPath: function(){
+            var outerCog = this.mapItem.parent;
+            while (outerCog.parent && outerCog.isAlloy){
+                outerCog = outerCog.parent;
+            }
+            return outerCog.path;
+        },
+
+        applyOptions: function(){
+
+            /*
+
+            renderTypes: {someTypeName: {url: someRenderer.html, aliases: [alternateTypeNames...]},..} -- default built in, extras override
+            rowHeight: num px
+            paneHeight: num px
+            headerHeight: num px
+            showAll: bool
+            perPage: num rows
+            sort: {field: someFieldName, dir: 'desc|asc'}
+
+            records: 'records' data
+            hoverShow: name hoverRecord
+            hoverTell: demand data named hoverRecord
+            idField: show and tell on id field instead of row object equality
+            selShow: name selRecord
+            selTell: demand data named selRecord
+            columns: column config
+
+             */
+
+            var mi = this.mapItem;
+            var options = this.options.read() || {};
+
+            options.hoverTell = options.hoverTell || options.hoverShow;
+            options.hoverShow = options.hoverShow || options.hoverTell;
+            options.selTell = options.selTell || options.selShow;
+            options.selShow = options.selShow || options.selTell;
+            options.pageTell = options.pageTell || options.pageShow;// || 'pageNum';
+            options.pageShow = options.pageShow || options.pageTell;
+
+
+            this.rowHeight.write(options.rowHeight || 22);
+            this.paneHeight.write(options.paneHeight);
+            this.headerHeight.write(options.headerHeight || 25);
+            this.showAll.write(options.showAll || false);
+            this.perPage.write(options.perPage || 0);
+
+            if(options.sort) this.gridSort.write(options.sort);
+            if(options.idField) this.idField.write(options.idField);
+
+
+            if(typeof options.records === 'string' || !options.records)
+                mi.createSensor(options.records || 'records', 'data', 'update', 'parent').pipe(this.records).autorun();
+            else
+                this.records.write(options.records);
+
+
+            if(typeof options.columns === 'string')
+                mi.createSensor(options.columns || 'columns', 'data', 'update', 'parent').pipe(this.columns).autorun();
+            else
+                this.columns.write(options.columns);
+
+            if(options.hoverShow)
+                mi.createSensor(options.hoverShow, 'data', 'update','parent').pipe(this.hoverRecord).autorun();
+
+            if(options.selShow)
+                mi.createSensor(options.selShow, 'data', 'update','parent').pipe(this.selRecord).autorun();
+
+            if(options.titleShow)
+                mi.createSensor(options.titleShow, 'data', 'update','parent').pipe(this.gridTitle).autorun();
+
+//
+//            if(options.pageShow)
+//                mi.createSensor(options.pageShow, 'data', 'update','parent').pipe(this.pageNum).autorun();
+
+            this.determineScrollY();
+
+            if(options.title)
+                this.title.text(options.title);
+        },
+
+
+        determineScrollY: function(){
+
+
+            var needScrollY;
+            var paneHeight = this.paneHeight.read() || 0;
+            var rowHeight = this.rowHeight.read();
+            var showAll = this.showAll.read();
+            var perPage = this.perPage.read();
+
+            var fullHeight;
+
+            var records = this.viewingRecords.read() || [];
+            var count = records.length;
+
+         //   console.log('det scroll',records);
+
+            fullHeight = count * rowHeight;
+            paneHeight = paneHeight || perPage * rowHeight;
+
+            needScrollY = fullHeight > paneHeight;
+
+            if(showAll){
+                paneHeight = fullHeight;
+                needScrollY = false;
+            }
+
+            var overflow = needScrollY ? 'scroll' : 'hidden';
+            this.pane.css('overflow-y',overflow);
+            this.pane.css('height', paneHeight + 'px');
+            this.body.css('height', fullHeight + 'px');
+
+
+            var scrollbarVisible = this.pane.rawContent().clientWidth !== this.pane.rawContent().offsetWidth;
+
+            var display = (needScrollY && scrollbarVisible) ? 'flex' : 'none';
+            this.bumper.css('display',display);
+
+
+        },
+
+        doGridCmd: function(){
+            var cmd = this.gridCmd.read();
+            if(cmd.action === 'sort'){
+                this.determineSort(cmd.column);
+            }
+        },
+
+        determineSort: function(column){
+
+            var sort = this.gridSort.read();
+            var field = sort && sort.field;
+            var dir = sort && sort.dir;
+
+            if(field === column.field)
+                dir = (dir === 'asc') ? 'desc' : 'asc';
+            else
+                dir = column.dir || 'asc';
+            sort = {field: column.field, dir: dir};
+
+//            console.log('▶︎    sort:', sort);
+
+            this.gridSort.write(sort);
+
+        },
+
+        toViewingRecords: function(){
+            var pageNum = this.pageNum.read();
+            var pagedRecs = this.pagedRecords.read();
+            return (pagedRecs && pagedRecs[pageNum]) || [];
+        },
+
+        toPagedRecords: function(){
+
+            var pagedRecs = [];
+            var sortedRecs = [].concat(this.sortedRecords.read() || []);
+            var perPage = this.perPage.read() || sortedRecs.length;
+
+            while(sortedRecs.length){
+                var page = sortedRecs.splice(0, perPage);
+                pagedRecs.push(page);
+            }
+
+            return pagedRecs;
+        },
+
+        toSortedRecords: function(msg){
+
+            console.log('sorty:',msg);
+
+            var sort = this.gridSort.read();
+            var cols = this.columns.read();
+            var recs = this.records.read();
+
+            if(sort === undefined)
+                return recs;
+
+            var field;
+
+            for(var i = 0; i < cols.length; i++){
+                var c = cols[i];
+
+                if(c.field === sort.field){
+                    field = c.field;
+                    break;
+                }
+            }
+
+            if(!field) return;
+
+            recs = _.sortBy(recs, field);
+            if(sort.dir === 'desc')
+                recs = recs.reverse();
+
+            return recs;
+
+        }
+
+
+    });
+
+</script>

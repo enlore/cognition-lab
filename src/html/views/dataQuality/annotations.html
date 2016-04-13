@@ -1,0 +1,160 @@
+<blueprint>
+    <prop find="uiSelectBar" />
+    <sensor watch="uiSelectBar" run="requestData" />
+
+    <prop find="user" />
+
+    <data name="isSaveButtonActive" prop="true" />
+
+    <data name="editDisplay" value="true" prop="true" />
+    <data name="saveDisplay" value="false" prop="true" />
+
+    <net name="notesData" url="SLA_ANNOTATION_SVC" prop="true" />
+    <net name="trackedNoteData" url="SLA_ANNOTATION_SVC" prop="true" />
+    <net name="errorsNoteData" url="SLA_ANNOTATION_SVC" prop="true" />
+    <net name="latencyNoteData" url="SLA_ANNOTATION_SVC" prop="true" />
+
+    <sensor watch="notesData" run="render" />
+
+
+    <cog find="actionMenu" url="actionMenu.html" />
+
+    <sensor find="noteArea" detect="click" run="editNote" />
+    <sensor find="actionMenu" detect="click" run="saveNote" />
+</blueprint>
+
+<display>
+    <style type="text/css">
+        .remark {
+            font-style: italic;
+            color: #4c96c6;
+        }
+    </style>
+    <div id="noteHolder" class="katana_panel_abyss" style="
+            width: 100%;
+            margin-bottom: 25px;
+            padding: 10px 10px 13px 10px;
+            color: #cdf;
+            font-size: 1em;
+            display: none;" >
+        <form>
+            <textarea id="noteArea" name="noteArea" maxlength="180" rows="5" cols="50" type="text" style="
+                width: 100%;
+                resize: none;
+                background-color: transparent;
+                border-color: transparent;" />
+        </form>
+        <div style="display: flex; justify-content: flex-start" >
+            <div id="noteLabel" style="
+                font-size: .75em;
+                color: #4c96c6;
+                margin: -20px 0 0 4px;" >
+            </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end" >
+            <div id="actionMenu" style="
+                display: none;
+                margin-top: -25px;" >
+            </div>
+        </div>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+            console.log("username:", this.user.read().userName);
+        },
+
+        requestData: function() {
+            var date = this.uiSelectBar.read().date,
+                aspect = this.uiSelectBar.read().aspect;
+
+            this.notesData.request({ method:"get", aspect:aspect, date:date });
+        },
+
+        render: function() {
+            this.actionMenu.css("display", "none");
+            this.noteHolder.css("display", "block");
+            this.noteArea.removeClass("remark");
+
+            var noteArea = document.forms[0].elements["noteArea"],
+                noteData = this.notesData.read().data,
+                configDate = this.notesData.read().config.params.date,
+                date = this.uiSelectBar.read().date;
+
+            /* set annotations text area to read only */
+            noteArea.setAttribute("readonly", "true");
+
+            /* declare variables */
+            var foundObj = {},
+                updateMsg = "";
+
+            /* allow lookup of a given date in noteData */
+            for (var i = 0; i < noteData.length; i++) foundObj[noteData[i].date] = noteData[i];
+
+            /* if the date has an annotation, set annotation label text */
+            if (foundObj[date]) {
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                var localDate = foundObj[date].last_updated.slice(0, -1),
+                    updater = foundObj[date].last_updated_by,
+                    updateDate = moment(localDate).format("lll");
+
+                updateMsg = "last updated by " + updater + " on " + updateDate;
+            } else {
+                this.noteArea.addClass("remark");
+                noteArea.value = "No issues reported";
+            }
+
+            /* display annotation label */
+            this.noteLabel.text(updateMsg);
+
+            /* if note has just been saved, update notesFeed with slaAnnotationEdit */
+            if (configDate == "all") this.trackedNoteData.write(this.notesData.read());
+            /* if render was called by a click on the chart, display annotation */
+            else noteArea.value = noteData.length ? noteData[0].note : "No issues reported";
+        },
+
+        editNote: function() {
+            /* disallow annotation editing if user is not admin */
+            if (!this.user.read().isAdmin) return;
+
+//            console.log("this.user.read():", this.user.read());
+
+            /* remove readonly attribute on annotations text area */
+            this.noteArea.removeAttr("readonly");
+
+            var noteArea = document.forms[0].elements["noteArea"];
+
+            if (this.noteArea.hasClass("remark")) {
+                this.noteArea.removeClass("remark");
+                noteArea.value = "";
+            }
+
+            /* display save button */
+            this.actionMenu.css("display", "block");
+        },
+
+        saveNote: function() {
+            /* hide save button */
+            this.actionMenu.css("display", "none");
+
+            var date = this.uiSelectBar.read().date,
+                note = document.forms[0].elements["noteArea"].value;
+
+            /* write the note to the slaAnnotationEdit API for the selected date and for each aspect */
+            this.trackedNoteData.request({ method:"put", aspect:"tracked", date:date, note:note });
+            this.errorsNoteData.request({ method:"put", aspect:"errors",  date:date, note:note });
+            this.latencyNoteData.request({ method:"put", aspect:"latency", date:date, note:note });
+
+            /* prevent text menu from changing color by updating variable used in actionMenu.html */
+            this.isSaveButtonActive.write("false");
+
+            /* request the notes for all dates, which are the same for all aspects */
+            this.notesData.request({ method:"get", aspect:"tracked", date:"all" });
+        }
+    })
+
+</script>

@@ -1,0 +1,68 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="record" />
+
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; flex-wrap: nowrap; width: 100%;" >
+        <svg height="25" width="25" viewBox="0 0 25 25" preserveAspectRatio="none" >
+            <rect id="colorbox" x="4" y="4" rx="1" ry="1" width="17" height="17" />
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="redGradient">
+                <stop offset="10%" stop-color="#e00025" />
+                <stop offset="90%" stop-color="#b8001f" />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="yellowGradient">
+                <stop offset="10%" stop-color="#ffe04d" />
+                <stop offset="80%" stop-color="#ffcb32" />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="purpleGradient">
+                <stop offset="10%" stop-color="#b85ace" />
+                <stop offset="90%" stop-color="#9b5ace" />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="noGradient">
+                <stop offset="10%" stop-color="#fff" stop-opacity=.09 />
+                <stop offset="90%" stop-color="#fff" stop-opacity=.05 />
+            </linearGradient>
+        </svg>
+        <div id="span" style="text-align: left; margin: 2px 0 0 2px;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        render: function(itemData) {
+            var redFillStr     = 'url(#' + this.redGradient.attr('id')    + ')',
+                yellowFillStr  = 'url(#' + this.yellowGradient.attr('id') + ')',
+                purpleFillStr  = 'url(#' + this.purpleGradient.attr('id') + ')',
+                noFillStr      = 'url(#' + this.noGradient.attr('id')     + ')';
+
+            var text, color;
+
+            if (itemData === '0_dead') {
+                text = 'No Data';
+                color = redFillStr;
+            } else if (itemData === '1_cold') {
+                text = 'Low Volume';
+                color = yellowFillStr;
+            } else if (itemData === '2_hot') {
+                text = 'High volume';
+                color = purpleFillStr;
+            } else {
+                text = itemData;
+                color = noFillStr;
+            }
+
+            this.span.text(text);
+            this.colorbox.attr('fill', color);
+        }
+
+    });
+
+</script>

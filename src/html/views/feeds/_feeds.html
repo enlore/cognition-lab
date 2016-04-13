@@ -1,0 +1,72 @@
+<blueprint>
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <prop find="activePageDef" />
+    <prop find="appsRecon_svc" />
+    <sensor watch="appsRecon_svc" run="render" auto="true" />
+
+    <cog find="grid" url="KATANA_GRID"  />
+
+</blueprint>
+
+<display>
+    <div style="padding: 8px" >
+        <div class="katana_panel" style="padding: 6px;">
+            <div id="grid" ></div>
+        </div>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        pageDef: function(){
+
+
+            return {
+                title: 'TLM Feeds',
+                domain: 'none',
+                time: 'none'
+            };
+
+        },
+
+        init: function() {
+            var def = this.pageDef();
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+            this.appsRecon_svc.req();
+        },
+
+        render: function(msg){
+
+           var apps = msg.data;
+
+            for (var r in apps) {
+                if (apps.hasOwnProperty(r)) apps[r].LastReceived = new Date(apps[r].LastReceived);
+
+            }
+
+            this.records.write(apps);
+
+        },
+
+        defineOptions: {
+              headerHeight: 30,
+              rowHeight: 25,
+              paneHeight: 400
+
+        },
+
+        defineColumns: [
+                { field: "Application", title: "Application" },
+                { field: "Frequency", title: "Frequency" },
+                { field: "LastReceived", type: 'date', format: 'age', title: "Age" },
+                { field: "LastReceived", type: 'date', format: 'calendar', title: "Date"}
+            ]
+
+    });
+</script>

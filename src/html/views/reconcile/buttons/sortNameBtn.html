@@ -1,0 +1,38 @@
+<blueprint>
+
+    <prop find="buttonActive" />
+    <prop find="button" />
+    <sensor watch="button" run="render" autorun="true" />
+    <sensor watch="buttonActive" run="render" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; ">
+    <span id="span" ></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        render: function(){
+
+            var b = this.button.read();
+            var active = this.buttonActive.read();
+            var align = b.align;
+
+            if(align)
+                this.holder.css('text-align', align);
+
+            this.span.text(' ' + b.title + ' ');
+
+            //this.span.css('color',active ? 'white' : 'red');
+        }
+
+
+    });
+
+</script>

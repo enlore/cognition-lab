@@ -1,0 +1,104 @@
+<blueprint>
+
+    <data name="contentUrl" value="dataFlow.html" />
+    <!--<data name="contentUrl" value="anomaliesGrid.html" />-->
+
+    <prop find="activeSiteDomain" />
+    <prop find="activePageDef" />
+
+    <cog find="grid" url="COMP_HIST_GRID" />
+    <cog find="menu" url="run getMenuUrl" />
+    <cog find="content" url="data contentUrl" />
+    <cog find="breadcrumb" url="../breadcrumb/_bigBreadcrumb.html" />
+
+    <prop find="volAlertList_svc" />
+    <sensor watch="volAlertList_svc" run="alertListFeed" auto="true" />
+
+    <data name="dataList" prop="true" />
+    <data name="KAITEN_TITLE" value="Volume Warnings" />
+    <cog find="alerts" url="run getAlertsUrl"  />
+
+
+    <prop find="suppressCarousel" optional="true" />
+    <prop find="suppressDataFlowGrid" optional="true" />
+
+</blueprint>
+
+
+<display>
+
+
+    <div id="breadcrumb" style="width: 100%;" />
+    <div id="alerts" />
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; font-size: 1.1em; color: #cdf; padding: 4px;" >
+        <div style="display: flex; flex: 3 3 850px; flex-direction: column; padding: 4px;" >
+            <div class="katana_panel_abyss" >
+                <div id="menu" />
+                <div id="content" />
+            </div>
+        </div>
+        <div id="grid" style="flex: 1 1 350px; padding: 4px;" />
+    </div>
+
+</display>
+
+<script>
+
+    $.cog({
+
+        pageDef: function(){
+
+            var domain = this.activeSiteDomain.read();
+
+            return {
+                title: 'Data Flow',
+                domain: domain,
+                time: 'endSpan'
+            };
+
+        },
+
+        init: function() {
+            var def = this.pageDef();
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+
+            if (this.suppressCarousel != undefined) return;
+
+            this.volAlertList_svc.request();
+        },
+
+        getAlertsUrl: function(){
+            return (this.suppressCarousel != undefined) ? 'empty.html' : 'KAITEN';
+        },
+
+        getMenuUrl: function(){
+            return (this.suppressDataFlowGrid != undefined) ? 'empty.html' : 'viewContentMenu.html';
+        },
+
+        alertListFeed: function(msg){
+            if (this.suppressCarousel != undefined) return;
+
+            var alertTypeLookup = {'Zero Volume Alert':'&nbsp;&nbsp;&nbsp;'};
+
+            var alerts = msg.data;
+            var list = [];
+            var hash={};
+            alerts.forEach(function (o) {
+                if (!hash[o.loc]) {
+                    hash[o.loc] = o.loc;
+                    list.push({
+                        rank: o.rnk,
+                        type: (alertTypeLookup[o.alert_type] || ' '),
+                        title: o.loc,
+                        filter: {name: 'facility', optionId: o.loc}
+                    });
+                }
+            });
+
+            this.dataList.write(list);
+        }
+
+
+    });
+
+</script>

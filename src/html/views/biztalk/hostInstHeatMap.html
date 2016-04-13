@@ -1,0 +1,196 @@
+<blueprint>
+    <prop find="displayMode" />
+    <sensor watch="displayMode" distinct="true" run="vis" auto="true" />
+
+    <data name="hostInstHeatMapData" prop="true" />
+    <sensor watch="hostInstHeatMapData" batch="true" run="drawHeatMap" auto="true" />
+
+    <require path="JS_LIB" url="chroma.min.js" />
+</blueprint>
+
+<display>
+    <div id="holder" style="height: 620px;" >
+        <div class="aspect5to3" >
+            <div class="aspectInner">
+                <div id="chartHolder" />
+            </div>
+        </div>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            this.colorMap = [
+                 { category: "Running", color: "#038bc1" }
+                ,{ category: "Warning", color: "#ffcf00" }
+                ,{ category: "Stopped", color: "#d2021e" }
+                ,{ category: "Other"  , color: "#3b4351" }
+            ];
+
+            var chartHolder = this.chartHolder.raw();
+
+            var svg = d3.select(chartHolder).append("svg")
+                    .attr("width", "100%")
+                    .attr("height", "100%")
+                    .attr("viewBox", "0 0 750 512")
+                    .attr("preserveAspectRatio","xMidYMid meet");
+
+            for(var i = 0; i < this.colorMap.length; i++){
+                var c = this.colorMap[i].color;
+                var g = svg
+                        .append("radialGradient")
+                        .attr("id","csu"+i)
+                        .attr("cx","50%")
+                        .attr("cy","10%")
+                        .attr("r","90%");
+                g.append("stop").attr("offset",0 ).attr("stop-color",chroma(c).brighten(3).hex());
+                g.append("stop").attr("offset",.4).attr("stop-color",c);
+                g.append("stop").attr("offset",1 ).attr("stop-color",chroma(c).darken(5).hex());
+            }
+
+            this.node_layer = svg.append("g");
+            this.text_layer = svg.append("g");
+        },
+
+        vis: function(mode) {
+            this.holder.toggle(mode === 'chart');
+        },
+
+        drawHeatMap: function(hostInstHeatMapData) {
+            function getTipData(d) {
+                if (!d.category) return;
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                var localDT = (d.dt) ? d.dt.slice(0, -1) : null;
+                var timestamp = moment(localDT).format("MM/DD h:mm A");
+                return {
+                    id: self.mapItem.uid,
+                    title: d.name + "<br> on " + d.parent.name,
+                    items: [
+                         { title:"State",   value:d.state              }
+                        ,{ title:"Group",   value:d.parent.parent.name }
+                        ,{ title:"Updated", value:timestamp            }
+                    ]
+                }
+            }
+
+            var self = this;
+
+            var w = 750,
+                h = 512;
+
+            var group = hostInstHeatMapData;
+//            console.log("group:", group);
+            if (!group.children) return;
+
+            var treemap = d3.layout.treemap()
+                    .size([w, h])
+                    .padding(4)
+                    .value(function() {
+                        return 1;
+                    });
+
+            var nodes = (group) ? treemap.nodes(group) : [];
+            console.log("nodes:", nodes);
+
+            var cell = self.node_layer.selectAll("g")
+                    .data(nodes, function(d){
+                        /* ensure each node is unique  */
+                        if (d.depth != 2) return d.children[0].area + ":" + d.name + ":" + d.dt;
+                        if (d.depth == 2) return d.parent.name      + ":" + d.state + ":" + d.name + ":" + d.dt;
+
+//                        var now = moment();
+//                        return d.name + ":" + now;
+
+//                        var now = moment();
+//                        if (d.depth != 2) return d.children[0].area + ":" + d.name + ":" + d.dt + ":" + now;
+//                        if (d.depth == 2) return d.parent.name      + ":" + d.state + ":" + d.name + ":" + d.dt + ":" + now;
+
+//                        if (d.depth != 2) return d.children[0].area + ":" + d.name + ":" + d.dt;
+//                        if (d.depth == 2) return d.parent.name      + ":" + d.name + ":" + d.dt + ":" + now + ":" + d.state;
+//                        if (d.depth == 2) return d.parent.name      + ":" + d.name + ":" + d.dt + ":" + d.state;
+                    });
+
+            var cellEnter = cell.enter().append("g")
+                    .attr("class", "cell")
+                    .attr("transform", function(d) {
+                        return (d.parent)
+                            ? "translate(" + d.x + "," + d.y + ")"
+                            : "translate(" + (d.x + 2.5) + "," + (d.y + 2.5) + ")";
+                    });
+
+            var cellUpdate = cellEnter.append("svg:rect")
+                    .attr("rx", 5)
+                    .attr("ry", 5)
+                    .attr("width", function(d) {
+                        /* add margin to each node */
+                        return (d.parent) ? d.dx - 3 : d.dx - 8;
+                    })
+                    .attr("height", function(d) {
+                        return (d.parent) ? d.dy - 3 : d.dy - 8;
+                    })
+                    .style("fill", function(d) {
+                        var categories = self.colorMap.map(function(x) { return x.category });
+                        /* make group node transparent if no server */
+                        if (d.depth == 0 && !d.children) return "rgba(0,0,0,0)";
+                        /* todo: color by the mode of descendants' categories */
+                        /* color group node by category of first grandchild */
+                        if (d.depth == 0) {
+                            return self.colorMap[categories.indexOf(d.children[0].children[0].category)].color;
+                        }
+                        /* color server node by category of first child */
+                        if (d.depth == 1) {
+                            return self.colorMap[categories.indexOf(d.children[0].category)].color;
+                        }
+                        /* color host instance node by its category */
+                        if (d.depth == 2) {
+                            return "url(#csu" + categories.indexOf(d.category) +  ")";
+                        }
+                    })
+                    .attr("stroke-width", "1.5px")
+                    .style("stroke", function(d) {
+                        if (d.parent) return "rgba(47,58,74,0.8)";
+                    })
+                    .style("opacity", 1)
+                        .call(d3.kodama.tooltip()
+                            .attr({class: "katana_tooltip"})
+                            .prep(getTipData));
+
+            cell.exit().remove();
+
+            var tnodes = treemap.nodes(group).filter(function(d) {
+                /* leave off text for all but server node */
+                return (d.depth == 1);
+            });
+
+            var tcell = self.text_layer.selectAll("g")
+                    .data(tnodes, function(d) {
+                        /* ensure each node is unique  */
+                        return d.children[0].area + ":" + d.name + ":" + d.dt;
+                    });
+
+            var tcellEnter = tcell.enter().append("svg:g")
+                    .style("position", "absolute")
+                    .attr("transform", function(d) {
+                        return "translate(" + d.x + "," + d.y + ")";
+                    });
+
+            var tcellUpdate = tcellEnter.append("svg:text")
+                    .attr("class","textShadow")
+                    .style("fill", "#fff")
+                    .style("font-size", "14px")
+                    .attr("text-anchor", "middle")
+                    .attr("transform", function(d) {
+                        return "translate(" + (d.dx * 0.5) + "," + (d.dy * 0.5) + ")";
+                    })
+                    .text(function(d) {
+                        return d.name;
+                    });
+
+            tcell.exit().remove();
+        }
+    })
+</script>

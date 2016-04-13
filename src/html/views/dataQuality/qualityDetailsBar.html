@@ -1,0 +1,54 @@
+
+<blueprint>
+    <prop find="uiSelectBar" />
+    <sensor watch="uiSelectBar" transform="toAspectUrl" pipe="aspectBarRenderer" auto="true" />
+
+    <prop find="rowData" />
+    <sensor watch="rowData" run="render" auto="true" />
+
+    <data name="aspectBarRenderer" />
+    <cog find="aspectBar" url="data aspectBarRenderer" />
+</blueprint>
+
+
+<display>
+    <div style="width: 100%;">
+        <div style="display: flex; width: 100%; height: 20px; ">
+
+            <div id="titleHolder" style="display: flex; justify-content:space-between; flex: 1 1 130px; height: 100%; border-radius: 4px; padding-left: 5px; cursor: pointer;" >
+                <span id="title" class="reconcile_item_title" />
+            </div>
+
+            <div style="flex: 10 1 260px; height: 100%;">
+                <div id="aspectBar" class="reconcile_aspect_bar" style="height: 100%;" />
+            </div>
+
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        init: function() {
+        },
+
+        toAspectUrl: function(uiSelectBar) {
+            var aspect = uiSelectBar.aspect;
+            return 'bars/' + aspect + 'Bar.html';
+        },
+
+        render: function() {
+            var d = this.rowData.read();
+
+            /* display message type for each bar */
+            this.title.text(d.msg_type);
+
+            /* don't add outline and drop shadow to empty bars */
+            var barDisplay = (d.Total) ? "block" : "none";
+            this.aspectBar.css("display", barDisplay);
+        }
+
+    })
+
+</script>

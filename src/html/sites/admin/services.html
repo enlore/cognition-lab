@@ -1,0 +1,77 @@
+<blueprint>
+
+    <alias name="TLM_ERRORS" url="tlmErrors" path="SERVICE_ROOT" />
+    <alias name="TLM_ERRORS_RAW" url="tlmErrorsRaw" path="SERVICE_ROOT" />
+
+    <net name="userList" path="SERVICE_ROOT" url="userEdit" />
+    <net name="userCreate" path="SERVICE_ROOT" url="userEdit/post" />
+    <net name="userUpdate" path="SERVICE_ROOT" url="userEdit/put" />
+
+
+    <net name="CDMConfig" service="run configCDMConfig" prop="true" req="true" />
+    <net name="EISConfig" service="run configEISConfig" prop="true" req="true" />
+    <net name="createRule" service="run configCreateRule" />
+    <net name="readRules" service="run configReadRules" />
+    <net name="updateRule" service="run configUpdateRule" />
+    <net name="deleteRule" service="run configDeleteRule" />
+
+    <prop find="SERVICE_ROOT" is="alias" />
+
+</blueprint>
+
+<script>
+    $.cog({
+        init: function init () {},
+
+        configCDMConfig: function configCDMConfig () {
+            var url = this.SERVICE_ROOT + "config";
+
+            return {
+                url: url,
+                method: "get"
+            };
+        },
+
+        configEISConfig: function configEISConfig () {
+            var url = this.SERVICE_ROOT + "config_eis";
+
+            return {
+                url: url,
+                method: "get"
+            };
+        },
+
+
+        configCreateRule: function configCreateRule () {
+            var url = this.SERVICE_ROOT + "userAlertRules";
+
+            return {
+                url: url
+            }
+        },
+
+        configReadRules: function configReadRules () {
+            var url = this.SERVICE_ROOT + "userAlertRules";
+
+            return {
+                url: url
+            }
+        },
+
+        configUpdateRule: function configUpdateRule () {
+            var url = this.SERVICE_ROOT + "userAlertRules";
+
+            return {
+                url: url
+            }
+        },
+
+        configDeleteRule: function configDeleteRule () {
+            var url = this.SERVICE_ROOT + "userAlertRules";
+
+            return {
+                url: url
+            }
+        }
+    })
+</script>

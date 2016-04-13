@@ -1,0 +1,55 @@
+<blueprint>
+    <alias name="TEXT_BUTTON_RENDERER" url="textButtonRenderer.html" />
+
+    <prop find="sliceMenuView" />
+
+    <data name="options" value="run defineButtons" />
+
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+
+    $.cog({
+
+        defineButtons: function(){
+            var fields = ['messageType','sourceApp','dataCenter','network','facility'];
+            var titles = ['msg type','source','data center','network','facility'];
+            var values = this.mapItem.createValues(fields);
+            var options = [];
+
+            for(var i = 0; i < fields.length; i++){
+                var field = fields[i];
+                var title = titles[i];
+                if(values[field] === 'All'){
+                    options.push({value: field, title: title});
+                }
+            }
+
+            var buttonOptions = {
+                url: 'TEXT_BUTTON_RENDERER',
+                show: 'sliceMenuView'
+            };
+
+            buttonOptions.items =
+                    (options.length > 0)
+                        ? [
+                            {value: 'bars'},
+                            {value: 'sample'}
+                        ]
+                        : [
+                            {value: 'sample'}
+                        ];
+
+            if(options.length === 0)
+                this.sliceMenuView.write('sample');
+
+            return buttonOptions;
+        }
+
+    });
+</script>

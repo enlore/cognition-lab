@@ -1,0 +1,36 @@
+
+<blueprint>
+  <data name="records" prop="true"></data>
+  <!--data(name="formConfig", value="prop config")-->
+  <data name="formConfig" prop="true"></data>
+  <cog find="formroot" url="form_engine.html"></cog>
+   <data name="meow" service="prop cat" req="true" prop="true" />
+    <sensor watch="meow" auto="true" run="logdog" />
+</blueprint>
+<display>
+  <h3>Vendor Kickoff Form</h3>
+  <p>Let's aquire data!</p>
+  <div id="formroot"></div>
+</display>
+<script>
+  $.cog({
+    init: function init () {
+      this.records.write([ "this is a record" ]);
+      this.formConfig.write("you know whatever");
+  //      this.meow.request();
+    },
+
+      logdog: function(msg){
+          console.log('meow',msg);
+
+      },
+      cat: {
+        url: 'CONFIG_MESSAGES'
+      },
+    render: function () {},
+  
+    config: [
+      {field: "name", type: "text", label: "Name", validators: ["required"]}
+    ]
+  });
+</script>

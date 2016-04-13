@@ -1,0 +1,72 @@
+<blueprint>
+
+    <sensor watch="reconRecords" pipe="records" auto="true"/>
+    <sensor watch="selAspect" change="true" transform="chooseColumns" pipe="columns" auto="true" />
+
+    <data name="columns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <prop find="selGroupBy" />
+    <prop find="columnDefs" />
+
+    <cog find="grid" url="KATANA_GRID" />
+
+</blueprint>
+
+<display>
+    <div>
+        <div id="grid" class="small"></div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        defineOptions: {
+                headerHeight: 25,
+                rowHeight: 22,
+                paneHeight: 440
+        },
+
+        chooseColumns: function(aspect){
+
+            var selGroupBy = this.selGroupBy.read();
+            var fields;
+
+
+            if(selGroupBy === 'date'){
+                fields = ['msg_date'];
+            } else {
+                fields = ['abbr','name'];
+            }
+
+            if(aspect === 'tracked')
+                fields = fields.concat(['no_dest','no_dest_pct','mis_ts','mis_ts_pct','tracked','tracked_pct','path_count']);
+
+            if(aspect === 'errors')
+                fields = fields.concat(['nak','nak_pct','lost','lost_pct','no_dest','no_dest_pct','path_count']);
+
+            if(aspect === 'latency')
+                fields = fields.concat(['b1','b1_avg','b2','b2_avg','b3','b3_avg','b4','b4_avg','b5','b5_avg','not_calc','latency_count']);
+
+            if(aspect === 'entirety')
+                fields = fields.concat(['no_dest','no_dest_full_pct','mis_ts','mis_ts_full_pct','tracked','tracked_full_pct',
+                    'ignores','ignores_full_pct','full_count']);
+
+            var columns = [];
+            var columnDefs = this.columnDefs.read();
+
+            for(var i = 0; i < fields.length; i++){
+                var f = fields[i];
+                var c = columnDefs[f];
+                columns.push(c);
+            }
+
+            return columns;
+        }
+
+
+    });
+
+</script>

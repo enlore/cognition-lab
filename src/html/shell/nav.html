@@ -1,0 +1,225 @@
+<blueprint>
+
+    <data name="siteOptions" prop="true" note="hash of all known sites by id" />
+    <data name="siteListOptions" prop="true" note="config for dropdown with sites user can access" />
+    <data name="pageMenuOptions" prop="true" note="array of pages for side menu" />
+    <data name="navSiteOptions" prop="true" note="array of sites user can access by id" />
+    <data name="uiNavToSite" prop="true" note="cmd to load new site, accepts site id" />
+
+    <data name="defaultSite" prop="true" note="default site of user" />
+    <data name="activeSite"  route="true" prop="true" note="id of active site" />
+    <data name="activeSiteDef" prop="true" note="actual active site object/definition from siteOptions" />
+    <data name="activeSiteTitle" prop="true" note="displayed title of site" />
+    <data name="activeSiteApp" prop="true" note="url of active site" />
+    <data name="activeSiteHeader" value="header.html" prop="true" note="url of active site header" />
+    <data name="activeSiteMenu" value="sideMenu.html" prop="true" note="url of active site menu" />
+    <data name="activeSiteCog" prop="true" note="cog uid of active site, used for filter searches in site context" />
+    <data name="activeSiteDomain" prop="true" note="default filter domain for the active site" />
+
+    <data name="activePageDef" prop="true" note="actual page configuration object with filters, title, etc." />
+    <data name="activePageUrl" route="true" prop="true" note="page url within site" />
+    <data name="activePageTitle" prop="true" note="page title within site" />
+
+    <data name="uiPusherMenuMode" prop="true" />
+    <data name="pusherMenuMode" value="false" prop="true" />
+
+    <sensor watch="uiPusherMenuMode" run="toggleMenuMode" />
+    <sensor watch="pusherMenuMode" run="applyMenuMode" />
+
+    <data name="sites" path="SERVICE_ROOT" url="sites" req="true" />
+    <sensor watch="sites" transform="byId" pipe="siteOptions" once="true" />
+    <sensor watch="sites" transform="canAccess" pipe="navSiteOptions" once="true" />
+    <sensor watch="navSiteOptions" transform="toSiteListOptions" pipe="siteListOptions" auto="true" />
+
+    <sensor need="siteOptions,user" group="true" retain="true" transform="getDefaultSite" pipe="defaultSite" once="true" />
+    <sensor need="siteOptions,defaultSite" group="true" retain="true" transform="getInitialSite" pipe="activeSite" once="true" />
+
+
+    <sensor watch="activeSite" transform="toUrl" pipe="activeSiteApp" auto="true" />
+    <sensor need="activeSite,siteOptions" group="true" retain="true" transform="toDef" pipe="activeSiteDef" auto="true" />
+    <sensor watch="activeSite" pipe="autoRefreshTrigger" auto="true" />
+
+    <sensor watch="activePageDef" transform="toPageTitle" pipe="activePageTitle" auto="true" />
+    <sensor watch="activePageDef" transform="toFilterDomain" pipe="filterDomain" auto="true" />
+    <sensor watch="activePageDef" transform="toFilterTime" pipe="filterTime" auto="true" />
+
+    <sensor watch="activeSiteDef" transform="toSiteTitle" pipe="activeSiteTitle" auto="true" />
+
+    <cog find="header" url="data activeSiteHeader" />
+    <cog find="app" url="data activeSiteApp" />
+    <cog find="topper" url="data activeSiteMenu" />
+    <cog find="pusher" url="data activeSiteMenu" />
+
+    <prop find="user" />
+
+    <sensor watch="activePageUrl" run="debug" auto="true" />
+</blueprint>
+
+<display>
+
+    <div style="display: flex;height: 100%; width: 100%;flex-direction: column;">
+
+        <div id="header" style="position: relative; z-index: 3; display: block; width: 100%;">
+
+        </div>
+
+        <div style="display: flex; position: relative; flex-direction: row; flex: 1 1 auto;height:0;
+    min-height: 0; overflow: auto;">
+
+            <div id="invoker" style="position: absolute; display: block; left: 0; z-index: 9999; height: 100%; width: 1.2em;"></div>
+
+            <div id="topperHolder" style="position: absolute; left: -500px; display: block;
+             height: 100%; width: 300px;
+             z-index: 2;
+             transition-duration: 350ms; transition-property: left;">
+
+                <div id="topper" style="display: flex; flex-direction: column; flex: 0 0 300px;height: 100%; margin-left: -5px;"></div>
+            </div>
+
+            <div id="pusher" style="display: none; flex-direction: column;flex: 0 0 300px; min-height: 100%; margin-left: -5px;"></div>
+
+            <div style="display: flex; flex: 1 1; overflow: auto;">
+                <div id="app"  style="display: block; width: 100%; overflow: visible;"></div>
+            </div>
+
+
+
+        </div>
+
+    </div>
+
+</display>
+
+
+<script>
+
+    $.cog({
+
+        debug: function(msg){
+        console.log('active:',msg);
+        },
+
+        toSiteListOptions: function(navSiteOptions){
+            return {
+                label: 'Navigate to:',
+                title: 'label',
+                value: 'value',
+                show: 'activeSite',
+                items: navSiteOptions
+            };
+        },
+
+        toggleMenuMode: function(){
+
+            var mode = this.pusherMenuMode.read();
+            mode = !mode;
+            this.pusherMenuMode.write(mode);
+
+        },
+
+        applyMenuMode: function(pusherMode){
+
+            if(pusherMode){
+
+                this.pusher.css({"display":"flex"});
+                this.invoker.css({"display":"none"});
+                this.topperHolder.css({"display":"none", "left": "-500px"});
+
+
+            } else {
+
+                this.pusher.css({"display":"none"});
+                this.invoker.css({"display":"block"});
+                this.topperHolder.css({"display":"block"});
+            }
+
+        },
+
+        init: function() {
+
+            var self = this;
+
+            this.topperHolder.on('mouseleave', function(){
+                self.topperHolder.css({"left":"-500px"});
+            });
+
+            this.invoker.on('mouseenter', function(){
+                self.topperHolder.css({"left":"0px"});
+            });
+
+        },
+
+
+        byId: function(sites){
+
+            var siteHash = {};
+            for(var i=0; i<sites.length; i++){
+                var site = sites[i];
+                siteHash[site.id] = site;
+            }
+
+
+            return siteHash;
+        },
+
+        canAccess: function(sites){
+
+            var user = this.user.read();
+            var options = [];
+            for(var i=0; i<sites.length; i++){
+                var site = sites[i];
+                if(user.sites.indexOf(site.id)!==-1)
+                    options.push({
+                        label: site.sitename,
+                        value: site.id
+                    });
+            }
+            return options;
+
+        },
+
+        getDefaultSite: function(msg){
+
+            var user = msg.user;
+            user.isSupport = (user.sites.indexOf('admin') >= 0);
+
+            return user.default_site || user.sites[0];
+
+        },
+
+        getInitialSite: function(msg){
+
+            var initialSite = this.activeSite.read() || msg.defaultSite;
+            return initialSite;
+        },
+
+        toUrl: function(id) {
+            return '/html/sites/' + id + '/index.html';
+        },
+
+        toDef: function(msg) {
+
+            var sites = msg.siteOptions;
+            return (sites) ? sites[msg.activeSite] : {};
+        },
+
+        toPageTitle: function(def) {
+            return def.title;
+        },
+
+        toFilterDomain: function(def) {
+            return def.domain;
+        },
+
+        toFilterTime: function(def) {
+            return def.time;
+        },
+
+        toSiteTitle: function(def) {
+            return def.sitename + ":";
+        }
+
+    });
+
+
+</script>

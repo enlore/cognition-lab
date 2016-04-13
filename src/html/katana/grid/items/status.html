@@ -1,0 +1,45 @@
+<blueprint>
+    <prop find="column" />
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%; height: 100%; text-align: center;" >
+        <i id="icon" style="vertical-align: middle; padding-top: 1px;" ></i>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        render: function(d){
+
+            var c = this.column.read();
+            var t = String(d).toLowerCase();
+
+            this.holder.removeClass();
+            this.icon.removeClass();
+
+            switch(t){
+                case 'critical':
+                    this.holder.addClass('katana_grid_critical_item');
+                    this.icon.addClass('fa fa-bolt');
+                    break;
+                case 'warning':
+                    this.holder.addClass('katana_grid_warning_item');
+                    this.icon.addClass('fa fa-warning');
+                    break;
+                case 'nominal':
+                    this.holder.addClass('katana_grid_nominal_item');
+                    this.icon.addClass('fa fa-cogs');
+                    break;
+            }
+
+        }
+
+
+    });
+
+</script>

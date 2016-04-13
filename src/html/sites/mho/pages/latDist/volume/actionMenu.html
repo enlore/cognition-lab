@@ -1,0 +1,23 @@
+<blueprint>
+    <alias name="ICON_BUTTON_RENDERER" url="iconButtonRenderer.html" />
+    <data name="options" value="prop defineButtons" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+    $.cog({
+
+        defineButtons: {
+            url: 'ICON_BUTTON_RENDERER',
+            tell: 'sliceAction',
+            items: [
+                { value: 'applyFilter', tell: 'filterClick', style: 'fa fa-filter' }
+            ]
+        }
+
+    });
+</script>

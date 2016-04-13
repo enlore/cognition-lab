@@ -1,0 +1,188 @@
+<blueprint>
+
+    <!-- depends on times and gui -->
+
+    <!-- suppress volume warnings carousel on Data Flow page -->
+    <data name="suppressCarousel" value="true" />
+
+    <!-- pa message options -->
+    <data name="dataCenterOptions" prop="true"/>
+    <data name="networkOptions" prop="true"/>
+    <data name="facilityOptions" prop="true" />
+    <data name="messageTypeOptions" />
+    <data name="sourceAppOptions" />
+    <data name="compOptions" />
+
+    <!-- pa message filters -->
+    <data name="sourceApp" value="All" prop="true"></data>
+    <data name="comp" value="All" prop="true"></data>
+    <data name="dataCenter" value="All" prop="true"></data>
+    <data name="network" value="All" prop="true"></data>
+    <data name="facility" value="All" prop="true"></data>
+    <data name="messageType" value="All" prop="true"></data>
+
+    <!-- get configuration data -->
+    <sensor watch="configData" run="configDataChange" once="true" auto="true"></sensor>
+
+    <prop find="filterList" />
+    <prop find="filterDomain" />
+    <prop find="filterDefs" />
+    <prop find="filterDomainToCache" />
+
+    <!--<prop find="addDomainToCache" is="method" />-->
+
+    <sensor watch="filterPath" run="writeCurrentFiltersToData" />
+
+    <prop find="getDemoDefs" is="method" />
+    <prop find="makeDemoData" is="method" />
+
+</blueprint>
+
+<script>
+
+
+
+    $.cog({
+// todo- method tag inherit = true uses local this context
+
+        init: function(){
+
+            this.filterDomainToCache.write({domain: 'patient_acct', defs: this.getFilterDefs()});
+
+            // todo replace with data pt to carry out action
+//        this.addDomainToCache.call(this.addDomainToCache.originalContext,'public_health', this.getFilterDefs());
+        },
+
+        writeConfigData: function(arr, name){
+
+            var optionsById = {};
+            for(var i = 0; i < arr.length; i++){
+                var d = arr[i];
+                optionsById[d.id] = d;
+                if (d.abbr !== undefined && d.abbr !== d.name) {
+                    d.name = d.name + ' (' + d.abbr + ')';
+                }
+
+            }
+
+            var place = this.mapItem.findData(name);
+            place.write(optionsById);
+
+        },
+
+        configDataChange: function (msg) {
+
+            var d = msg.data;
+
+            var demo = false;
+            if(demo){
+
+                var defs = this.getDemoDefs();
+
+                this.makeDemoData(d.dcs, defs.owners, defs.prefixes, defs.realms, defs.suffixes);
+                this.makeDemoData(d.networks, defs.owners, defs.prefixes, defs.places, defs.suffixes);
+                this.makeDemoData(d.facilities, defs.owners, defs.prefixes, defs.animals, defs.suffixes);
+                this.makeDemoData(d.messageTypes, defs.owners, defs.prefixes, defs.spices, defs.suffixes);
+
+            }
+
+            this.writeConfigData(d.comps, 'compOptions');
+            this.writeConfigData(d.dcs, 'dataCenterOptions');
+            this.writeConfigData(d.facilities, 'facilityOptions');
+            this.writeConfigData(d.apps, 'sourceAppOptions');
+            this.writeConfigData(d.networks, 'networkOptions');
+            this.writeConfigData(d.messageTypes, 'messageTypeOptions');
+
+            // allow networks to be in multiple data centers by building hash from facilities
+
+            var dcs = this.dataCenterOptions.read();
+            var facilities = this.facilityOptions.read();
+            var networks = this.networkOptions.read();
+
+            for(var f_id in facilities){
+
+                var f = facilities[f_id];
+                var n = networks[f.network_id];
+                var dc = dcs[f.dc_id];
+                n.dcs = n.dcs || {};
+                n.dcs[f.dc_id] = dc;
+
+            }
+
+        },
+
+
+
+        getFilterDefs: function() {
+
+            var self = this;
+
+            var defs = [
+
+                {name: 'messageType', title: 'msg type', default: 'All'},
+                {name: 'sourceApp', title: 'source', default: 'All'},
+                {name: 'dataCenter', title: 'data center', default: 'All', before: ['network', 'facility']},
+                {name: 'network', title: 'network', default: 'All', before: ['facility'],
+                    sieve:
+                            function(network, cf){
+                                var dc = cf.dataCenter;
+                                if(dc && !network.dcs[dc])
+                                    return false;
+
+                                return true;
+                            }
+                },
+                {name: 'facility', title: 'facility', default: 'All',
+                    sieve:
+                            function(facility, cf){
+
+                                var dc = cf.dataCenter;
+                                if(dc && facility.dc_id != dc)
+                                    return false;
+
+                                var n = cf.network;
+                                if(n && facility.network_id != n)
+                                    return false;
+
+                                return true;
+                            }
+                }
+            ];
+
+            for(var i = 0; i < defs.length; i++){
+
+                var def = defs[i];
+                def.title = def.title || def.name;
+
+            }
+
+            return defs;
+
+        },
+
+
+        writeCurrentFiltersToData: function(){
+
+            var domain = this.filterDomain.read();
+            if(domain !== 'patient_acct')
+                return;
+
+            var mi = this.mapItem;
+            var filterDefs = this.getFilterDefs();
+            var filterList = this.filterList.read() || [];
+
+            var filterValuesByName = _.chain(filterList).indexBy('name').mapValues('optionId').value();
+
+
+            for(var i = 0; i < filterDefs.length; i++) {
+                var def = filterDefs[i];
+                var val = filterValuesByName[def.name] || def.default;
+                var d = mi.findData(def.name, 'local');
+                d.write(val);
+            }
+        }
+
+    });
+
+
+</script>

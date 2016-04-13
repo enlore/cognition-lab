@@ -1,0 +1,223 @@
+<blueprint>
+
+    <prop find="userUpdate" />
+    <prop find="siteOptions" />
+
+    <data name="userData" prop="true" />
+    <data name="isPHI" prop="true" />
+
+    <prop find="showEditUserDialog" />
+    <sensor watch="showEditUserDialog" run="showModal" />
+    <sensor watch="showEditUserDialog" pipe="userData" auto="true" />
+
+    <sensor watch="userData" run="render" />
+    <sensor watch="isPHI" run="renderPHI" />
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <cog find="grid" and="append" url="KATANA_GRID"  />
+
+</blueprint>
+
+<display>
+
+
+<div >
+    <div id="holder"  class="modal" tabindex="-1" role="dialog">
+        <div class="katana_dialog modal-dialog">
+            <div>
+                <div class="katana_dialog_header">
+                    <span>Update User</span>
+                </div>
+                <div class="modal-body">
+
+
+                    <form class="form-horizontal" role="form">
+                        <fieldset id="formFields">
+                            <div class="form-group">
+                                <label class="col-sm-2 control-label">Name</label>
+                                <div class="col-sm-10">
+                                    <input type="text" maxlength="100" id="username" class="katana_dialog_input" placeholder="full name">
+                                </div>
+                                <label class="col-sm-2 control-label">Email</label>
+                                <div class="col-sm-10">
+                                    <input type="text" maxlength="100" id="email" class="katana_dialog_input" placeholder="email address">
+                                </div>
+                                <label class="col-sm-2 control-label">HCA ID</label>
+                                <div class="col-sm-10">
+                                    <input type="text" maxlength="100" id="hcaid" class="katana_dialog_input" placeholder="hca 3-4 id">
+                                </div>
+
+                                <label class="col-sm-2 control-label">PHI</label>
+                                <div class="col-sm-10">
+                                    <i id="phiCheckbox" style="padding-top: 5px;"></i>
+                                </div>
+                            </div>
+
+                        </fieldset>
+                    </form>
+                    <div id="grid"></div>
+                    <div class="katana_alert" id="alertMsg" style="display: none; color: white;">There was an error while attempting to update the user.</div>
+                    <div class="katana_alert" id="infoMsg" style="display: none; "></div>
+<p></p>
+                    <button id="cancelBtn" style="display: inline-block;" class="katana_basic_button large"><span>Cancel</span></button>
+                    <button id="saveBtn" style="float:right;"  class="katana_basic_button large"><span>Save</span></button>
+
+                </div>
+
+
+
+            </div>
+        </div>
+    </div>
+</div>
+</display>
+
+
+
+<script>
+
+    $.cog({
+
+
+        init: function () {
+
+            var mi = this.mapItem;
+            var self = this;
+
+            this.cancelBtn.on("click", function(){
+                var editDialog = mi.findData("showEditUserDialog");
+                editDialog.tell(false);
+            });
+
+            this.saveBtn.on("click", function(){
+                self.saveUserFromUI();
+            });
+
+
+
+            this.phiCheckbox.on("click", function(){
+                self.isPHI.toggle();
+            });
+
+        },
+
+        writeParts: function(){
+
+            var d = this.userData.read();
+            this.email.write(d.email);
+
+        },
+
+        saveUserFromUI: function() {
+
+            var mi = this.mapItem;
+            var u = this.userData.read();
+            var siteRecords = this.records.read();
+            var accessList = [];
+            for(var i=0; i < siteRecords.length; i++){
+                var site = siteRecords[i];
+                if(site.hasAccess)
+                    accessList.push(site.id);
+            }
+
+            var options =  {
+                id: u.id,
+                username: u.username = this.username.val(),
+                email: u.email = this.email.val(),
+                hcaid: u.hcaid = this.hcaid.val(),
+                isPHI: u.isPHI = this.isPHI.read(),
+                sites_array: u.sites_array = accessList.join(',')
+            };
+
+            this.userUpdate.on("always").run(this.saveUserResult).as(this).once();
+            this.userUpdate.request(options);
+
+            this.alertMsg.vis(false);
+            this.infoMsg.vis(true);
+            this.infoMsg.text("Requesting user update...");
+            this.formFields.attr("disabled",true);
+
+        },
+
+        saveUserResult: function(info){
+
+            this.infoMsg.vis(false);
+            this.formFields.removeAttr("disabled");
+            if(!info.error){
+                this.hideEditUserDialog();
+            } else {
+               this.alertMsg.vis(true);
+            }
+        },
+
+        hideEditUserDialog: function() {
+            var mi = this.mapItem;
+            var showDialog = mi.findData("showEditUserDialog");
+            showDialog.tell(false);
+        },
+
+        showModal: function() {
+
+            var show = this.showEditUserDialog.read();
+            this.holder.toggle(!!show, 'block');
+        },
+
+
+        render: function(){
+
+            var u = this.userData.read();
+            if(!u) return;
+
+//            console.log("user data!");
+//            console.log(userData);
+
+            this.username.val(u.username);
+            this.email.val(u.email);
+            this.hcaid.val(u.hcaid);
+
+            var accessListIds = u.sites_array.split(',');
+            var sitesById = this.siteOptions.read();
+            var accessList = [];
+            for(var sid in sitesById){
+                var s = sitesById[sid];
+                s.hasAccess = accessListIds.indexOf(sid) >= 0;
+                accessList.push(s);
+            }
+
+            this.isPHI.write(u.isPHI);
+            this.records.write(accessList);
+
+        },
+
+        renderPHI: function(){
+
+            var checked = this.isPHI.read();
+
+            var checkedClass = 'fa fa-2x fa-check-square-o';
+            var unCheckedClass = 'fa fa-2x fa-square-o';
+
+            this.phiCheckbox.removeClass();
+            this.phiCheckbox.addClass(checked ? checkedClass : unCheckedClass);
+
+        },
+
+
+        defineOptions: {
+            headerHeight: 30,
+            rowHeight: 25,
+            paneHeight: 175
+        },
+
+        defineColumns: [
+            { field: "sitename", title: "Name", flex: 2},
+            { field: "hasAccess", title: "Access", flex: '0 1 100px', type: 'bool', edit: true}
+        ]
+
+    });
+
+</script>
+
+

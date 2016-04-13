@@ -1,0 +1,54 @@
+<blueprint>
+
+    <prop find="gridCmd" />
+    <prop find="column" />
+
+    <data name="renderer" value="headerRenderer.html" prop="true"/>
+    <cog find="header" and="append" url="data renderer" />
+
+    <!-- make these wait on all using need=all -->
+    <sensor watch="column" run="determineRenderer" auto="true" />
+    <sensor find="header" detect="click" run="sortCmd" />
+    <prop find="headerHeight" />
+</blueprint>
+
+<display>
+    <div id="header" class="katana_header_item">
+
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+            var h = Number(this.headerHeight.read());
+            this.header.css('height', h)
+        },
+
+        sortCmd: function(){
+            var col = this.column.read();
+            if (col.noSort) return;
+            var cmd = {action: 'sort', column: col};
+            this.gridCmd.write(cmd);
+        },
+
+        determineRenderer: function(column){
+
+            var c = column;
+            if(c.flex)
+                this.header.css('flex', c.flex);
+
+            var title = c.title || c.label;
+
+            this.header.attr('title', title);
+
+            this.renderer.write(c.headerRenderer || 'headerRenderer.html');
+
+        }
+
+
+    });
+
+</script>

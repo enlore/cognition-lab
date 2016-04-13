@@ -1,0 +1,44 @@
+<blueprint>
+
+    <preload url="ruleEdit.html" />
+    <preload url="ruleView.html" />
+
+    <prop find="rule" />
+
+    <data name="ruleRenderer"  />
+    <data name="isSelected" value="false" />
+    <data name="tags" />
+
+    <sensor watch="rule,selectedRule" group="true" retain="true" transform="toDetermineSelected" pipe="isSelected" auto="true" />
+    <sensor watch="rule,isSelected" group="true" retain="true"  transform="toRuleRenderer" pipe="ruleRenderer" auto="true" />
+    <sensor watch="rule" extract="tags" pipe="tags" auto="true" />
+
+    <cog find="ruleHolder" url="data ruleRenderer" />
+
+</blueprint>
+
+<script>
+    $.cog({
+
+        // todo throw a big error when cog find fails
+        toRule: function(msg){
+            return this.rule.read();
+        },
+
+        toDetermineSelected: function(msg){
+            return (msg.selectedRule && msg.rule && msg.selectedRule.cid === msg.rule.cid);
+        },
+
+        toRuleRenderer: function(msg){
+            return msg.isSelected ? 'ruleEdit.html' : 'ruleView.html';
+        }
+
+
+    })
+</script>
+
+<display>
+    <div id="ruleHolder"></div>
+</display>
+
+

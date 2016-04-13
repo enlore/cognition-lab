@@ -1,0 +1,29 @@
+<blueprint>
+    <prop find="activeSite" />
+    <data name="options" value="run defineButtons" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        defineButtons: function() {
+
+            if(this.activeSite.read()!=='cdm' && this.activeSite.read()!=='sc')
+                return;
+
+            return {
+                show: 'contentUrl',
+                items: [
+                    {value:'dataFlow.html',      title:'chart'},
+                    {value:'anomaliesGrid.html', title:'grid'}
+                ]
+            };
+        }
+    });
+</script>

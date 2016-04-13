@@ -1,0 +1,151 @@
+<blueprint>
+    <alias name="ICON_BUTTON_RENDERER" url="iconButtonRenderer.html" />
+
+    <data name="downloadClick" />
+    <data name="downloadingRecords" prop="true" />
+
+    <prop find="site" />
+    <prop find="vendor" />
+    <prop find="filterList" />
+    <prop find="SERVICE_ROOT" is="alias" />
+
+    <prop find="sortedRecords" />
+    <sensor watch="sortedRecords" pipe="downloadingRecords" />
+
+    <sensor watch="downloadClick" run="downloadRecords" />
+
+    <data name="options" value="prop defineButtons" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+    $.cog({
+
+        defineButtons: {
+            items: [
+                { value: 'download', tell: 'downloadClick', style: 'fa fa-download', url: 'ICON_BUTTON_RENDERER' }
+            ]
+        },
+
+        downloadRecords: function(){
+            var sourceRecords = this.downloadingRecords.read();
+            var fileName = 'TLM-export_EIS-matrix-' + moment().unix() + '.csv';
+            var filterList = this.filterList.read();
+            var vendor = this.vendor.read();
+            var columnDefs = (this.site.read() === 'All' && vendor === 'All' )
+                    ? this.siteColumnDefs
+                    : this.threadColumnDefs;
+
+            var filters = filterList.map(function(d) {
+                var filterName   = d.name;
+                var filterOption = d.optionId;
+
+                if (d.name === 'test') {
+                    filterName = 'tier';
+                    switch(d.optionId) {
+                        case '1':
+                            filterOption = 'Test';
+                            break;
+                        case 'All':
+                            filterOption = 'Prod and Test';
+                            break;
+                    }
+                }
+
+                return filterName + ': ' + filterOption;
+            });
+
+            /* add default filter of Prod tier */
+            if (filters.indexOf('tier: Prod and Test') === -1 && filters.indexOf('tier: Test') === -1)
+                filters.unshift('tier: Prod');
+
+            var exportRecords = [];
+            for(var i = 0; i < sourceRecords.length; i++){
+                var r = sourceRecords[i];
+                var e = {};
+
+                r.filters = filters.join(', ');
+
+                for(var p in columnDefs){
+                    if(!r.hasOwnProperty(p))
+                        continue;
+                    var def = columnDefs[p];
+                    e[def.title] = r[p];
+                }
+
+                exportRecords.push(e);
+            }
+
+            var options = {filename: fileName, data: JSON.stringify(exportRecords)};
+            var serviceStr = this.SERVICE_ROOT;
+            this.mapItem.postToBlankWindow(serviceStr + 'echoFile', options);
+        },
+
+        siteColumnDefs: {
+            site_name:              { field: 'site_name',           title: 'site' },
+            filters:                { field: 'filters',             title: 'filters applied' },
+            machine:                { field: 'machine',             title: 'machine' },
+            division:               { field: 'division',            title: 'division' },
+            facility:               { field: 'facility',            title: 'facility' },
+            tier:                   { field: 'tier',                title: 'tier' },
+            dt:                     { field: 'dt',                  title: 'updated' },
+            green_threads:          { field: 'green_threads',       title: 'up' },
+            yellow_threads:         { field: 'yellow_threads',      title: 'other' },
+            red_threads:            { field: 'red_threads',         title: 'down' },
+            wrote_messages:         { field: 'wrote_messages',      title: 'writes' },
+            read_messages:          { field: 'read_messages',       title: 'reads' },
+            errored_messages:       { field: 'errored_messages',    title: 'errors' },
+            wrote_bytes:            { field: 'wrote_bytes',         title: 'write bytes' },
+            read_bytes:             { field: 'read_bytes',          title: 'read bytes' },
+            outbound_queue_post:    { field: 'outbound_queue_post', title: 'state 11' },
+            outbound_queue_pre:     { field: 'outbound_queue_pre',  title: 'state 10' },
+            inbound_queue_post:     { field: 'inbound_queue_post',  title: 'state 2' },
+            inbound_queue_pre:      { field: 'inbound_queue_pre',   title: 'state 1' },
+            outbound_latency:       { field: 'outbound_latency',    title: 'outbound' },
+            engine_latency:         { field: 'engine_latency',      title: 'engine' },
+            inbound_latency:        { field: 'inbound_latency',     title: 'inbound' },
+            translated_messages:    { field: 'translated_messages', title: 'translated messages' },
+            forwarded:              { field: 'forwarded',           title: 'forwarded' },
+            outbound_replies:       { field: 'outbound_replies',    title: 'outbound replies' }
+        },
+
+        threadColumnDefs: {
+            site_name:              { field: 'site_name',           title: 'site' },
+            thread:                 { field: 'thread',              title: 'thread' },
+            filters:                { field: 'filters',             title: 'filters applied' },
+            machine:                { field: 'machine',             title: 'machine' },
+            division:               { field: 'division',            title: 'division' },
+            facility:               { field: 'facility',            title: 'facility' },
+            vendor:                 { field: 'vendor',              title: 'vendor' },
+            tier:                   { field: 'tier',                title: 'tier' },
+            start_time:             { field: 'start_time',          title: 'thread start time' },
+            last_write:             { field: 'last_write',          title: 'last write' },
+            last_read:              { field: 'last_read',           title: 'last read' },
+            last_error:             { field: 'last_error',          title: 'last error' },
+            dt:                     { field: 'dt',                  title: 'updated' },
+            green_threads:          { field: 'green_threads',       title: 'up' },
+            yellow_threads:         { field: 'yellow_threads',      title: 'other' },
+            red_threads:            { field: 'red_threads',         title: 'down' },
+            wrote_messages:         { field: 'wrote_messages',      title: 'writes' },
+            read_messages:          { field: 'read_messages',       title: 'reads' },
+            errored_messages:       { field: 'errored_messages',    title: 'errors' },
+            wrote_bytes:            { field: 'wrote_bytes',         title: 'write bytes' },
+            read_bytes:             { field: 'read_bytes',          title: 'read bytes' },
+            outbound_queue_post:    { field: 'outbound_queue_post', title: 'state 11' },
+            outbound_queue_pre:     { field: 'outbound_queue_pre',  title: 'state 10' },
+            inbound_queue_post:     { field: 'inbound_queue_post',  title: 'state 2' },
+            inbound_queue_pre:      { field: 'inbound_queue_pre',   title: 'state 1' },
+            outbound_latency:       { field: 'outbound_latency',    title: 'outbound' },
+            engine_latency:         { field: 'engine_latency',      title: 'engine' },
+            inbound_latency:        { field: 'inbound_latency',     title: 'inbound' },
+            translated_messages:    { field: 'translated_messages', title: 'translated messages' },
+            forwarded:              { field: 'forwarded',           title: 'forwarded' },
+            outbound_replies:       { field: 'outbound_replies',    title: 'outbound replies' }
+        }
+
+    });
+</script>

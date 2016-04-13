@@ -1,0 +1,832 @@
+<blueprint>
+
+    <require url="topojson.v1.min.js" path="JS_LIB" />
+
+    <alloy url="stateMapData.html" />
+    <preload url="KATANA_BUTTON_MENU" />
+
+    <prop find="stateMapData" />
+    <prop find="facilityData" />
+    <prop find="activePageDef" />
+    <prop find="user" />
+
+    <data name="selMeasure" prop="true" />
+    <data name="selOverall" prop="true" />
+    <data name="showState" prop="true" />
+    <data name="selectState" prop="true" />
+    <data name="aggregatePercent"  prop="true" />
+    <data name="measureOptions" prop="true" />
+
+    <sensor watch="measureOptions" transform="getFirst" pipe="selMeasure" auto="true" />
+    <sensor watch="measureOptions" transform="getMeasureMenuOptions" auto="true" pipe="measureMenuOptions" />
+
+    <sensor watch="selMeasure" change="true" run="selMeasureChanged" auto="true"/>
+
+    <data name="overallOptions" value="run getOverallOptions" prop="true" />
+    <sensor watch="overallOptions" transform="getFirst" pipe="selOverall" auto="true" />
+    <sensor watch="selOverall" change="true" run="selOverallChanged" auto="true"/>
+
+    <data name="measureMenuOptions" prop="true" value="run getMeasureMenuOptions" />
+
+    <sensor watch="measureMenuOptions" run="bindTooltip" auto="true" />
+
+    <cog find="measureMenu" url="KATANA_BUTTON_MENU" source="data measureMenuOptions" item="data options" />
+    <cog find="overallMenu" url="KATANA_BUTTON_MENU" source="run getOverallMenuOptions" item="data options" />
+
+    <sensor watch="showState" change="true" run="renderStatePanel" />
+    <sensor watch="showState" change="true" run="renderStateUpdatePanel" />
+
+    <prop find="publicHealthData" />
+
+    <sensor watch="publicHealthData" transform="convertIntegrationStringsToInts" run="calcAggregatePercentData" change="true" auto="true" />
+    <sensor watch="publicHealthData" transform="convertViaIndexBy" run="populateMap" auto="true" />
+    <sensor watch="aggregatePercent" run="getMeasureOptions" auto="true" />
+    <sensor watch="phStateIntegration" run="getMapData" change="true" auto="true"/>
+
+    <cog find="stateUpdateControlContainer" url="integrationUpdateForm.html" />
+
+</blueprint>
+
+<display>
+
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; font-size: 1.1em; color: #cdf; padding: 4px;">
+        <div style="display: flex; flex: 3 3 750px; flex-direction: column; padding: 4px;">
+            <div class="katana_panel_bright" style="padding-bottom: 0;" >
+                <div id="content"  >
+                    <p style="text-align: center;" > Percentages given reflect summary/detail progress </p>
+                    <div id="measureMenu" class="ph-measure-menu" style="padding-bottom: 6px;" ></div>
+                    <div id="overallMenu" style="padding-bottom: 6px; position: relative;" ></div>
+                    <svg id="svg" width="100%" height="100%" viewBox="0 0 900 480" preserveAspectRatio="xMidYMin meet"></svg>
+                </div>
+            </div>
+        </div>
+
+        <div id="statePanel" style="flex: 1 1 450px;  padding: 4px;">
+            <div class="katana_panel_bright" style="display: block; overflow: auto;  height: 400px; padding-bottom: 0;" >
+                <span id="stateLabel" style="font-size: 1.5em; color: rgb(207, 192, 134); padding: 24px;" />
+                <div id="facilityList" style="display: block; overflow: visible; font-size: .9em;  color: rgb(176, 166, 125); padding: 12px;"></div>
+            </div>
+
+            <div id="stateUpdateControlContainer" style="flex: 1 1 450px; padding-top: 0px;">
+            </div>
+        </div>
+
+    </div>
+
+    <!---->
+    <!--<div class="katana_panel" style=" max-width: 900px;">-->
+        <!--<div id="measureMenu" style="padding-bottom: 12px;" ></div>-->
+        <!--<svg id="svg"></svg>-->
+
+    <!--</div>-->
+</display>
+
+<script>
+
+    $.cog({
+
+        pageDef: {
+
+            title: 'Rollout Map',
+            domain: 'none',
+            time: 'none'
+
+        },
+
+        bindTooltip: function () {
+            // bind kodama tips to measure menu buttons
+            var halpMsg = "Consider these two percentages as <u>summary</u> and <u>detail</u>. "
+            + "The status of a market's integration only changes the summary % when "
+            + "that market is moved to Live/In Production. The detail % changes when "
+            + "a market is moved from any given status to another. "
+            + "This means that every step in the integration process affects the detail "
+            + "%, but the summary % only goes up when a data point for a given market is "
+            + "successfully integrated.";
+
+            var measureMenuButtonSel = d3.select(".ph-measure-menu");
+            var baseTheme = { // TODO this is probably should be moved to shell/core.html
+                frame: {
+                    padding: '4px',
+                            background: 'linear-gradient(to top, rgb(31, 82, 155) 0%, rgb(43, 52, 105) 90%)',
+                            'font-family': '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                            'border': '1px solid rgb(100, 160, 160)',
+                            color: 'rgb(245,240,220)',
+                            'border-radius': '4px',
+                            'font-size': '12px',
+                            'box-shadow': '0px 1px 3px rgba(0,20,40,.5)'
+                },
+                pane: {},
+                title: {'text-align': 'center', 'padding': '4px'},
+                item_title: {'text-align': 'right', 'color': 'rgb(220,200,120)'},
+                item_value: {'padding': '1px 2px 1px 10px', 'color': 'rgb(234, 224, 184)'}
+            }
+
+            _.assign(baseTheme.title, { "font-size": "16px" });
+            _.assign(baseTheme.item_value, { "font-size": "16px" });
+            _.assign(baseTheme.frame, { "max-width": "400px" })
+
+            d3.kodama.themeRegistry('tlm-lg-font', baseTheme);
+
+            measureMenuButtonSel.datum({msg: halpMsg}).call(d3.kodama.tooltip()
+              .attr({class: 'katana_tooltip'})
+              .format(function (d) {
+                return {
+                  items: [{title: "Pro&nbsp;Tip", value: d.msg}],
+                  theme: "tlm-lg-font"
+                };
+            }));
+        },
+
+        renderStatePanel: function(d){
+
+            var self = this;
+
+            if(!d){
+                self.stateLabel.text('');
+                self.facilityList.empty();
+                return;
+            }
+
+            self.stateLabel.text(d.properties.state);
+
+            var facilities = d.properties.facilities.sort();
+            var content = "";
+            for(var i = 0; i < facilities.length; i++){
+                var f = facilities[i];
+                content += "<div>" + f + "</div>";
+            }
+
+            self.facilityList.html(content);
+
+
+        },
+
+        getFillId: function(name){
+            return this.mapItem.uid + '_fill_' + name;
+        },
+
+        getFillIdString: function(name){
+            var id = this.getFillId(name);
+            return 'url(#' + id + ')';
+        },
+
+        /*
+          TODO new rollout levels
+          Excluded
+          Onboarding/Registration
+          Requirements
+          Dev
+          State QA
+          State Prod
+          Completed
+        */
+
+        rolloutLevels: [
+            {title: "No HCA Presence", colors: ["rgb(180,180,180)","rgb(150,150,150)"]},
+            {title: "Not Engaged", colors: ["rgb(166,158,79)","rgb(146,138,59)"]},
+            {title: "Onboarding", colors: ["rgb(158,169,103)","rgb(128,139,83)"]},
+            {title: "Testing / QA", colors: ["rgb(91,141,85)","rgb(71,121,65)"]},
+            {title: "Live / Production", colors: ["rgb(28,100,40)","rgb(18,90,30)"]}
+        ],
+
+        calcAggregatePercentData: function calcAggregatePercentData (pubHealth) {
+          var _ = { // TODO i'm faking lodash. wai i do this?
+            sum:  function (arr) {
+              return arr.reduce(function (a, b) {
+                return a + b
+              })
+            }
+          };
+
+          Array.prototype.mean = function () {
+            return _.sum(this)/this.length
+          };
+
+          function get (prop, obj) {
+            return function (obj) {
+              return obj[prop]
+            }
+          }
+
+          function divideBy3 (item) { return (item / 3) }
+
+          Number.prototype.fmatPercent = function (num) { return numeral(this).format("0.0%") }
+
+          /**
+           * filterDataByMetric Slices a chunk of objects out of an array based on a prop val
+           * @param metrics Array collection of metric objects
+           * @param metrics[0] Object
+           * @param metrics[0].state String state abbreviation
+           * @param metrics[0].metric String metric name, abbreviated and uppercase
+           * @param metrics[0].val Number number value of corresponding metric state (as
+           * in condition, not United States state
+           */
+          function filterDataByMetric (metrics, metricName) {
+            var numbersByMetric
+
+            if (metricName === "all") {
+              numbersByMetric = metrics
+            } else {
+              numbersByMetric = metrics.filter(function filterByMetricName (item, index) {
+                return item.metric === metricName
+              })
+            }
+
+            return numbersByMetric
+          }
+
+          // transform the data
+          function transformPHData (phData) {
+            var metricVals = []
+
+            phData.forEach(function (elem, index) {
+              var state = elem.state
+              delete elem.state
+
+              for (key in elem) {
+                metricVals.push({val: elem[key], metric: key.toUpperCase(), state: state})
+              }
+            })
+
+            return metricVals
+          }
+
+          function decrement (item, index) {
+            return item - 1
+          }
+
+          function toEitherOr (item, index) {
+            return item === 3 ? 1 : 0
+          }
+
+          var pubHealthMetrics = transformPHData(pubHealth)
+
+          function getGoNoGoPercent(metrics, metricName) {
+            return filterDataByMetric(pubHealthMetrics, metricName).map(get("val")).map(decrement).map(toEitherOr).mean().fmatPercent()
+          }
+
+          function getFineGrainedPercent(metrics, metricName) {
+            return filterDataByMetric(pubHealthMetrics, metricName).map(get("val")).map(decrement).map(divideBy3).mean().fmatPercent()
+          }
+
+          var metrics = {
+            summary: {
+              overall : getGoNoGoPercent(pubHealthMetrics, "all"),
+              IMM     : getGoNoGoPercent(pubHealthMetrics, "IMM"),
+              ELR     : getGoNoGoPercent(pubHealthMetrics, "ELR"),
+              SS      : getGoNoGoPercent(pubHealthMetrics, "SS")
+            },
+            detail: {
+              overall : getFineGrainedPercent(pubHealthMetrics, "all"),
+              IMM     : getFineGrainedPercent(pubHealthMetrics, "IMM"),
+              ELR     : getFineGrainedPercent(pubHealthMetrics, "ELR"),
+              SS      : getFineGrainedPercent(pubHealthMetrics, "SS")
+            }
+          }
+
+          delete Array.prototype.mean // TODO clean up global Array proto
+
+          this.aggregatePercent.write(metrics)
+
+          return metrics // TODO this is redundant, basically
+        },
+
+        getMeasureOptions: function(){
+            var aggPercent = this.aggregatePercent.read()
+
+            var overallSplit = aggPercent.summary.overall + "/" + aggPercent.detail.overall
+            var ELRSplit = aggPercent.summary.ELR + "/" + aggPercent.detail.ELR
+            var IMMSplit = aggPercent.summary.IMM + "/" + aggPercent.detail.IMM
+            var SSSplit = aggPercent.summary.SS + "/" + aggPercent.detail.SS
+
+            var options = [
+                // TODO this is a comp
+                {title: 'Overall ' + overallSplit, value: 'Overall'},
+                {title: 'Electronic Lab Records ' + ELRSplit, value: 'ELR', abbr: 'ELR'},
+                {title: 'Syndromic Surveillance ' + SSSplit, value: 'SS', abbr: 'SS'},
+                {title: 'Immunizations ' + IMMSplit, value: 'IMM', abbr: 'IMM'}
+            ];
+
+            this.measureOptions.write(options);
+            return options; // TODO this look redundant, too
+        },
+
+        getOverallOptions: function(){
+            return [
+
+                {title: 'range', value: 'range'},
+                {title: 'minimum', value: 'minimum'},
+                {title: 'average', value: 'average'},
+                {title: 'maximum', value: 'maximum'}
+
+            ];
+        },
+
+        getFirst: function(list) {
+            return (list && list[0] && list[0].value);
+        },
+
+
+        getMeasureMenuOptions: function(){
+            return {
+                url: 'KATANA_TEXT_BUTTON_RENDERER',
+                class: 'katana_nav_button d3-kodama-ph-tooltip',
+                show: 'selMeasure',
+                menuStyle: {'justify-content': 'center', 'text-align': 'center'},
+                items: this.measureOptions.read() || []
+            }
+        },
+
+        getOverallMenuOptions: function(){
+            return {
+                url: 'KATANA_TEXT_BUTTON_RENDERER',
+                class: 'katana_text_button',
+                show: 'selOverall',
+                menuStyle: {'justify-content': 'center'},
+                items: this.overallOptions.read() || []
+            }
+        },
+
+        // runs on publicHealthData  data loc updating
+        logger: function logger (data) {
+          console.log("# " + Date.now() + " # _ > Logger logging stuff: ", data)
+        },
+
+        convertViaIndexBy: function (msg) {
+          var things = this.convertIntegrationStringsToInts(msg)
+
+          var keyedByState = {};
+
+          things.forEach(function (elem, index) {
+            var state = elem.state;
+
+            delete elem.state;
+
+            keyedByState[state] = {
+              ELR: elem.ELR,
+              IMM: elem.IMM,
+              SS: elem.SS
+            }
+          })
+
+          return keyedByState
+        },
+
+        convertIntegrationStringsToInts: function convertIntegrationStringsToInts (msg) {
+          var conversions = {
+            "Not Engaged": 1,
+            "Onboarding": 2,
+            "Testing/QA": 3,
+            "Live/In Production": 4
+          };
+
+          var integerifiedMapData = msg.data.map(function (state, index) {
+            var newState = {};
+
+            newState.state = state.state;
+            newState.ELR = conversions[state.elr];
+            newState.IMM = conversions[state.imm];
+            newState.SS  = conversions[state.ss];
+
+            return newState
+          });
+
+          return integerifiedMapData
+        },
+
+        getMapData: function getMapData () {
+            // Fetch map data from server
+            this.publicHealthData.request({
+              method: "get"
+            });
+        },
+
+        init: function () {
+            this.logger("Here we go it's init time");
+
+            var self = this;
+
+            self.activePageDef.write(self.pageDef);
+
+            this.initMap();
+
+            this.getMapData();
+        },
+
+        initMap: function initMap () {
+            var self = this;
+
+            var state = this.stateMapData.read(); // {type: "Topology", ...
+
+            var width = 900; // map dimensions
+            var height = 480;
+
+            var selectedData = null;
+            var hoverData = null;
+
+            var active = d3.select(null);
+
+            var rolloutData = this.publicHealthData.read(); // by state abbr
+            var facilityData = this.facilityData.read(); // by state abbr
+
+            if (!rolloutData) {
+              rolloutData = {};
+            }
+
+            var stateFeatures = topojson.feature(state, state.objects.usStates).features;
+
+            for(var i = 0; i < stateFeatures.length; i++){
+                var feature = stateFeatures[i];
+                feature.properties.rollout = rolloutData[feature.id] || {ELR: 0, SS: 0, IMM: 0 , note: ''};
+                feature.properties.facilities = facilityData[feature.id] || [];
+            }
+
+            var projection = d3.geo.albersUsa()
+                    .scale(1000)
+                    .translate([width / 2 - 20, height / 2])
+                    .precision(.1);
+
+            var path = d3.geo.path()
+                    .projection(projection);
+
+            var svg = d3.select(this.svg[0]);
+//                    .attr("width", width)
+//                    .attr("height", height);
+
+            var defs = svg.append("defs");
+
+
+            var legendGrads = self.legendGrads = defs.selectAll("[name=legendGrad")
+                    .data(self.rolloutLevels);
+
+            legendGrads.enter()
+                    .append('linearGradient')
+                    .attr('name','legendGrad')
+                    .attr("x1", 0)
+                    .attr("x2", 0)
+                    .attr("y1", "0%")
+                    .attr("y2", "100%")
+                    .attr("id", function(d, i) { return self.getFillId("legendFill" + i); });
+
+            legendGrads.append('stop')
+                    .attr("offset", "20%")
+                    .style("stop-color",  function(d,i) { return self.rolloutLevels[i].colors[0]});
+
+            legendGrads.append('stop')
+                    .attr("offset", "80%")
+                    .style("stop-color",  function(d,i) { return self.rolloutLevels[i].colors[1]});
+
+            var grads = self.gradSel = defs.selectAll("[name=stateGrad]")
+                    .data(topojson.feature(state, state.objects.usStates).features);
+
+            grads.enter()
+                    .append('linearGradient')
+                    .attr('name','stateGrad')
+                    .attr("x1", 0)
+                    .attr("x2", 0)
+                    .attr("y1", "0%")
+                    .attr("y2", "100%")
+                    .attr("id", function(d, i) { return self.getFillId("stateFill" + i); });
+
+            grads.append('stop')
+                   .attr("offset", "20%")
+                   .style("stop-color",  self.rolloutLevels[0].colors[0]);
+
+            grads.append('stop')
+                    .attr("offset", "80%")
+                    .style("stop-color",  self.rolloutLevels[0].colors[1]);
+
+
+            var mapArea = svg.append('g').attr('name','mapArea');
+
+            var statesArea = svg.append("g")
+                    .attr('name','statesArea')
+                    .style("stroke-width", "1px")
+                ;//    .attr('transform','translate(-20,0)');
+
+            var borderArea = self.borderArea = svg.append("g")
+                    .attr('name','borderArea')
+                    .style("stroke-width", "1px")
+                ;//    .attr('transform','translate(-20,0)');
+
+            var stateSel = self.stateSel = statesArea.selectAll("path")
+                        .data(stateFeatures);
+
+            var borderSel = self.borderSel = borderArea.selectAll("path")
+                    .data(stateFeatures);
+
+            stateSel
+                    .enter()
+                    .append("path")
+                    .attr("d", path)
+                    .style("stroke", 'rgb(223, 229, 187)')
+                    .style('stroke-width','1px')
+                    .style('fill', function(d,i){
+                        return self.getFillIdString('stateFill'+i);
+                    });
+
+
+            borderSel
+                    .enter()
+                    .append("path")
+                    .attr("d", path)
+                    .style("stroke",'rgb(233, 249, 197)')
+                    .style('stroke-opacity', 0)
+                    .style('stroke-width','1px')
+                    .style('fill', 'transparent')
+                    .style('pointer-events','all')
+                    .on('mouseenter', function(d,i){
+                        d3.select(this).transition().duration(1).style('stroke-opacity',1)
+                                .style('stroke-width','3px')
+                               ;
+                        hoverData = d;
+                        self.showState.write(selectedData || hoverData);
+
+                    })
+                    .on('mouseleave', function(d,i){
+                        d3.select(this).transition().duration(500).style('stroke-opacity',0)
+                                .style('stroke-width','1px')
+                               ;
+                        hoverData = null;
+                        self.showState.write(selectedData || hoverData);
+                    })
+                    .on("click", clicked);
+
+
+            borderSel
+                    .call(d3.kodama.tooltip()
+                            .attr({class: 'katana_tooltip'})
+                            .format(function(d,i){
+
+                                if (!d) {
+                                  return null;
+                                }
+
+                                var props = d.properties;
+                                var rollout = props.rollout;
+                                var facilities = props.facilities;
+
+                                var items = [];
+
+                                if(facilities){
+                                    items.push({title: 'Facilities', value: facilities.length})
+                                }
+
+                                var measureOptions = self.measureOptions.read();
+                                for(var j = 0; j < measureOptions.length; j++){
+                                    var m = measureOptions[j];
+                                    if(m.value === 'Overall')
+                                        continue;
+                                    var status = rollout[m.value];
+                                    if(status === 0) // no presence
+                                        continue;
+                                    var level = self.rolloutLevels[status];
+                                    items.push({title: m.abbr, value: level.title})
+                                }
+                                return {
+                                    title: props.state,
+                                    items: items
+
+                                };
+                            })
+            );
+
+            var legendArea = svg.append("g")
+                    .attr('name','legendArea')
+                            .attr('transform','translate(745,360)')
+                    ;
+
+            legendArea.append('rect')
+                    .attr('width',160)
+                    .attr('height',125)
+                    .attr('x',-12)
+                    .attr('y',-10)
+                    .attr('rx', '4px')
+                    .attr('ry', '4px')
+                    .style('fill','rgb(2, 38, 68)')
+                    .style('stroke','rgb(180, 172, 133)');
+
+
+
+            var legendSelection =
+                    legendArea
+
+                            .selectAll('.legend')
+                            .data(self.rolloutLevels);
+
+            var legendEnter = legendSelection
+                            .enter()
+                            .append('g')
+                            .attr('pointer-events','all')
+                            .attr('transform', function(d,i){
+                                return 'translate(0,' + (i * 22) + ')';
+                            })
+                            .attr('class', 'legend')
+                            .on('click', function(){
+//                                var fieldDef = self.fields[field_name];
+//                                fieldDef.active = !fieldDef.active;
+//
+//                                d3.select(this)
+//                                        .attr('opacity', fieldDef.active ? 1 : .4);
+//
+//                                self.processData();
+//                                self.render();
+                            })
+
+                    ;
+
+            legendEnter
+                    .append('rect')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('width', 12)
+                    .attr('height', 18)
+                    .style('fill', function(d,i){
+                        return self.getFillIdString('legendFill'+i);
+                    });
+
+            legendEnter
+
+                    .append('text')
+                    .attr('transform', 'translate(20,14)')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '14px')
+                    .attr('fill', 'rgb(181,169,108)')
+                    .text(function (d) {
+                        return d.title;
+                    });
+
+            function clicked(d) {
+
+                if (active.node() === this) return reset();
+
+                selectedData = d;
+
+                self.showState.write(selectedData || hoverData);
+                self.selectState.write(selectedData || hoverData);
+
+                active.classed("active", false);
+                active = d3.select(this).classed("active", true);
+
+                var bounds = path.bounds(d),
+                        dx = bounds[1][0] - bounds[0][0],
+                        dy = bounds[1][1] - bounds[0][1],
+                        x = (bounds[0][0] + bounds[1][0]) / 2,
+                        y = (bounds[0][1] + bounds[1][1]) / 2,
+                        scale = .6 / Math.max(dx / width, dy / height),
+                        translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+                statesArea.transition()
+                        .duration(500)
+                        .style("stroke-width", 1.0 / scale + "px")
+                        .attr("transform", "translate(" + translate + ") scale(" + scale + ")");
+
+                borderArea.transition()
+                        .duration(500)
+                        .style("stroke-width", 1.0 / scale + "px")
+                        .attr("transform", "translate(" + translate + ") scale(" + scale + ")");
+
+            }
+
+            function reset() {
+
+                selectedData = null;
+
+                self.showState.write(selectedData || hoverData);
+                self.selectState.write(null)
+
+                active.classed("active", false);
+                active = d3.select(null);
+
+                statesArea.transition()
+                        .duration(750)
+                        .style("stroke-width", "1.5px")
+                        .attr("transform", "");
+
+                borderArea.transition()
+                        .duration(750)
+                        .style("stroke-width", "1.5px")
+                        .attr("transform", "");
+            }
+        },
+
+        populateMap: function populateMap (publicHealth) {
+            var rolloutData = publicHealth;
+            var facilityData = this.facilityData.read(); // by state abbr
+
+            var state = this.stateMapData.read(); // {type: "Topology", ...
+
+            var stateFeatures = topojson.feature(state, state.objects.usStates).features;
+
+            var self = this
+
+
+            for(var i = 0; i < stateFeatures.length; i++){
+                var feature = stateFeatures[i];
+                feature.properties.rollout = rolloutData[feature.id] || {ELR: 0, SS: 0, IMM: 0 , note: ''};
+                feature.properties.facilities = facilityData[feature.id] || [];
+            }
+
+            this.showColors()
+
+        },
+
+        selMeasureChanged: function(){
+
+            var self = this;
+
+            var measureId = self.selMeasure.read();
+            if(!measureId) return;
+
+
+            var showOverall = measureId === 'Overall';
+
+            var menuSel = d3.select(self.overallMenu[0]);
+
+            if(showOverall)
+                menuSel
+                    .style('opacity', 0)
+                    .style('left', '-200px');
+
+                menuSel
+                        .transition()
+                        .duration(350)
+                        .ease('cubic-out')
+                        .style('opacity', showOverall ? 1: 0)
+                        .style('left', showOverall ? '0px' : '200px');
+
+            self.showColors();
+
+        },
+
+        selOverallChanged: function(){
+
+            var measureId = this.selMeasure.read();
+            if(!measureId)
+                return;
+
+            this.showColors();
+        },
+
+        showColors: function(){
+
+            var self = this;
+
+            if (!self.gradSel) // TODO async short circuit hack
+              return;
+
+            var measureId = self.selMeasure.read() || "Overall"; // TODO async short circuit hack
+            var overallId = self.selOverall.read();
+
+            var showOverall = measureId === 'Overall';
+
+
+            self.gradSel
+                .transition()
+                    .duration(1000)
+                    .selectAll('stop')
+                    .style('stop-color', function(d,i){
+
+                        var level;
+                        var rollout = d.properties.rollout;
+
+                        if(showOverall) {
+
+                            var vals = [];
+                            var sum = 0;
+
+                            for(var measureName in rollout){
+                                if(measureName === 'note')
+                                    continue;
+                                var m = rollout[measureName];
+                                sum += m;
+                                vals.push(m);
+                            }
+                            vals = vals.sort().reverse();
+
+                            if(overallId === 'average'){
+                                level = Math.round(sum / 3.0);
+                            } else if(overallId === 'minimum'){
+                                level = vals[2];
+                            } else if(overallId === 'maximum'){
+                                level = vals[0];
+                            } else if(i === 0) { // lowest in range
+                                level = vals[2];
+                            } else { // highest in range
+                                level = vals[0];
+                            }
+
+
+                        } else {
+                            level = rollout[measureId];
+
+                        }
+
+                        return self.rolloutLevels[level].colors[i];
+
+
+                    });
+    }
+    });
+
+</script>

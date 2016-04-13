@@ -1,0 +1,21 @@
+<display>
+    <div id="btn" title="View a how-to video on creating alerts">
+        <span style="padding: 4px 4px 6px 4px;" class="fa fa-video-camera" />
+        View Tutorial
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        init: function() {
+            this.btn.on('click', function(e) {
+                e.preventDefault();
+                var url = 'https://mediaconnect.medcity.net/media/' +
+                          'How+to+Set+Up+Text+and+Email+Alerts+on+TLM/0_7zw6jdsm/38631931';
+                window.open(url,'_blank');
+            });
+        }
+
+    });
+</script>

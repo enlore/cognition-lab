@@ -1,0 +1,51 @@
+<blueprint>
+    <net name="configData" url="CONFIG_MESSAGES" req="true" />
+
+    <alias name="RECON_SVC" path="SERVICE_ROOT" url="mhoRecon" />
+    <alias name="RECON_HIST_SVC" path="SERVICE_ROOT" url="mhoReconHist" />
+    <alias name="MSG_SAMPLE_SVC" path="SERVICE_ROOT" url="mhoMsgSample" />
+    <alias name="COMP_HIST_SVC" path="SERVICE_ROOT" url="mhoCompHist" />
+    <alias name="COMP_FLOW_SVC" path="SERVICE_ROOT" url="mhoCompFlow" />
+    <alias name="DATA_FLOW_SVC" path="SERVICE_ROOT" url="mhoNetworkFlow" />
+    <alias name="MSG_ALL_SVC" path="SERVICE_ROOT" url="mhoMsgAll" />
+
+    <net name="compHist_svc" url="COMP_HIST_SVC" />
+    <net name="compFlow_svc" url="COMP_FLOW_SVC" />
+    <net name="networkFlow_svc" url="DATA_FLOW_SVC" />
+    <net name="mhoMsgSample" url="MSG_SAMPLE_SVC" />
+
+    <!--<net name="msgInfo" path="SERVICE_ROOT" url="msgData"/>-->
+    <net name="platformHealth_svc" path="SERVICE_ROOT" url="mhoPlatformHealth" />
+
+    <net name="latDist" path="SERVICE_ROOT" url="mhoStatus" />
+    <alias name="LAT_DIST_VOLUME" path="SERVICE_ROOT" url="mhoStatusDetail" />
+
+    <prop find="compAlertStatus" />
+    <sensor watch="platformHealth_svc" run="determineCompAlertStatus" />
+</blueprint>
+
+<script>
+    $.cog({
+
+        determineCompAlertStatus: function(msg){
+            var statusList = msg.data;
+            var compAlerts = {};
+            statusList.forEach(
+                    function(status) {
+                        var id = status.platform;
+                        var num = Number(status.qd);
+                        var t1 = Number(status.t1);
+                        var t2 = Number(status.t2);
+                        var alert = compAlerts[id] = compAlerts[id] || {id: id, critical: 0, warning: 0};
+                        if (num >= t2)
+                            alert.critical++;
+                        else if (num >= t1)
+                            alert.warning++;
+                    });
+
+            //console.log(compAlerts);
+            this.compAlertStatus.write(compAlerts);
+        }
+
+    });
+</script>

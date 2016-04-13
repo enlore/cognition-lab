@@ -1,0 +1,30 @@
+<blueprint>
+
+    <cog find="pageMenu" url="KATANA_BUTTON_MENU" source="data pageMenuOptions" item="data options" />
+    <cog find="siteSelector" url="KATANA_SELECT_BOX" source="data siteListOptions" item="data options" />
+
+</blueprint>
+
+
+<display>
+<div
+        style="padding: 1em 1em 0 1em; margin-left: 5px; flex: 1 1 auto;
+
+        border-right-color: rgb(2, 48, 86);
+border-top-color: rgb(9, 22, 59);
+border-width: 1px;
+border-style: solid;
+
+background: linear-gradient(to bottom,rgb(0, 69, 107) 0%,rgb(2, 14, 25) 100%);
+box-shadow: 3px 0px 15px rgba(0,0,0,.75);">
+    <div id="siteSelector" ></div>
+    <div class="katana_panel" style="width: 100%;" >
+        <div style="margin-bottom: -.3em;">
+            <div style="height: 1em;"></div>
+            <div id="pageMenu"></div>
+            <div style="height: 1em;"></div>
+
+        </div>
+    </div>
+</div>
+</display>

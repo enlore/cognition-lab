@@ -1,0 +1,28 @@
+<blueprint>
+    <prop find="rowData" />
+    <prop find="selGroupBy" />
+    <cog find="holder" url="volumeSlice.html" />
+</blueprint>
+
+<display>
+    <div id="holder" style="padding: 20px 0 20px 0;" />
+</display>
+
+<script>
+    $.cog({
+
+        init: function(){
+            var mi = this.mapItem;
+            var d = this.rowData.read();
+            var group = this.selGroupBy.read();
+            if(group !== 'date') {
+                this.mapItem.createData({name: group, value: d.groupCol});
+            } else {
+                var end = moment(d.msg_date).add('days',1).minutes(0).seconds(0).hours(0).format('YYYY-MM-DDTHH:mm:ss');
+                mi.createData({name:'endDateTime'}).write(end);
+                mi.createData({name:'duration'}).write(86400);
+            }
+        }
+
+    })
+</script>

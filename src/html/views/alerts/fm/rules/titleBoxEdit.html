@@ -1,0 +1,41 @@
+<blueprint>
+    <prop find="editRule" />
+    <prop find="uiInputName" value="" />
+
+    <sensor need="rule" extract="name" run="render" auto="true" />
+    <sensor node="inputBox" on="input" run="cacheName" />
+</blueprint>
+
+<display>
+    <div style="display: flex; flex: 1 1 auto;" >
+        <input id="inputBox" class="katana_invisible_input" autofocus style="width: 100%; text-align: right;" >
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        render: function(name) {
+            var uiInputName = this.uiInputName.read();
+            var ruleName = name || uiInputName || 'Funds Management';
+            this.inputBox.val(ruleName);
+
+            var edit = this.editRule.read();
+            if (edit) this.cacheName();
+        },
+
+        cacheName: function() {
+            var edit = this.editRule.read();
+            edit.name = this.inputBox.val();
+
+//            /* this will be logged on each key press */
+//            console.log('\n', 'edit.name:', edit.name, '\n\n');
+
+            edit._dirty = true;
+
+            this.editRule.write(edit);
+            this.uiInputName.write(edit.name);
+        }
+
+    })
+</script>

@@ -1,0 +1,23 @@
+
+<blueprint>
+  <prop find="formConfig"></prop>
+  <prop find="records"></prop>
+  <!--sensor(need="formConfig,records", run="log", retain="true", batch="true")-->
+  <sensor need="records,formConfig" run="log" auto="true"></sensor>
+  <!--sensor(watch="records", run="log", auto="true")-->
+</blueprint>
+<display>
+  <div id="form"></div>
+</display>
+<script>
+  $.cog({
+    init: function () {
+      console.log("i'm alive!");
+    },
+  
+    log: function log () {
+      var records = this.records.read();
+      console.log(records);
+    }
+  });
+</script>

@@ -1,0 +1,20 @@
+<blueprint>
+    <data name="sliceContentPage" />
+    <data name="sliceMenuView" value="bars" />
+
+    <sensor watch="sliceMenuView" transform="toSliceUrl" pipe="sliceContentPage" auto="true" />
+</blueprint>
+
+<script>
+    $.cog({
+
+        toSliceUrl: function(view){
+            if(view === 'bars'){
+                return 'volumeGroups.html';
+            } else if (view === 'sample'){
+                return 'volumeSamples.html';
+            }
+        }
+
+    });
+</script>

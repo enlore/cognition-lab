@@ -1,0 +1,90 @@
+<blueprint>
+    <prop find="selectedRLGroup" />
+    <sensor watch="selectedRLGroup" run="requestData" batch="true" auto="true" />
+    <!--<sensor watch="selectedRLGroup" run="requestData" batch="true" />-->
+
+    <sensor watch="refreshTimeFilters" run="requestData" batch="true" />
+
+    <prop find="eisStoppedRL" />
+    <sensor watch="eisStoppedRL" run="receiveData" auto="true" />
+
+    <data name="gridData" prop="true" />
+    <cog find="grid" and="append" source="gridData" item="totalRLGridData" url="totalRLDatagrid.html" />
+</blueprint>
+
+
+<display>
+    <div class="katana_panel_night" >
+        <div id="groupLabel" style="float: left; color: #b5a96c; font-size: 16px; padding-left: 6px;" />
+        <div id="grid" style="clear:both; padding-top: 9px;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        requestData: function(){
+            var options = this.mapItem.createParams({ span:"duration", end:"endDateTime" });
+            this.eisStoppedRL.request(options);
+        },
+
+        receiveData: function() {
+            var self = this;
+            var downRLs = self.eisStoppedRL.read().data;
+            var group = this.selectedRLGroup.read();
+            switch(group) {
+                case "CDM_G1":
+                    group = "NADCWPDBSBZT01A,65271";
+                    break;
+                case "CDM_G2":
+                    group = "NADCWPDBSBZT01C,61639";
+                    break;
+                case "CDM_G3":
+                    group = "NADCWPDBSBZT02A,65308";
+                    break;
+                case "CDM_G4":
+                    group = "NADCWPDBSBZT02C,59614";
+                    break;
+            }
+            var downGroupRLs = downRLs.filter(function(d) { return d.Server == group; });
+
+            for (var i = 0; i < downGroupRLs.length; i++) {
+                var d = downGroupRLs[i];
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                d.localDT = (d.Updated) ? d.Updated.slice(0, -1) : null;
+                d.timestamp = moment(d.localDT).format("MM/DD/YY h:mm A");
+            }
+
+            self.gridData.write(downGroupRLs);
+            /* display label with group name above heat map, or message if no heat map */
+            self.setGroupMsg(group, downGroupRLs);
+        },
+
+        setGroupMsg: function(group, downGroupRLs) {
+            switch(group) {
+                case "NADCWPDBSBZT01A,65271":
+                    group = "CDM_G1";
+                    break;
+                case "NADCWPDBSBZT01C,61639":
+                    group = "CDM_G2";
+                    break;
+                case "NADCWPDBSBZT02A,65308":
+                    group = "CDM_G3";
+                    break;
+                case "NADCWPDBSBZT02C,59614":
+                    group = "CDM_G4";
+                    break;
+            }
+            if (!group) return;
+            var mapMsg   = group + " down receive locations";
+            var noMapMsg = "(No down receive locations reported in group " + group + ")";
+            var msg = (downGroupRLs.length) ? mapMsg : noMapMsg;
+            this.groupLabel.text(msg);
+        }
+    });
+
+</script>

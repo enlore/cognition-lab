@@ -1,0 +1,16 @@
+<blueprint>
+    <chain find="holder" source="volumeRecords" item="rowData" url="volumeBar.html" />
+    <cog find="holder" url="KATANA_LOADER_OVERLAY" source="prop configLoader" />
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; min-height: 40px; flex-direction: column; position: relative;" />
+</display>
+
+<script>
+    $.cog({
+
+        configLoader: { show: 'volumeFeed' }
+
+    })
+</script>

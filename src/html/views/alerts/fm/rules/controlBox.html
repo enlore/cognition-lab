@@ -1,0 +1,137 @@
+<blueprint>
+    <prop find="selectedRule" />
+    <prop find="commitRule" />
+    <prop find="editRule" />
+    <prop find="removeRule" />
+    <prop find="cmd_flash" />
+
+    <prop find="ruleIsDirty" />
+
+    <sensor watch="editRule" batch="true" run="render" auto="true" />
+
+    <sensor node="cancel" on="click" run="cancelEdit" />
+    <sensor node="save" on="click" run="commitEdit" />
+    <sensor node="trash" on="click" run="deleteRule" />
+
+    <sensor node="phone" on="click" run="toggleSMS" />
+    <sensor node="email" on="click" run="toggleEmail" />
+    <sensor node="business" on="click" run="setTimebox" />
+    <sensor node="daylight" on="click" run="setTimebox" />
+    <sensor node="oncall" on="click" run="setTimebox" />
+</blueprint>
+
+<display>
+    <div style="display: flex; justify-content: flex-end; flex: 1 1 auto; width: 300px; ">
+        <div id="controls" style="display: flex; flex: 1 1 auto; margin-top: 0; font-size: 16px; color: #215aa7;" >
+            <div id="phone" title="Receive Text Message Alerts" >
+                <span style="padding: 4px; margin-top: -2px; font-size: 20px;" class="fa fa-mobile" />
+            </div>
+            <div id="email" title="Receive Email Alerts" >
+                <span style="padding: 4px;" class="fa fa-envelope" />
+            </div>
+            <div id="business" title="During Business Hours" data-timebox-value="business" >
+                <span style="padding: 0 3px 0 18px;" class="fa fa-building" />
+            </div>
+            <div id="daylight" title="During the Daytime" data-timebox-value="daylight" >
+                <span style="padding: 1px;" class="fa fa-sun-o" />
+            </div>
+            <div id="oncall" title="While On-Call" data-timebox-value="oncall" >
+                <span style="padding: 4px;" class="fa fa-phone" />
+            </div>
+
+            <div style="flex: 1 1 auto;" />
+
+            <div id="trash" title="Delete Rule" class="katana_icon" >
+                <span style="padding: 4px;" class="fa fa-trash" />
+            </div>
+            <div id="copy" title="Duplicate Rule (Disabled on Funds Management)" class="katana_icon" >
+                <span style="padding: 4px; color: rgba(33,90,167,.3)" class="fa fa-files-o" />
+            </div>
+            <div id="cancel" title="Cancel Edit" class="katana_icon" >
+                <span style="padding: 4px;" class="fa fa-undo" />
+            </div>
+            <div id="save" title="Save Rule" class="katana_icon" >
+                <span style="padding: 4px;" class="fa fa-check" />
+            </div>
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        btnInactive: "#215aa7",
+        timeboxActive: "#83baff",
+        delivActive: "#83baff",
+        delivInactive: "#215aa7",
+
+        render: function render(rule) {
+            this.renderEmail(rule);
+            this.renderSMS(rule);
+            this.renderTimebox(rule);
+            this.cmd_flash.write(null);
+        },
+
+        cancelEdit: function cancelEdit() {
+            var rule = this.selectedRule.read();
+            // if no name and no id then remove
+            if (rule.name === "" && rule.id === void 0)
+                this.removeRule.write(rule, "emptyRule");
+
+            this.cmd_flash.write(null);
+            this.selectedRule.write(null);
+            this.ruleIsDirty.write(false);
+        },
+
+        commitEdit: function() {
+            this.commitRule.write(this.editRule.read());
+        },
+
+        deleteRule: function deleteRule() {
+            var selected = this.selectedRule.read();
+
+            if (confirm("Would you like to delete this rule?\n" + selected.name)) {
+                this.removeRule.write(selected);
+                this.selectedRule.write(null);
+            }
+        },
+
+        renderTimebox: function renderTimebox(rule) {
+            // daylight business oncall
+            this.daylight.css("color", this.btnInactive);
+            this.business.css("color", this.btnInactive);
+            this.oncall.css("color", this.btnInactive);
+            this[rule.timebox].css("color", this.timeboxActive);
+        },
+
+        setTimebox: function setTimebox(ev) {
+            var rule = this.editRule.read();
+            rule.timebox = $(ev.currentTarget).data("timebox-value");
+            rule._dirty = true;
+            this.editRule.write(rule);
+        },
+
+        renderEmail: function renderEmail(rule) {
+            this.email.css("color", rule.email ? this.delivActive : this.delivInactive);
+        },
+
+        toggleEmail: function toggleEmail() {
+            var rule = this.editRule.read();
+            rule.email = !rule.email;
+            rule._dirty = true;
+            this.editRule.write(rule)
+        },
+
+        renderSMS: function renderSMS(rule) {
+            this.phone.css("color", rule.sms ? this.delivActive : this.delivInactive);
+        },
+
+        toggleSMS: function toggleSMS() {
+            var rule = this.editRule.read();
+            rule.sms = !rule.sms;
+            rule._dirty = true;
+            this.editRule.write(rule);
+        }
+
+    })
+</script>

@@ -1,0 +1,65 @@
+<blueprint>
+
+    <data name="records" />
+    <data name="options" value="run toOptions" />
+
+    <cog find="grid" url="KATANA_GRID_V2"  />
+
+    <sensor watch="rawDayRecords" pipe="records" auto="true" />
+    <sensor watch="records" run="debug" auto="true" />
+
+</blueprint>
+
+<display>
+    <div class="small" style="flex: 1 1 auto;
+    margin-top: 6px; margin-bottom: 6px;">
+        <div id="grid" ></div>
+    </div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+        debug: function(msg){
+            console.log('debug:',msg);
+
+        },
+
+        init: function(){
+
+            console.log('init!');
+//            rec.expected = fileInfo.expected;
+//            rec.ftpFile = fileInfo.ftpFile;
+//            rec.ftpTo = fileInfo.ftpTo;
+//            rec.process = fileInfo.process;
+//            rec.site = fileInfo.toName;
+        },
+
+        toOptions: function(){
+//            hoverShow: 'hoverFile',
+//            selShow: 'selFile',
+//            selTell: 'uiClickFilter',
+
+            var options = {
+                headerHeight: 22,
+                rowHeight: 22,
+                paneHeight: 242,
+                perPage: 10,
+                titleShow: 'errorStatText',
+                sort: {field: 'err', dir: 'asc'},
+                columns: [
+
+                    {field: "err", title: "Error Description", flex: '1 1 90px'}
+                ]
+            };
+
+
+            return options;
+
+        }
+
+
+    });
+</script>

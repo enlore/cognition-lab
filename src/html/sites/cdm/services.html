@@ -1,0 +1,46 @@
+<blueprint>
+
+    <data name="configData" url="CONFIG_MESSAGES" req="true" />
+
+    <net name="compHist_svc" path="SERVICE_ROOT" url="compHist" />
+    <net name="compFlow_svc" path="SERVICE_ROOT" url="compFlow" />
+
+    <net name="networkFlow_svc" path="SERVICE_ROOT" url="networkFlow" />
+    <net name="msgSample" path="SERVICE_ROOT" url="msgSample" />
+    <net name="msgInfo" path="SERVICE_ROOT" url="msgData"/>
+    <net name="platformHealth_svc" path="SERVICE_ROOT" url="platformHealth" />
+    <prop find="compAlertStatus" />
+    <sensor watch="platformHealth_svc" run="determineCompAlertStatus" />
+
+    <alias name="MSG_ALL_SVC" path="SERVICE_ROOT" url="msgAll" />
+
+</blueprint>
+
+<script>
+
+    $.cog({
+
+        determineCompAlertStatus: function(msg, topic, tag, postcard){
+
+
+            var statusList = msg.data;
+            var compAlerts = {};
+            statusList.forEach(
+                    function(status) {
+                        var id = status.platform;
+                        var num = Number(status.qd);
+                        var t1 = Number(status.t1);
+                        var t2 = Number(status.t2);
+                        var alert = compAlerts[id] = compAlerts[id] || {id: id, critical: 0, warning: 0};
+                        if (num >= t2)
+                            alert.critical++;
+                        else if (num >= t1)
+                            alert.warning++;
+                    });
+
+            this.compAlertStatus.write(compAlerts);
+        }
+    });
+
+
+</script>

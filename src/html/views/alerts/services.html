@@ -1,0 +1,49 @@
+<blueprint>
+    <data name="svc_CDMConfig" path="SERVICE_ROOT" url="config" />
+    <data name="svc_EISConfig" path="SERVICE_ROOT" url="config_eis" />
+    <data name="createRule" service="run configCreateRule" />
+    <data name="readRules" path="SERVICE_ROOT" url="userAlertRules" />
+    <data name="updateRule" service="run configUpdateRule" />
+    <data name="deleteRule" service="run configDeleteRule" />
+
+    <data name="svc_readUserPrefs" service="run configReadUserPrefs" />
+    <data name="svc_updateUserPrefs" service="run configUpdateUserPrefs" />
+
+    <prop find="SERVICE_ROOT" is="alias" />
+</blueprint>
+
+<script>
+    $.cog({
+
+        configReadUserPrefs: function configReadUserPrefs() {
+            var url = this.SERVICE_ROOT + "userPrefsEdit";
+
+            return { url: url, params: { method: "get" } };
+        },
+
+        configUpdateUserPrefs: function configUpdateUserPrefs() {
+            var url = this.SERVICE_ROOT + "userPrefsEdit";
+
+            return { url: url };
+        },
+
+        configCreateRule: function configCreateRule() {
+            var url = this.SERVICE_ROOT + "userAlertRules";
+
+            return { url: url };
+        },
+
+        configUpdateRule: function configUpdateRule() {
+            var url = this.SERVICE_ROOT + "userAlertRules";
+
+            return { url: url };
+        },
+
+        configDeleteRule: function configDeleteRule() {
+            var url = this.SERVICE_ROOT + "userAlertRules";
+
+            return { url: url };
+        }
+
+    })
+</script>

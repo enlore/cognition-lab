@@ -1,0 +1,50 @@
+<blueprint>
+    <prop find="record" />
+</blueprint>
+
+<display>
+    <div id="btn" style="display: flex; flex: 1; justify-content: center;">
+        <i class="fa fa-file-text-o fa-lg" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+        init: function(){
+            var self = this;
+            self.btn.on('click', function(e){
+                e.preventDefault();
+                self.setUrl();
+            });
+            self.render();
+        },
+
+        render: function() {
+            var self = this;
+            function getTipData() {
+                return {
+                    id: self.mapItem.uid,
+                    title: 'Click to view this ticket in Remedy'
+                };
+            }
+
+            self.btn.kodama(getTipData());
+        },
+
+        setUrl: function() {
+            var urlPrefix = "http://remedy.hca.corpad.net/arsys/forms/nadcwpapprem03.hca.corpad.net/"
+                    + "SHR%3ALandingConsole/Default+Administrator+View/?mode=search&F304255500=HPD%3AHelp+Desk"
+                    + "&F1000000076=FormOpenNoAppList&F303647600=SearchTicketWithQual&F304255610='1000000161'%3D%22",
+                urlSuffix = "%22",
+                incidentNumber = this.record.read().Incident_Number;
+
+            this.followUrl(urlPrefix + incidentNumber + urlSuffix);
+        },
+
+        followUrl: function(url) {
+            console.log('generated URL:', url);
+
+            window.open(url,'_blank');
+        }
+    });
+</script>

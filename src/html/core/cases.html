@@ -1,0 +1,36 @@
+<blueprint>
+
+    <!-- case filters options -->
+    <data name="caseStatusOptions" value="prop defaultCaseStatusOptions"></data>
+    <data name="casePriorityOptions" value="prop defaultCasePriorityOptions" ></data>
+
+    <!-- case filters -->
+    <data name="caseStatus" value="Open"></data>
+    <data name="casePriority" value="0"></data>
+
+</blueprint>
+
+
+
+<script>
+
+
+
+    $.cog({
+
+                defaultCaseStatusOptions: [
+                    {text: "Open", value: "Open"},
+                    {text: "Closed", value: "Closed"}
+                ],
+
+                defaultCasePriorityOptions: [
+                    {text: "Low", value: 1},
+                    {text: "Medium", value: 2},
+                    {text: "High", value: 3}
+                ]
+
+
+            });
+
+
+</script>

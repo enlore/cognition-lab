@@ -1,0 +1,34 @@
+<blueprint>
+
+    <sensor watch="button,show,enable" run="render" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; padding: 3px; font-size: 16px;">
+        <i id="icon"></i>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        render: function(msg){
+
+            var b = msg.button;
+            var value = msg.show;
+
+            var style = b.style;
+            if(typeof style === 'function')
+                style = style.call(this, value);
+
+            this.icon.removeClass();
+            this.icon.addClass(style);
+
+        }
+
+
+    });
+
+</script>

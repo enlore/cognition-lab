@@ -1,0 +1,349 @@
+<blueprint>
+    <prop find="column" />
+
+    <sensor watch="itemData" run="render" auto="true" />
+
+    <prop find="fieldData" />
+
+    <prop find="test" />
+
+    <prop find="uiSelCell" />
+
+    <prop find="record" />
+    <sensor watch="record" run="renderTooltip" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; flex-wrap: nowrap; width: 100%;" >
+        <svg height="25" width="25" viewBox="0 0 25 25" preserveAspectRatio="none" >
+            <rect id="colorbox" x="4" y="4" rx="1" ry="1" width="17" height="17" />
+
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="blueGradient">
+                <stop offset="10%" stop-color="#00a7d1" stop-opacity=.9 />
+                <stop offset="90%" stop-color="#00a7d1" stop-opacity=.5 />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="yellowGradient">
+                <stop offset="10%" stop-color="#ffe04d" />
+                <stop offset="80%" stop-color="#ffcb32" />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="redGradient">
+                <stop offset="10%" stop-color="#e00025" />
+                <stop offset="90%" stop-color="#b8001f" />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="noGradient">
+                <stop offset="10%" stop-color="#fff" stop-opacity=.09 />
+                <stop offset="90%" stop-color="#fff" stop-opacity=.05 />
+            </linearGradient>
+
+        </svg>
+        <div id="span" style="text-align: left; margin: 5px 0 0 2px;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+            var self = this;
+            this.holder.on('click', function(e){
+                e.preventDefault();
+                var column = self.column.read();
+                var record = self.record.read();
+                var cell = {};
+                cell.field = column.field;
+                cell.machine = record.machine;
+                self.uiSelCell.write(cell);
+            });
+        },
+
+        render: function(itemData) {
+            var d = this.record.read();
+            var field = this.column.read().field;
+            var fieldData = this.fieldData.read();
+            var fieldType = fieldData[field].fieldType;
+            if (fieldType === 'tri') {
+                var field_hi = field + '_hi';
+                var field_lo = field + '_lo';
+            }
+
+            var cellValue;
+
+            if (d.site && (field === 'rdb_size' || field === 'edb_size')) {
+                /* convert to MB value and round to 2 decimal places */
+                var mbValue = (Math.round((itemData/1000000) * 100) / 100);
+                /* comma format values */
+                cellValue = d3.format('0,000')(mbValue);
+            } else if (itemData !== null && (field === 'rdb_q' || field === 'edb_q')) {
+                /* comma format values */
+                cellValue = d3.format('0,000')(itemData);
+            } else if (itemData !== undefined && (d.facility !== undefined) && field === 'process') {
+                cellValue = itemData.substr(2);
+            } else {
+                cellValue = itemData;
+            }
+
+            if (fieldType === 'tri' || fieldType === 'usage') {
+                var t1 = fieldData[field].t1;
+                var t2 = fieldData[field].t2;
+            }
+
+//            /* while developing, investigate cells that are displaying zero when they should display '–' */
+//            if (d.machine === 'NA') {
+//                console.log('▶︎    field:', field);
+//                console.log('▶︎    itemData:', itemData);
+//                console.log('▶︎    cellValue:', cellValue);
+//                console.log('');
+//            }
+
+//            console.log('▶︎    d:', d);
+//            console.log('▶︎    field:', field);
+//            console.log('▶︎    t1:', t1);
+//            console.log('▶︎    t2:', t2);
+
+            if (d.machine === 'All')
+                this.holder.css('background-color', 'rgba(10,18,52,.5)');
+            else
+                this.holder.css('background-color', 'rgba(0,0,0,0)');
+
+            var blueFillStr   = 'url(#' + this.blueGradient.attr('id') + ')',
+                yellowFillStr = 'url(#' + this.yellowGradient.attr('id') + ')',
+                redFillStr    = 'url(#' + this.redGradient.attr('id') + ')',
+                noFillStr     = 'url(#' + this.noGradient.attr('id') + ')';
+
+            var color;
+
+//            /* while developing, log the value for a specific machine */
+//            if (field === 'cpu_util_pct' && d.machine === 'FWPF')
+//                console.log('▶︎    d[field]:', d[field]);
+
+            /* summary grid */
+
+            /* handle fields with options of Up/Down or Yes/No */
+            if (!d.site && fieldType === 'bool') {
+                color = (!d[field]) ? blueFillStr : redFillStr;
+            /* handle fields with two thresholds */
+            } else if (!d.site && fieldType === 'tri') {
+                color = (!d[field_hi] && !d[field_lo])
+                    ? blueFillStr
+                    : (!d[field_hi])
+                        ? yellowFillStr
+                        : redFillStr;
+            /* handle fields with arrays as values */
+            } else if (!d.site && fieldType === 'arr') {
+                color = (!d[field]) ? blueFillStr : redFillStr;
+            /* handle fields for cpu, memory, and disk usage */
+            } else if (!d.site && fieldType === 'usage') {
+                color = (d[field] < t1)
+                    ? blueFillStr
+                    : (d[field] < t2)
+                        ? yellowFillStr
+                        : redFillStr;
+            }
+
+            /* details grid */
+
+            /* handle fields with options of Up/Down or Yes/No */
+            else if (d.site && fieldType === 'bool') {
+                color = (d[field] == 'Up' || d[field] == 'Yes') ? blueFillStr : redFillStr;
+            /* handle fields with two thresholds */
+            } else if (d.site && fieldType === 'tri') {
+                color = (d[field] < t1)
+                    ? blueFillStr
+                    : (d[field] < t2)
+                        ? yellowFillStr
+                        : redFillStr;
+            /* handle fields for processes */
+            } else if (d.process && field === 'process') {
+                color = (d.status === 'Running') ? blueFillStr : redFillStr;
+            /* handle fields for threads */
+            } else if (d.thread && field === 'thread') {
+                color = redFillStr;
+            /* handle fields for cpu, memory, and disk usage */
+            } else if (!d.site && fieldType === 'usage') {
+                color = (d[field] < t1)
+                    ? blueFillStr
+                    : (d[field] < t2)
+                        ? yellowFillStr
+                        : redFillStr;
+            }
+
+            /* display a faint blue box and an en dash when a value isn't reported */
+            if (d[field] === -1 || d[field] === null || d[field] === undefined || d[field] === 'NaN') {
+                color = noFillStr;
+                cellValue = '–';
+            }
+
+            /* render the cell contents */
+            this.span.text(cellValue);
+            this.colorbox.attr('fill', color);
+        },
+
+        renderTooltip: function(d) {
+//            /* while developing, suspend tooltips for details grid */
+//            if (!d.cpu) return;
+
+            var self = this;
+            var field = self.column.read().field;
+            var fieldData = this.fieldData.read();
+            var fieldType = fieldData[field].fieldType;
+            var simpleField     = fieldData[field].simpleField;
+            var summaryTipTitle = fieldData[field].summaryTipTitle;
+            var detailsTipTitle = fieldData[field].detailsTipTitle;
+            var detailsTipValue = fieldData[field].detailsTipValue;
+            var tipTitle,
+                tipTitle_hi,
+                tipTitle_lo;
+            var tipValue = (d[field] === -1 || d[field] === null || d[field] === undefined || d[field] === 'NaN')
+                ? 'Not Reported'
+                : d[field];
+
+            if (fieldType === 'usage') {
+                tipTitle = (d.machine === 'All') ? summaryTipTitle : detailsTipTitle;
+                if (tipValue !== 'Not Reported') tipValue += '%';
+            } else if (d.facility != undefined && field === 'process' && d[field]) {
+                tipTitle = detailsTipTitle;
+                tipValue = detailsTipValue[d[field].charAt(0)];
+            } else if (d.facility != undefined && field === 'thread' && d[field]) {
+                tipTitle = detailsTipTitle;
+                tipValue = detailsTipValue;
+            } else if (fieldType === 'tri') {
+                tipTitle = (d.site) ? detailsTipTitle : summaryTipTitle;
+                tipTitle_hi = summaryTipTitle['hi'];
+                tipTitle_lo = summaryTipTitle['lo'];
+            } else {
+                tipTitle = (d.site) ? detailsTipTitle : summaryTipTitle;
+            }
+
+            if ((field === 'rdb_size' || field === 'edb_size') && tipValue !== 'Not Reported') {
+                /* convert to MB value and round to 2 decimal places  */
+                tipValue = (Math.round((tipValue / 1000000) * 100) / 100);
+                /* comma format values and append ' MB' */
+                tipValue = d3.format('0,000')(tipValue) + ' MB';
+            }
+
+            if (field === 'rdb_q' || field === 'edb_q') {
+                /* comma format values */
+                tipValue = d3.format('0,000')(tipValue);
+            }
+
+//            console.log('▶︎    field:', field);
+//            console.log('▶︎    d:', d);
+//            console.log('▶︎    tipTitle:', tipTitle);
+
+            function getTipData() {
+//                /* while developing, test for unreported d.dt */
+//                if (d.machine === 'FWPE') d.dt = undefined;
+
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                d.localDT = (d.dt) ? d.dt.slice(0, -1) : undefined;
+                var updated = (d.localDT)
+                    ? moment(d.localDT).format('h:mm A ddd MMM D')
+                    : 'Not Reported';
+                var title;
+                var summaryTier = (self.test.read() === 'All')
+                        ? 'Prod and Test'
+                        : (self.test.read() === '0')
+                            ? 'Prod'
+                            : 'Test';
+                var tier = (d.machine === 'All')
+                    ? summaryTier
+                    : (d.machine.charAt(2) === 'P')
+                        ? 'Prod'
+                        : 'Test';
+
+                if ((d.facility != undefined) && field === 'process' && d.process) {
+                    var process = d.process.substr(2);
+                    title = d.site + ': ' + process;
+                } else if ((d.facility != undefined) && field === 'thread' && d.thread) {
+                    title = d.site + ': ' + d.thread;
+                } else {
+                    title = (d.site)
+                        ? d.site
+                        : (d.machine === 'All')
+                            ? 'Enterprise (All Machines)'
+                            : d.machine;
+                }
+
+                var introItems = (d.facility != undefined)
+                    ? [
+                        { title: 'Machine',  value: d.machine  || 'Not Reported' },
+                        { title: 'Division', value: d.division || 'Not Reported' }
+                    ]
+                    : [];
+
+                var siteItems = (d.facility != undefined)
+                    ? [
+                        { title: 'Site',  value: d.site  || 'Not Reported' }
+                    ]
+                    : [];
+
+                var facilityItems = (d.facility != undefined)
+                    ? [
+                        { title: 'Facility', value: d.facility || 'Not Reported' }
+                    ]
+                    : [];
+
+                var processItems = ((d.facility != undefined) && field === 'process')
+                    ? [
+                        { title: 'Process', value: process }
+                    ]
+                    : [];
+
+                var threadItems = ((d.facility != undefined) && field === 'thread')
+                    ? [
+                        { title: 'Process', value: d.process || 'Not Reported' },
+                        { title: 'Thread',  value: d.thread  || 'Not Reported' }
+                    ]
+                    : [];
+
+                var fieldItems,
+                    commonFieldItems = [{ title: tipTitle, value: tipValue }],
+                    field_hi,
+                    field_lo;
+
+                if (fieldType === 'tri') {
+                    field_hi = field + '_hi';
+                    field_lo = field + '_lo';
+                    fieldItems = (!d.site)
+                        ? [
+                            { title: tipTitle_hi, value: (d[field_hi] != null) ? d[field_hi] : 'Not Reported' },
+                            { title: tipTitle_lo, value: (d[field_lo] != null) ? d[field_lo] : 'Not Reported' }
+                        ]
+                        : commonFieldItems;
+                } else if (fieldType === 'usage' && d.machine === 'All') {
+                    var highMachineTitle = (d.field === 'cpu_util_pct')
+                        ? 'Machine with Highest ' + detailsTipTitle + ' for > 30 Minutes'
+                        : 'Machine with Highest ' + detailsTipTitle;
+                    var highMachineItems = [
+                        { title: highMachineTitle, value: d[simpleField].machine || 'Not Reported' }
+                    ];
+                    fieldItems = commonFieldItems.concat(highMachineItems);
+                } else if (fieldType === 'usage') {
+                    var machineItems = [
+                        { title: 'Machine',  value: d.machine  || 'Not Reported' }
+                    ];
+                    fieldItems = machineItems.concat(commonFieldItems);
+                } else {
+                    fieldItems = commonFieldItems;
+                }
+
+                var outroItems = [
+                    { title: 'Tier',    value: tier },
+                    { title: 'Updated', value: updated }
+                ];
+
+                var assembledItems = introItems.concat(siteItems, facilityItems, processItems, threadItems, fieldItems, outroItems);
+
+                return {
+                    id: self.mapItem.uid,
+                    title: title,
+                    items: assembledItems
+                };
+            }
+            self.holder.kodama(getTipData());
+        }
+
+    });
+
+</script>

@@ -1,0 +1,59 @@
+<blueprint>
+    <!--Watched by the tag list to render tags-->
+    <alias name="SEARCH_INTERFACE"  url="../lib/_searchInterface.html" />
+    <alias name="SEARCH_SERVICE" url="../lib/sifterFactory.html" />
+
+    <alias name="TRANSLATOR_INTERFACE" url="../lib/_translationInterface.html" />
+    <alias name="TRANSLATOR_SERVICE" url="../lib/translationService.html" />
+
+    <alias name="VLIST_FACTORY" url="../lib/_vListFactory.html" />
+
+    <data name="CDMTags" />
+
+    <prop find="svc_CDMConfig" />
+    <sensor watch="svc_CDMConfig" transform="pickData" pipe="CDMTags" auto="true" />
+
+    <data name="userRules" value="prop dummyRules" prop="true" />
+    <data name="selectedRule" prop="true" />
+    <data name="commitRule" prop="true" />
+
+    <data name="emailStatus" prop="true" />
+    <data name="smsStatus" prop="true" />
+    <data name="timebox" prop="true" />
+
+    <data name="cmd_flash" />
+
+    <sensor watch="timebox" run="log" />
+
+    <!--Receives tag to be added to given rule-->
+    <data name="addTag" prop="true" />
+
+    <cog find="tagPalette" url="_tagPalette.html" />
+    <cog find="ruleList" url="_rulesList.html" />
+</blueprint>
+
+<display>
+    <div id="alert-config" style="color: rgb(66, 122, 176); display: flex; padding: 0 8px 0 8px;" >
+        <div style="flex: 1 2 500px; padding-top: 13px; color: rgb(66, 122, 176);" >
+            <div id="rule-list" />
+        </div>
+        <div id="tag-palette" style="flex: 1 1 300px; padding: 0 10px 10px 10px;" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        init: function() {
+            this.svc_CDMConfig.req()
+        },
+
+        log: function(msg) {
+        },
+
+        pickData: function pickData(envel) {
+            return envel.data
+        }
+
+    })
+</script>

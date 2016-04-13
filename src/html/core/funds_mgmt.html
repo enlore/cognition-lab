@@ -1,0 +1,146 @@
+<blueprint>
+
+    <!-- depends on times and gui -->
+
+
+    <!-- fm message options -->
+    <data name="fileOptions" prop="true"/>
+    <data name="siteOptions" prop="true"/>
+    <data name="vendorOptions" prop="true" />
+
+    <!-- fm message filters -->
+    <data name="file" value="All" prop="true"></data>
+    <data name="site" value="All" prop="true"></data>
+    <data name="vendor" value="All" prop="true"></data>
+
+    <!-- get configuration data -->
+    <sensor watch="configData" run="configDataChange" once="true" auto="true"></sensor>
+
+    <prop find="filterList" />
+    <prop find="filterDomain" />
+    <prop find="filterDefs" />
+    <prop find="filterDomainToCache" />
+
+    <!--<prop find="addDomainToCache" is="method" />-->
+
+    <sensor watch="filterPath" run="writeCurrentFiltersToData" />
+
+    <prop find="getDemoDefs" is="method" />
+    <prop find="makeDemoData" is="method" />
+
+</blueprint>
+
+<script>
+
+
+
+    $.cog({
+// todo- method tag inherit = true uses local this context
+
+        init: function(){
+
+            this.filterDomainToCache.write({domain: 'fm', defs: this.getFilterDefs()});
+
+        },
+
+        writeConfigData: function(arr, name){
+
+            var optionsById = {};
+            for(var i = 0; i < arr.length; i++){
+                var d = arr[i];
+                // TEMP HACK TODO REMOVE WHEN POSSIBLE, also this is only fileinfo currently
+                d.id = d.id || d[''];
+                d.day_array = d.day_array ? d.day_array.split(',') : [];
+                for(var j = 0; j < d.day_array.length; j++){
+                    d.day_array[j] = +(d.day_array[j]); // to numbers
+                }
+                if(d.freq === 'daily' && d.day_array.indexOf(0) !== -1) d.day_array.push(7); // add sunday isodayofweek
+
+                if(d.estTime){
+                    d.estTime = d.estTime.split(':');
+                    d.estTime = +d.estTime[0] * 60 + d.estTime[1];
+                }
+                d.expected = +d.expected;
+                optionsById[d.id] = d;
+                if (d.abbr !== undefined && d.abbr !== d.name) {
+                    d.name = d.name + ' (' + d.abbr + ')';
+                }
+
+
+
+            }
+
+            var place = this.mapItem.findData(name);
+            place.write(optionsById);
+
+        },
+
+        configDataChange: function (msg) {
+
+            var d = msg.data;
+
+//            var demo = false;
+//            if(demo){
+//
+//                var defs = this.getDemoDefs();
+//
+//                this.makeDemoData(d.dcs, defs.owners, defs.prefixes, defs.realms, defs.suffixes);
+//                this.makeDemoData(d.networks, defs.owners, defs.prefixes, defs.places, defs.suffixes);
+//                this.makeDemoData(d.facilities, defs.owners, defs.prefixes, defs.animals, defs.suffixes);
+//                this.makeDemoData(d.messageTypes, defs.owners, defs.prefixes, defs.spices, defs.suffixes);
+//
+//            }
+
+            this.writeConfigData(d.files, 'fileOptions');
+
+
+        },
+
+
+
+        getFilterDefs: function() {
+
+            var self = this;
+
+            var defs = [
+
+                {name: 'file', title: 'file', default: 'All'}
+               ];
+
+            for(var i = 0; i < defs.length; i++){
+
+                var def = defs[i];
+                def.title = def.title || def.name;
+
+            }
+
+            return defs;
+
+        },
+
+
+        writeCurrentFiltersToData: function(){
+
+            var domain = this.filterDomain.read();
+            if(domain !== 'fm')
+                return;
+
+            var mi = this.mapItem;
+            var filterDefs = this.getFilterDefs();
+            var filterList = this.filterList.read() || [];
+
+            var filterValuesByName = _.chain(filterList).indexBy('name').mapValues('optionId').value();
+
+
+            for(var i = 0; i < filterDefs.length; i++) {
+                var def = filterDefs[i];
+                var val = filterValuesByName[def.name] || def.default;
+                var d = mi.findData(def.name, 'local');
+                d.write(val);
+            }
+        }
+
+    });
+
+
+</script>

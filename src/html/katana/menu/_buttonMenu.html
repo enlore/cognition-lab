@@ -1,0 +1,61 @@
+
+<blueprint>
+
+    <preload url="KATANA_BUTTON" />
+    <preload url="../button/defButtonRenderer.html" />
+
+    <data name="buttons" />
+    <sensor watch="options" transform="prepButtons" pipe="buttons" auto="true" />
+    <chain find="menu" source="data buttons" item="data button" url="KATANA_BUTTON" />
+
+</blueprint>
+
+
+<display>
+    <div id="frame" style="display: block; visibility: hidden; ">
+        <div id="menu" style="display: flex; flex-direction: row;" ></div>
+    </div>
+</display>
+
+
+<script>
+    $.cog({
+
+
+        prepButtons: function(options){
+
+            this.frame.css('visibility', 'visible');
+            this.frame.css(options.frameStyle || {});
+            this.menu.css(options.menuStyle || {});
+
+            var relativePath = this.mapItem.parent.path;
+
+            var buttons = (options && options.items) || [];
+
+            for(var i = 0; i < buttons.length; i++){
+                var b = buttons[i];
+
+                b.enable = b.enable || options.enable;
+                b.show = b.show || options.show;
+                b.tell = b.tell || options.tell || b.show;
+                b.title = b.title || b.name || b.value;
+                b.value = b.value || b.name || b.title;
+                b.match = b.match || b.value;
+                b.url = b.url || options.url;
+                b.path = b.path || options.path || relativePath;
+                b.buttonStyles = b.buttonStyles || options.buttonStyles;
+                b.textStyles = b.textStyles || options.textStyles;
+
+                b.style = b.style || options.style;
+                b.class = b.class || options.class || 'katana_menu_button';
+
+                if(b.match === options.default){
+                    b.trigger = true;
+                }
+            }
+
+            return buttons;
+
+        }
+    });
+</script>

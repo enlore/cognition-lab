@@ -1,0 +1,24 @@
+
+<blueprint>
+    <sensor need="rule" extract="name" run="render" auto="true" />
+</blueprint>
+
+<display>
+
+    <div style="display: flex; flex: 1 1 auto;">
+
+        <div style="flex: 1 1 auto;margin-top: 2px; font-size: 14px; margin-right: 4px; text-align: right;">
+            <span id="title" style="color: #5997D9; ">Alert Title</span>
+        </div>
+
+    </div>
+
+</display>
+
+<script>
+    $.cog({
+        render: function(name){
+            this.title.text(name);
+        }
+    })
+</script>
