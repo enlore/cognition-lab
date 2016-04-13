@@ -110,10 +110,45 @@ this setup process later.
         }
     }
 
-### TODO
+## Release Workflow
 
-* Sane dependency management
-* Simple server to serve your app if need be
-* Roll in Landon's cog generator
+Hacker:
 
+1. Pull from the golden repo: `git pull ohmubus master`
+2. Hack on features
+3. Commit locally
+4. Push to your fork `git push origin master`
+5. Jump on github and initiate a pull request
 
+Releaser:
+
+1. Jump on github and look at the PR from the hacker
+2. Review, comment, approve, deny, etc. Ultimately merge new stuff into golden
+   repo
+3. Locally (your command line), pull from the golden repo: `git pull ohmubus
+   master`
+4. Be sure to have logged into NPM via cmd line: `npm login`
+5. Still sitting in the module's dir, invoke `release-it`
+
+`release-it` can do a few differnent things. In this case, it'll be set up to
+non-interactively:
+
+* Push a commit to `ohmubus/master` on Github labeled "Release <version>"
+* Push a tag up to `ohmubus`, creating a versioned release
+* Push a commit to your fork on Github labeled as above
+* Push a tag up to your fork on Github, created a versioned relase
+* Push a this newly tagged and commited version of the module to npm using `npm
+  * publish`
+
+_Note_ that the above workflow assumes that the releaser has no merge conflicts
+when pulling down the newly merged feature from their fellow dev. Merge
+conflicts require a slightly different workflow, but the end goal is the same:
+pull down into your local repo from the golden org repo, invoke `release-it`.
+
+_Further, note_ that you will never need to tag a release yourself or bump the
+version property in `package.json`.
+
+If you are the hacker providing the new version's code, after the release is
+published you may want to pull the tag from the org repo into yours, but it's
+not strictly necessary. You'll get the newest version of the module when you
+pull from the golden repo.
