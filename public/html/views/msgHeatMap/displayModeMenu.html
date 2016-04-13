@@ -1,0 +1,21 @@
+<blueprint>
+    <data name="options" value="prop defineButtons" />
+    <cog find="holder" and="append" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+    $.cog({
+
+        defineButtons:  {
+            show: 'displayMode',
+            items: [
+                { value: 'chart' },
+                { value: 'grid' }
+            ]
+        }
+    });
+</script>

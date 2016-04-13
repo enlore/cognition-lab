@@ -1,0 +1,81 @@
+<blueprint>
+
+    <prop find="uiSelCell" />
+    <sensor watch="uiSelCell" run="getDetailsGridUrl" />
+
+    <prop find="fieldData" />
+    <sensor need="fieldData,uiSelCell" run="assembleGridOptions" />
+
+    <data name="assembledGridOptions" prop="true" />
+
+    <data name="detailsGridUrl" prop="true" />
+    <cog find="detailsGrid" url="data detailsGridUrl" />
+</blueprint>
+
+<display>
+    <div style="display: flex;">
+        <div id="detailsGrid" class="small" style="flex: 1 1 800px; padding: 12px 4px 4px 4px;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        getDetailsGridUrl: function() {
+            this.detailsGridUrl.write('detailsGrid.html');
+        },
+
+        gridOptions: {
+            headerHeight: 22,
+            rowHeight: 25,
+            perPage: 10,
+            sort: { field: 'machine', dir: 'asc' }
+        },
+
+        assembleGridOptions: function() {
+            var fieldData = this.fieldData.read();
+            var uiSelCell = this.uiSelCell.read();
+            var field = uiSelCell.field;
+            var fieldType = fieldData[field].fieldType;
+            var gridTitle = fieldData[field].detailsGridTitle || fieldData[field].gridTitle;
+            var service = fieldData[field].service;
+            var gridOptions = this.gridOptions;
+            var sortDirection = (fieldType === 'bool' || fieldType === 'arr') ? 'asc' : 'desc';
+
+            var commonColumns = [
+                { field: 'machine',  title: 'Machine',  flex: '1 1 110px', renderer: 'DETAILS_TEXT_RENDERER' }
+            ];
+
+            var siteColumns = (service === 'clHealthMachine')
+                ? []
+                : [
+                    { field: 'division', title: 'Division', flex: '1 1 120px', renderer: 'DETAILS_TEXT_RENDERER' },
+                    { field: 'site',     title: 'Site',     flex: '1 1 160px', renderer: 'DETAILS_TEXT_RENDERER' },
+                    { field: 'facility', title: 'Facility', flex: '1 1 260px', renderer: 'DETAILS_TEXT_RENDERER' }
+                ];
+
+            var processColumns = (service === 'clHealthThread')
+                ? [
+                    { field: 'process', title: 'Process', flex: '1 1 130px', renderer: 'DETAILS_TEXT_RENDERER' }
+                ]
+                : [];
+
+            var fieldColumns = [
+                { field: field, title: gridTitle, flex: '1 1 130px', renderer: 'COLOR_BOX_RENDERER' }
+            ];
+
+            if (service === 'clHealthProcess' || service === 'clHealthThread') fieldColumns[0].flex = '1 1 250px';
+
+            gridOptions.columns = commonColumns.concat(siteColumns, processColumns, fieldColumns);
+            gridOptions.sort = { field: field, dir: sortDirection };
+
+            this.assembledGridOptions.write(gridOptions);
+        }
+
+    });
+
+</script>

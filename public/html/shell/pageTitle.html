@@ -1,0 +1,34 @@
+
+<blueprint>
+    <sensor watch="activePageTitle" run="render" auto="true" />
+    <sensor watch="activeSite" run="wipeTitle" auto="true" />
+</blueprint>
+
+
+<display>
+
+    <span id="title" class="katana_panel_title" style="
+    font-weight: 500;
+    font-size: 18px;
+    padding-top: 10px;
+    color: rgb(239, 230, 206);
+"></span>
+
+</display>
+
+
+<script>
+
+    $.cog({
+
+        render: function(title){
+            this.title.text(title);
+        },
+
+        wipeTitle: function(site){
+            this.title.text('...');
+        }
+
+    });
+
+</script>

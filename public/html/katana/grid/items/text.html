@@ -1,0 +1,31 @@
+<blueprint>
+    <prop find="column" />
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%;" >
+        <span id="span" style="text-align: left;"></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        render: function(d){
+
+
+            var t = String(d);
+            var c = this.column.read();
+            var f = c.align || 'left';
+            this.span.css('text-align',f);
+            this.span.text(t);
+
+        }
+
+
+    });
+
+</script>

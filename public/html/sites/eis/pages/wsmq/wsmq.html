@@ -1,0 +1,46 @@
+<blueprint>
+    <prop find="getWSMQStats_svc" />
+    <prop find="endDateTime" />
+
+    <sensor watch="refreshTimeFilters" batch="true" run="requestData" auto="true" />
+
+    <data name="statusData" prop="true" />
+    <sensor watch="getWSMQStats_svc" transform="processStatusData" pipe="statusData" />
+
+    <cog find="statusChart" and="append" source="statusData" item="statusChartData" url="statusChart.html" />
+</blueprint>
+
+<display>
+    <div style="display: flex;" >
+        <div id="statusChart" class="small" style="flex: 1 0 800px; padding: 8px;" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        requestData: function(refreshTimeFilters) {
+            if (refreshTimeFilters.endDateTime) {
+                var endDateTime = this.endDateTime.read();
+
+                console.log('\n', 'time set by filters', '\n\n');
+
+                var options = {};
+                options.end = moment.parseZone(endDateTime).utc().format('YYYY-MM-DDTHH:mm:ss.SSS') + 'Z';
+                this.getWSMQStats_svc.request(options);
+            } else {
+
+                console.log('\n', 'current time', '\n\n');
+
+                this.getWSMQStats_svc.request();
+            }
+
+            console.log('\n', 'refreshTimeFilters:', refreshTimeFilters, '\n\n');
+        },
+
+        processStatusData: function(msg) {
+            return msg.data;
+        }
+
+    });
+</script>

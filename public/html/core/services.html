@@ -1,0 +1,87 @@
+<blueprint>
+    <!-- data services -->
+
+
+    <net name="echoFile" path="SERVICE_ROOT" url="echoFile" post="true" format="text" />
+
+    <alias name="MSG_HEATMAP_SVC" path="SERVICE_ROOT" url="qualitymatrix" />
+    <alias name="RECON_SVC" path="SERVICE_ROOT" url="recon" />
+    <alias name="RECON_HIST_SVC" path="SERVICE_ROOT" url="reconHist" />
+    <alias name="MSG_SAMPLE_SVC" path="SERVICE_ROOT" url="msgSample" />
+    <alias name="COMP_HIST_SVC" path="SERVICE_ROOT" url="compHist" />
+    <alias name="COMP_FLOW_SVC" path="SERVICE_ROOT" url="compFlow" />
+    <alias name="DATA_FLOW_SVC" path="SERVICE_ROOT" url="networkFlow" />
+    <alias name="MSG_DATA_SVC" path="SERVICE_ROOT" url="msgData" />
+    <alias name="MSG_HIST_SVC" path="SERVICE_ROOT" url="msgHist" />
+    <alias name="APP_HIST_SVC" path="SERVICE_ROOT" url="appHist" />
+    <alias name="SLA_ANNOTATION_SVC" path="SERVICE_ROOT" url="slaAnnotationEdit" />
+
+    <alias name="DATA_QUALITY_SVC" path="SERVICE_ROOT" url="dataQuality" />
+    <alias name="DATA_QUALITY_DETAIL_SVC" path="SERVICE_ROOT" url="dataQualityDetail" />
+
+    <net name="msgSample" url="MSG_SAMPLE_SVC" />
+    <net name="msgInfo" url="MSG_DATA_SVC"/>
+    <net name="msgHist" url="MSG_HIST_SVC" />
+    <net name="appHist" url="APP_HIST_SVC" />
+    <net name="compHist_svc" url="COMP_HIST_SVC" />
+    <net name="platformHealth_svc" path="SERVICE_ROOT" url="platformHealth" />
+
+    <net name="compFlow_svc" url="COMP_FLOW_SVC" />
+    <net name="networkFlow_svc" url="DATA_FLOW_SVC" />
+    <net name="volAlertList_svc" path="SERVICE_ROOT" url="volAlertList" />
+
+    <net name="appsRecon_svc" path="SERVICE_ROOT" url="appsRecon" />
+    <net name="excludedFacilities_svc" path="SERVICE_ROOT" url="excludedFacilities" />
+
+    <net name="healthHist" path="SERVICE_ROOT" url="healthHist" />
+
+    <net name="eisDiskSpaceHist" path="SERVICE_ROOT" url="eisDiskSpaceHist" />
+    <net name="eisUptimeHist" path="SERVICE_ROOT" url="eisUptimeHist" />
+    <net name="eisMemHist" path="SERVICE_ROOT" url="eisMemHist" />
+    <net name="eisCPUHist" path="SERVICE_ROOT" url="eisCPUHist" />
+    <net name="eisTotalRL" path="SERVICE_ROOT" url="eisTotalRL" />
+    <net name="eisHostInstStatus" path="SERVICE_ROOT" url="eisHostInstStatus" />
+    <net name="eisHostInstMatrix" path="SERVICE_ROOT" url="eisHostInstMatrix" />
+    <net name="eisStoppedRL" path="SERVICE_ROOT" url="eisStoppedRL" />
+
+    <net name="userList" path="SERVICE_ROOT" url="userEdit" />
+    <net name="anomalyList" path="SERVICE_ROOT" url="anomalyList" />
+    <net name="userUpdate" path="SERVICE_ROOT" url="userEdit/put" />
+
+
+    <data name="compAlertStatus" prop="true" />
+    <!-- transform platform health details to severity stats -->
+    <sensor watch="platformHealth_svc" run="determineCompAlertStatus" />
+
+
+</blueprint>
+
+<script>
+
+    $.cog({
+
+        determineCompAlertStatus: function(msg){
+
+
+           var statusList = msg.data;
+           var compAlerts = {};
+           statusList.forEach(
+              function(status) {
+                   var id = status.platform;
+                   var num = Number(status.qd);
+                   var t1 = Number(status.t1);
+                   var t2 = Number(status.t2);
+                   var alert = compAlerts[id] = compAlerts[id] || {id: id, critical: 0, warning: 0};
+                   if (num >= t2)
+                       alert.critical++;
+                   else if (num >= t1)
+                       alert.warning++;
+              });
+
+//            console.log(compAlerts);
+            this.compAlertStatus.write(compAlerts);
+            }
+    });
+
+
+</script>

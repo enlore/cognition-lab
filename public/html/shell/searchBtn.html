@@ -1,0 +1,103 @@
+<blueprint>
+
+    <sensor find="searchButton" detect="click" run="toggleMode" />
+    <sensor find="searchSubmit" detect="click" run="doSearch" />
+
+    <data name="searchMode" value="false" prop="true" />
+
+    <sensor watch="searchMode" run="render" auto="true" />
+
+    <prop find="activePageUrl" />
+    <prop find="umidSearch" />
+
+</blueprint>
+
+
+<display>
+
+    <div id="button" style="display: inline-block;">
+        <span id="searchButton" class="fa fa-search" style="cursor: pointer;font-size: 24px; color: #C4E8FC; padding: 8px; border-radius: 4px; margin-top: 4px; border: 1px solid rgba(255,255,255,.25); background-color: rgba(255,255,255,.15); "></span>
+        <div id="searchBar" style="overflow: hidden; position: relative;top: -3px;width: 0px;display: inline-flex; transition: width 150ms ease;color: #cdf;/* box-sizing: content-box; */">
+            <input id="searchField" type="text" placeholder="Search Message IDs…" style="
+    display: inline-block;
+
+    border-radius: 4px;
+    color: rgb(5, 79, 142);
+    font-size: 13px;
+    border: 1px solid rgba(90, 165, 190, 1);
+    border-bottom: 1px solid rgb(188, 228, 225);
+    padding: 3px 8px 1px 6px;
+    box-shadow: inset 0 1px 7px rgba(48, 41, 16, 0.75);
+    margin-left: 2px;
+    width: 100%;
+
+">
+            <div id="searchSubmit" class="" style="
+cursor: pointer;
+    padding: 6px;
+    margin-right: 8px;
+">Search</div>
+        </div>
+    </div>
+
+
+</display>
+
+
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            var self = this;
+            $(this.searchField.rawContent()).keypress(
+                    function(e) {
+                        if (e.keyCode == 10 || e.keyCode == 13) {
+                            e.preventDefault();
+                            self.doSearch();
+                        }
+                    }
+            );
+
+            $(this.searchSubmit.rawContent()).hover(
+
+                function(){
+                    $(this).css({color:'white'});
+                },
+                function(){
+                    $(this).css({color:'#cdf'});
+                }
+            );
+
+        },
+
+
+        doSearch: function() {
+
+            this.activePageUrl.write('SEARCH_PAGE');
+            this.umidSearch.write(this.searchField.val());
+
+        },
+
+        toggleMode: function(){
+            this.searchMode.toggle();
+        },
+
+        render: function(mode){
+
+            this.searchButton.css({
+                'background-color': mode ? 'rgba(1, 36, 66, 0.15)' : 'rgba(255,255,255,.15)',
+                'border-color': mode ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.25)'
+            });
+
+            this.searchBar.css({
+                width: mode ? '250px' : 0
+            });
+        }
+
+
+    });
+
+</script>

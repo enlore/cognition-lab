@@ -1,0 +1,100 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="record" />
+
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; flex-wrap: nowrap; width: 100%; height: 100%;" >
+        <svg id="status" height="40" width="25" viewBox="0 0 25 40" preserveAspectRatio="none" >
+            <rect id="colorbox" x="4" y="11.5" width="17" height="17" />
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="blueGradient">
+                <stop offset="10%" stop-color="#00a7d1" stop-opacity=.9 />
+                <stop offset="90%" stop-color="#00a7d1" stop-opacity=.5 />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="yellowGradient">
+                <stop offset="10%" stop-color="#ffe04d" />
+                <stop offset="80%" stop-color="#ffcb32" />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="redGradient">
+                <stop offset="10%" stop-color="#e00025" />
+                <stop offset="90%" stop-color="#b8001f" />
+            </linearGradient>
+            <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="noGradient">
+                <stop offset="10%" stop-color="#fff" stop-opacity=.09 />
+                <stop offset="90%" stop-color="#fff" stop-opacity=.05 />
+            </linearGradient>
+        </svg>
+        <div id="span" style="text-align: left; font-size: 13px; color: #D3E8FF; padding: 11px 0 0 4px;" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        render: function(itemData) {
+            var self = this;
+            var column = this.column.read();
+            var record = this.record.read();
+            var showStatus = column.showStatus;
+            var t1 = record.t1;
+            var t2 = record.t2;
+
+//            console.log('\n', 'record:', record, '\n\n');
+//            console.log('\n', 'column:', column, '\n\n');
+//            console.log('\n', 't1:', t1, '\n\n');
+
+            var blueFillStr     = 'url(#' + this.blueGradient.attr('id')    + ')',
+                yellowFillStr   = 'url(#' + this.yellowGradient.attr('id')  + ')',
+                redFillStr      = 'url(#' + this.redGradient.attr('id')     + ')',
+                noFillStr       = 'url(#' + this.noGradient.attr('id')      + ')';
+
+            var color;
+            var text;
+
+            if (!showStatus) { this.status.attr('display', 'none'); }
+
+            if (itemData === 'up' || itemData < t1) {
+                color = blueFillStr;
+            } else if (itemData === 'down' || itemData >= t2) {
+                color = redFillStr;
+            } else if (itemData >= t1) {
+                color = yellowFillStr;
+            }
+
+            if (column.showZero) {
+                text = numeral(Number(itemData)).format('0,0');
+                this.span.css('text-align', 'right');
+            } else if (column.format === 'age') {
+                text = moment(itemData).fromNow();
+            } else {
+                text = String(itemData);
+            }
+
+            this.span.text(text);
+            this.colorbox.attr('fill', color);
+
+            function getTipData() {
+                /* comma format queue depth */
+                var qDepth = d3.format('0,000')(record.qDepth);
+
+                return {
+                    id: self.mapItem.uid,
+                    title: record.qName,
+                    items: [
+                            { title:'Primary Server',       value:record.primary }
+                        ,   { title:'Standby Server',       value:record.backup }
+                        ,   { title:'Queue Manager',        value:record.qMgrName }
+                        ,   { title:'Queue Manager Status', value:record.qMStatus }
+                        ,   { title:'Queue Depth',          value:qDepth }
+                        ,   { title:'Updated',              value:record.updated }
+                    ]
+                };
+            }
+
+            self.holder.kodama(getTipData());
+        }
+
+    });
+</script>

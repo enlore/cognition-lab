@@ -1,0 +1,50 @@
+<blueprint>
+    <data name="corpusCache" prop="true" />
+</blueprint>
+
+<script>
+    $.cog({
+        createCorpus: function (corpusConfig) {
+            var corpus = new window.Sifter(corpusConfig.corpus)
+
+            this.corpusCache.write(corpus, corpusConfig.name)
+
+            return "ready"
+        },
+
+        search: function search (searchConfig) {
+            if (searchConfig.query === "") { // empty query returns empty res set
+                var data = {
+                    length: 0,
+                    items: []
+                }
+                return data
+            }
+
+            var corpus = this.corpusCache.read(searchConfig.name)
+            var results = corpus.search(searchConfig.query, searchConfig.options)
+
+            if (results.total > 0) { // found something, regardless of how many actually came back due to limit
+                var data = {
+                    name: searchConfig.name,
+                    length: results.items.length, // actuall result row count
+                    items: []
+                }
+
+                for (var i = 0; i < results.items.length; i++ ) {
+                    var record = corpus.items[results.items[i].id]
+                    data.items.push(record)
+                }
+
+                return data
+            } else { // found nothing for this query
+                var data = {
+                    length: 0,
+                    items: []
+                }
+
+                return data
+            }
+        }
+    })
+</script>

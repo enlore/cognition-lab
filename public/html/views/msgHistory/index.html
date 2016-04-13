@@ -1,0 +1,47 @@
+<blueprint>
+
+    <data name="nak" value="0" />
+
+
+    <cog find="tiles" and="append" path="COMMON" url="msgTiles/index.html" />
+    <cog find="grid" and="append" path="COMMON" url="msgGrid/nakOption.html" />
+
+    <prop find="activeSiteDomain" />
+    <prop find="activePageDef" />
+
+</blueprint>
+
+<display>
+<div style="padding: 8px; margin: 0;">
+
+    <div id="tiles" class="katana_panel_night" style="padding: 6px; margin-bottom: 8px;"></div>
+    <div id="grid" class="katana_panel" style="padding: 6px;" ></div>
+
+</div>
+</display>
+
+<script>
+
+    $.cog({
+
+        pageDef: function(){
+
+            var domain = this.activeSiteDomain.read();
+
+            return {
+                title: 'Message History',
+                domain: domain,
+                time: 'endSpan'
+            };
+
+        },
+
+        init: function() {
+            var def = this.pageDef();
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+        }
+
+
+    });
+
+</script>

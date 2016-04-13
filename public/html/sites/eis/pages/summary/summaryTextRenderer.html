@@ -1,0 +1,41 @@
+<blueprint>
+    <prop find="record" />
+
+    <prop find="filterList" />
+
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; flex-wrap: nowrap; width: 100%;" >
+        <span id="span" style="text-align: left; padding: 6px;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        render: function(itemData) {
+            var d = this.record.read();
+            var filterList = this.filterList.read();
+            var cellValue;
+
+            if (d.machine === 'All') {
+                this.holder.css('background-color', 'rgba(10,18,52,.5)');
+                cellValue = (!filterList.length || (filterList.length === 1 && filterList[0].name === 'test'))
+                    ? 'Enterprise'
+                    : 'Summary';
+            } else {
+                this.holder.css('background-color', 'rgba(0,0,0,0)');
+                cellValue = String(itemData);
+            }
+            this.span.text(cellValue);
+        }
+
+    });
+
+</script>

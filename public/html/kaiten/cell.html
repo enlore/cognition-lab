@@ -1,0 +1,39 @@
+<blueprint>
+
+
+    <prop find="uiFilterApply" />
+    <prop find="filterList" />
+
+    <prop find="cellData" />
+    <sensor watch="cellData" run="render" auto="true" />
+    <sensor find="cellItem" detect="click" run="filterCmd" />
+</blueprint>
+<display>
+    <div id="cellItem"  class="katana_button_menu_item" style="white-space: nowrap;display:inline;" >
+        <span id="alertType" style="background-color: #ffdc32; border-radius: 2px; padding: 1px 1px 1px 1px; "> </span>
+        <span id="span"></span>
+    </div>
+</display>
+<script>
+    $.cog({
+        init : function () {
+
+        },
+        render: function(data) {
+
+            //var t = data.alert_type.replace(' Queue Alert','') + ': ' + data.site + '/' + data.datatype + '/' + data.vendor;
+            if (data.rank<5) this.alertType.css('background-color','#ff5434');
+            this.alertType.html(' ' + data.type + '');
+            this.span.html(data.title);
+        },
+        filterCmd: function (e) {
+            var self = this;
+            var cd = this.cellData.read();
+            console.log(cd);
+            if (cd.filter)   self.filterList.write([cd.filter]);
+        }
+    });
+</script>
+
+
+

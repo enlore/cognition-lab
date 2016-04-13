@@ -1,0 +1,68 @@
+<blueprint>
+    <prop find="uiClickClearSearch" />
+    <sensor node="clearBtn" on="click" transform="clearSearchInput" pipe="uiClickClearSearch" />
+
+    <prop find="uiSearchInput" />
+    <sensor node="searchBarInput" on="input" transform="getInput" pipe="uiSearchInput" />
+</blueprint>
+
+<display>
+    <div style="display: flex; padding-bottom: 2px;">
+        <button id="createBtn"
+            class="katana_basic_button"
+            style="margin: 2px; display: flex;">
+            <span>
+                Create User
+            </span>
+        </button>
+        <div style="flex: 3 0 auto;" />
+        <div style="display: flex;" >
+            <div id="search-bar-wrap" >
+                <input
+                    class="katana_invisible_input"
+                    type="search"
+                    id="searchBarInput"
+                    name="user-search"
+                    autofocus="true"
+                    style="
+                        height: 32px;
+                        margin: 0 8px 2px 100px;
+                        width: 260px;
+                        border-bottom: 1px solid rgb(9, 86, 153);
+                    "
+                    placeholder="Type to search by Name or Email…"
+                />
+            </div>
+            <button id="clearBtn" class="katana_basic_button" style="margin: 2px;">
+                <span>
+                    Clear Search
+               </span>
+            </button>
+        </div>
+        <div style="flex: 5 0 auto;" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        init: function() {
+            var mi = this.mapItem;
+
+            this.createBtn.on("click", function() {
+                var createDialog = mi.findData("showCreateUserDialog");
+                createDialog.write(true);
+            });
+        },
+
+        getInput: function() {
+            return this.searchBarInput.val();
+        },
+
+        clearSearchInput: function() {
+            this.searchBarInput.val('');
+            return true;
+        }
+
+    });
+</script>

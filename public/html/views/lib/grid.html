@@ -1,0 +1,156 @@
+<blueprint>
+
+    <data name="rendererPath" value="run getPath" />
+
+    <data name="gridTypes" inherit="true" value="prop defaultGridTypes" />
+    <data name="gridSort" inherit="true" prop="true" />
+    <data name="gridCmd" prop="true" />
+
+    <data name="rowHeight" prop="true" />
+    <data name="headerHeight" prop="true" />
+
+    <data name="paneHeight" prop="true" />
+    <data name="scrollY" value="false" prop="true" />
+
+    <sensor watch="gridCmd" run="doGridCmd" />
+    <sensor watch="gridSort" run="sortRecords" />
+    <sensor watch="records" run="determineScrollY" autorun="true" />
+    <sensor watch="gridOptions" run="applyGridOptions" />
+
+    <prop find="columns" />
+    <prop find="records" />
+    <prop find="gridOptions" />
+
+
+    <preload url="item.html" />
+    <preload url="row.html" />
+
+    <chain find="header" source="columns" item="column" url="headerItem.html" />
+    <chain find="body" source="records" item="record" url="row.html" />
+
+</blueprint>
+
+<display>
+
+    <div class="katana_grid">
+
+        <div class="katana_header" id="header">
+            <div id="bumper" class="katana_header_item" style="order: 999999; max-width: 15px;"></div>
+        </div>
+
+        <div id="pane" class="katana_grid_pane" >
+            <div id="body" class="katana_grid_body" ></div>
+        </div>
+    </div>
+
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            this.applyGridOptions();
+        },
+
+        // bool, date, span, text, int/num/number, pct/percent,
+        defaultGridTypes: {
+            bool: function(val) { return !!val;},
+            date: function(val) { return val;},
+            string: function(val) { return val;},
+            number: function(val) { return val;}
+        },
+
+        getPath: function(){
+            return this.mapItem.parent.path;
+        },
+
+        applyGridOptions: function(){
+            var options = this.gridOptions.read() || {};
+            this.rowHeight.write(options.rowHeight || 22);
+            this.paneHeight.write(options.paneHeight || 250);
+            this.headerHeight.write(options.headerHeight || 25);
+            this.determineScrollY();
+        },
+
+        determineScrollY: function(){
+
+            var needScrollY = false;
+            var paneHeight = this.paneHeight.read();
+            var rowHeight = this.rowHeight.read();
+            var fullHeight;
+
+            var records = this.records.read();
+            if(records && records.length){
+                fullHeight = records.length * rowHeight;
+                if(fullHeight > paneHeight)
+                    needScrollY = true;
+            }
+
+            var display = needScrollY ? 'flex' : 'none';
+            this.bumper.css('display',display);
+            var overflow = needScrollY ? 'scroll' : 'hidden';
+            this.pane.css('overflow-y',overflow);
+            this.pane.css('height', paneHeight);
+            this.body.css('height', fullHeight);
+            //this.scrollY.write(needScrollY);
+
+        },
+
+        doGridCmd: function(){
+            var cmd = this.gridCmd.read();
+            if(cmd.action === 'sort'){
+                this.determineSort(cmd.column);
+            }
+        },
+
+        determineSort: function(column){
+
+            var sort = this.gridSort.read();
+            var field = sort && sort.field;
+            var dir = sort && sort.dir;
+
+            if(field === column.field)
+                    dir = (dir === 'asc') ? 'desc' : 'asc';
+            else
+                    dir = column.defaultSortDir || 'asc';
+
+            sort = {field: column.field, dir: dir};
+          //  console.log("SORT");
+          //  console.log(sort);
+            this.gridSort.write(sort);
+
+        },
+
+        sortRecords: function(){
+
+            var sort = this.gridSort.read();
+            var cols = this.columns.read();
+            var recs = this.records.read();
+
+            var field;
+
+            for(var i = 0; i < cols.length; i++){
+                var c = cols[i];
+
+                if(c.field === sort.field){
+                    field = c.field;
+                    break;
+                }
+            }
+
+            if(!field) return;
+
+            recs = _.sortBy(recs, field);
+            if(sort.dir === 'desc')
+                recs = recs.reverse();
+
+            this.records.write(recs);
+
+        }
+
+
+    });
+
+</script>

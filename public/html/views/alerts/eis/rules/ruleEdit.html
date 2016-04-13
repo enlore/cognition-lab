@@ -1,0 +1,90 @@
+<blueprint>
+
+    <prop find="commitRule" />
+    <prop find="selectedRule" />
+    <prop find="removeRule" />
+    <data name="tags" prop="true" />
+
+    <prop find="editRule" />
+    <data name="removeATag" />
+    <prop find="addTag" />
+
+    <sensor watch="rule,selectedRule" group="true" retain="true" transform="toClonedRule" pipe="editRule" auto="true" />
+    <sensor watch="editRule" extract="tags" pipe="tags" auto="true" />
+
+    <sensor needs="addTag" run="addTagToRule" auto="true" />
+    <sensor watch="removeATag" run="removeTagFromRule" auto="true" />
+
+    <chain find="tagsRow" source="tags" item="tag" url="tag.html" />
+    <cog find="titleBox" url="titleBoxEdit.html" />
+    <cog find="controlBox" url="controlBox.html" />
+
+</blueprint>
+
+<script>
+    $.cog({
+
+        toClonedRule: function(msg){
+                return _.cloneDeep(msg.rule);
+        },
+
+        removeTagFromRule: function removeTagFromRule (tag) {
+            var rule = this.editRule.read();
+
+            rule.tags = rule.tags.filter(function (member) {
+                return (tag.id !== member.id);
+            });
+
+            this.tags.write(rule.tags);
+            rule._dirty = true
+            this.editRule.write(rule)
+        },
+
+        addTagToRule: function (tag) {
+
+            if (!tag) return;
+            var rule = this.editRule.read();
+
+            if (rule) {
+                var found = false;
+
+                rule.tags.forEach(function (memberTag, index) {
+                    if (memberTag.type === tag.type) {
+                        rule.tags[index] = tag;
+                        found = true
+                    }
+                });
+
+                if (!found)
+                    rule.tags.push(tag);
+
+            } else
+                throw new Error("No rule selected");
+
+            this.tags.write(rule.tags);
+            rule._dirty = true
+            this.editRule.write(rule);
+        }
+    })
+</script>
+
+<display>
+    <div id="holder" class="katana_panel_gloom" style="display: flex; flex-direction: column; flex: 1 1 auto; height: 70px; margin: 4px 0; border-bottom-width:0;  ">
+
+        <div style="">
+            <div style="display: flex;  width: 100%; height: 26px;">
+               <div id="controlBox" style="display: flex; flex: 1 1 auto;"></div>
+               <div id="titleBox" style="display: flex; flex: 0 0 auto; "></div>
+           </div>
+        </div>
+
+        <div style="">
+            <div style="display: flex;  width: 100%; ">
+                <div id="tagsRow" style="display: flex; flex: 1 1 auto;  top: 0px; pointer-events: all; max-width: 100%; cursor: default; overflow: hidden;"></div>
+            </div>
+        </div>
+
+    </div>
+</display>
+
+

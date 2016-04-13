@@ -1,0 +1,112 @@
+
+<blueprint>
+    <net name="msgSample" url="MSG_SAMPLE_SVC" prop="true" />
+
+    <sensor watch="msgSample" run="render"></sensor>
+    <sensor data="msgFiltersOrNak" watch="refreshAllFilters" batch="true" run="requestData"></sensor>
+    <sensor watch="nak" pipe="msgFiltersOrNak"></sensor>
+
+</blueprint>
+
+<display>
+<div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h2 class="panel-title text-padded-left" data-id="titleDisplay" >
+                Sample Messages
+            </h2>
+        </div>
+
+        <div class="panel-body" style="font-size: 1.1em; color: #8ad;">
+            <div id="gridEl" style=" overflow-x: scroll; padding: 1px;"></div>
+        </div>
+
+    </div>
+
+
+
+</div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+
+                init: function () {
+
+                    this.gridEl.kendoGrid({
+                        dataSource: {
+                            data: [],
+                            schema: {
+                                model: {
+                                    fields: {
+                                        MsgTime: { type: "date" },
+                                        App: { type: "string" },
+                                        Facility: { type: "string" },
+                                        MsgType: { type: "string" },
+                                        MCID: { type: "string" },
+                                        src: { type: "boolean" },
+                                        cl: { type: "boolean" },
+                                        bt: { type: "boolean" },
+                                        dest: { type: "boolean" },
+                                        Errors: { type: "number" },
+                                        LastErr: { type: "string" },
+                                        Dest: { type: "string" },
+                                        Event: { type: "string" },
+                                        Latency: { type: "number" }
+                                    }
+                                }
+                            }
+                        },
+                        columns: [
+                            { field: "MsgTime", title: "Created", width: 160 },
+                            { field: "App", title: "Source App"},
+                            { field: "Facility", title: "Facility"},
+                            { field: "MsgType", title: "Msg Type"},
+                            { field: "MCID", title: "MCID"},
+                            { field: "src", title: "@ Src"},
+                            { field: "cl", title: "@ CL"},
+                            { field: "bt", title: "@ BT"},
+                            { field: "dest", title: "@ Dest"},
+                            { field: "Errors", title: "Errors"},
+                            { field: "LastErr", title: "Last Error"},
+                            { field: "Dest", title: "Dest"},
+                            { field: "Event", title: "Event"},
+                            { field: "Latency", title: "Latency"}
+                        ],
+
+
+                        sortable: true,
+                        serverPaging: false,
+                        serverSorting: false,
+                        scrollable: false,
+                        resizable: true
+
+                    });
+
+                    this.grid = this.gridEl.data("kendoGrid");
+
+                    var options = this.mapItem.createParams({nak: "nak", span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility"});
+
+                    this.msgSample.request(options);
+
+
+                },
+
+                render: function () {
+
+                    var msg = this.msgSample.read();
+                    if(!msg)
+                        return;
+
+                    this.grid.dataSource.data(msg.data);
+                    this.grid.refresh();
+
+
+                }
+            });
+
+</script>

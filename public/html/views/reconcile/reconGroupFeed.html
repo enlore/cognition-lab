@@ -1,0 +1,198 @@
+<blueprint>
+
+    <data name="reconRecordsRaw" prop="true" />
+    <data name="reconRecords" prop="true" />
+
+    <prop find="historyView" />
+    <prop find="selGroupBy" />
+    <prop find="selOrder" />
+    <prop find="selSort" />
+    <prop find="showItemName" />
+    <prop find="itemGetterMethod" />
+
+    <prop find="filterList" />
+    <prop find="filterPath" />
+    <prop find="network" />
+
+    <net name="reconDaily" url="RECON_SVC" prop="true" />
+    <net name="reconHist" url="RECON_HIST_SVC" prop="true" />
+
+    <sensor watch="reconDaily" on="condition" pipe="reconNetCondition" />
+    <sensor watch="reconHist" on="condition" pipe="reconNetCondition" />
+
+    <data name="reconNetCondition" note="show network status of reconDaily or reconHist request" />
+
+    <sensor watch="reconNetCondition" on="condition" run="debug" />
+
+    <sensor watch="selGroupBy" batch="true" change="true" run="requestData" auto="true" />
+    <sensor watch="reconDaily" transform="processReconDaily" pipe="reconRecordsRaw" auto="true" />
+    <sensor watch="reconHist" transform="processReconDaily" pipe="reconRecordsRaw" auto="true" />
+
+    <sensor watch="showItemName,reconRecordsRaw,selSort,selOrder" batch="true" run="sortRecords" />
+
+</blueprint>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+        },
+
+        debug: function(msg, topic, tag){
+            console.log('GF:',msg,topic,tag);
+        },
+
+        requestData: function(){
+
+            var self = this;
+            var options;
+            this.reconRecordsRaw.write([]);
+            var selGroupBy = this.selGroupBy.read();
+
+            if(this.historyView.read()) {
+                options = this.mapItem.createParams({network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility",msg_type:"messageType"});
+                this.reconHist.request(options);
+            } else {
+                options = this.mapItem.createParams({span: "duration", end: "endDateTime", network: "network", app: "sourceApp", dc: "dataCenter", facility: "facility", msg_type: "messageType"});
+                if (selGroupBy && selGroupBy != "none") {
+                    options.groupCol = {network: "network", sourceApp: "app", dataCenter: "dc", facility: "facility", messageType: "msg_type"}[selGroupBy];
+                } else {
+                  //  console.log('mrg?');
+                }
+
+
+                var m = moment(options.end);
+                var sum = m.seconds() + m.minutes() + m.hours();
+
+                if(sum === 0 && options.span === 86400)
+                    this.reconHist.request(options);
+                else
+                    this.reconDaily.request(options);
+            }
+
+        },
+
+        processReconDaily: function(response){
+
+            var self = this;
+            var rows = response.data;
+            var i, d, field;
+            var f = this.itemGetterMethod.read();
+
+            var maxVals = {
+                path_count: 0,
+                full_count: 0,
+                errors_count: 0,
+                latency_count: 0
+            };
+
+
+            for(i = 0; i < rows.length; i++){
+
+                d = rows[i];
+
+                //if(d.msg_date)
+                //     var date_title = moment(d.msg_date).add("days",0).format("MMMM Do");
+
+
+                d.max_vals = maxVals;
+
+                d.path_count = d.tracked + d.mis_ts + d.no_dest;
+                d.full_count = d.path_count + d.ignores;
+                d.errors_count = d.no_dest;
+                d.latency_count = d.completed;
+
+                d.not_calc = d.completed - (d.b1 + d.b2 + d.b3 + d.b4 + d.b5);
+
+                if(d.not_calc < 0) {
+                    d.not_calc = 0;
+                    d.latency_count = d.b1 + d.b2 + d.b3 + d.b4 + d.b5;
+                }
+
+                for(field in maxVals){
+                    maxVals[field] = Math.max(maxVals[field], d[field]);
+                }
+
+                d.lost_pct = (d.errors_count > 0) ? d.lost / d.errors_count : 0;
+                d.nak_pct = (d.errors_count > 0) ? d.nak / d.errors_count : 0;
+
+                d.tracked_pct = (d.path_count > 0) ? d.tracked / d.path_count : 0;
+                d.no_dest_pct = (d.path_count > 0) ? d.no_dest / d.path_count : 0;
+                d.mis_ts_pct = (d.path_count > 0) ? d.mis_ts / d.path_count : 0;
+
+                d.tracked_full_pct = (d.full_count > 0) ? d.tracked / d.full_count : 0;
+                d.no_dest_full_pct = (d.full_count > 0) ? d.no_dest / d.full_count : 0;
+                d.mis_ts_full_pct = (d.full_count > 0) ? d.mis_ts / d.full_count : 0;
+                d.ignores_full_pct = (d.full_count > 0) ? d.ignores / d.full_count : 0;
+
+                d.b1_pct = (d.latency_count > 0) ? d.b1 / d.latency_count : 0;
+                d.b2_pct = (d.latency_count > 0) ? d.b2 / d.latency_count : 0;
+                d.b3_pct = (d.latency_count > 0) ? d.b3 / d.latency_count : 0;
+                d.b4_pct = (d.latency_count > 0) ? d.b4 / d.latency_count : 0;
+                d.b5_pct = (d.latency_count > 0) ? d.b5 / d.latency_count : 0;
+
+                d.not_calc_pct = (d.latency_count > 0) ? d.not_calc / d.latency_count : 0;
+
+                if(f){
+
+                    d.item = f(d.groupCol);
+                    if(d.item) {
+                        d.name = d.item.name;
+                        d.abbr = d.item.abbr || d.item.name;
+                    } else {
+                        console.log(d.groupCol + ':Missing');
+                    }
+                }
+
+            }
+
+            for(i = 0; i < rows.length; i++) {
+                d = rows[i];
+                //console.log(d);
+                for(field in maxVals){
+                    d[field + '_pct_max'] = maxVals[field] > 0 ? d[field] / maxVals[field] : 0;
+                   // if(d[field + '_pct_max']>1.0)
+                     //   console.log(d[field + '_pct_max']);
+                }
+            }
+
+            return rows;
+        },
+
+        sortRecords: function(){
+
+            var recs = this.reconRecordsRaw.read();
+            var order = this.selOrder.read();
+            var field = this.selSort.read();
+            var showItemName = this.showItemName.read();
+
+            if(!(recs && order && field))
+                return;
+
+            for(var i = 0; i < recs.length; i++){
+                var r = recs[i];
+                r.sort_name = (showItemName) ? r.name : r.abbr;
+            }
+
+            // don't sort the history view...
+            if(!this.historyView.read()) {
+                recs = _.sortBy(recs, field);
+                if (order === 'desc')
+                    recs = recs.reverse();
+            }
+
+            this.reconRecords.write(recs);
+
+        },
+
+        processReconHist: function(response){
+            var rows = response.data;
+            return rows;
+        }
+
+    });
+
+
+</script>

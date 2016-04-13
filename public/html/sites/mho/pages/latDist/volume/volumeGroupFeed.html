@@ -1,0 +1,112 @@
+<blueprint>
+    <data name="volumeRecordsRaw" prop="true" />
+    <data name="volumeRecords" prop="true" />
+
+    <prop find="selGroupBy" />
+    <prop find="selOrder" />
+    <prop find="selSort" />
+    <prop find="showItemName" />
+    <prop find="itemGetterMethod" />
+
+    <prop find="filterList" />
+    <prop find="filterPath" />
+    <prop find="network" />
+
+    <prop find="uiSelectBucket" />
+    <sensor watch="uiSelectBucket" run="showGroupContent" />
+
+    <sensor need="selGroupBy,uiSelectBucket" batch="true" change="true" run="requestData" />
+
+    <net name="volumeFeed" url="LAT_DIST_VOLUME" prop="true" />
+    <sensor watch="volumeFeed" transform="processVolumeData" pipe="volumeRecordsRaw" />
+
+    <sensor watch="showItemName,volumeRecordsRaw,selSort,selOrder" batch="true" run="sortRecords" />
+</blueprint>
+
+<script>
+    $.cog({
+
+        init: function(){
+            console.log('');
+        },
+
+        requestData: function(response){
+
+            console.log('▶︎    response:', response);
+
+            var options = {};
+            this.volumeRecordsRaw.write([]);
+            var selGroupBy = response.selGroupBy;
+            var uiSelectBucket = response.uiSelectBucket;
+
+            if (selGroupBy && selGroupBy != 'none') {
+                options.bucket = uiSelectBucket.bucket;
+                options.groupCol = {network: 'network', sourceApp: 'app', dataCenter: 'dc', facility: 'facility', messageType: 'msg_type'}[selGroupBy];
+            }
+
+            this.volumeFeed.request(options);
+        },
+
+        processVolumeData: function(response) {
+            var rows = response.data;
+            var i, d;
+            var f = this.itemGetterMethod.read();
+
+            var maxLatencyCount = 0;
+
+            for (i = 0; i < rows.length; i++) {
+                d = rows[i];
+                d.maxLatencyCount = maxLatencyCount;
+                d.latency_count = d.ct;
+
+                maxLatencyCount = Math.max(maxLatencyCount, d.latency_count);
+
+                if (f) {
+                    d.item = f(d.groupCol);
+
+                    if (d.item) {
+                        d.name = d.item.name;
+                        d.abbr = d.item.abbr || d.item.name;
+                    } else {
+                        d.name = '';
+                        d.abbr = '';
+                        console.log('▶︎    not found in config:', d.groupCol);
+                    }
+                }
+            }
+
+            for (i = 0; i < rows.length; i++) {
+                d = rows[i];
+                d.latency_count_pct_max = maxLatencyCount > 0 ? d.latency_count / maxLatencyCount : 0;
+            }
+
+            return rows;
+        },
+
+        sortRecords: function(){
+            var recs = this.volumeRecordsRaw.read();
+            var order = this.selOrder.read();
+            var field = this.selSort.read();
+            var showItemName = this.showItemName.read();
+
+            if(!(recs && order && field))
+                return;
+
+            for(var i = 0; i < recs.length; i++){
+                var r = recs[i];
+                r.sort_name = (showItemName) ? r.name : r.abbr;
+            }
+
+            recs = _.sortBy(recs, field);
+            if (order === 'desc')
+                recs = recs.reverse();
+
+            console.log('\n', 'recs: ', recs,
+                        '\n', 'order:', order,
+                        '\n', 'field:', field, '\n\n');
+
+            this.volumeRecords.write(recs);
+        }
+
+    });
+</script>

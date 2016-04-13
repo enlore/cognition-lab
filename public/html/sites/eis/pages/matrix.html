@@ -1,0 +1,709 @@
+<blueprint>
+    <prop find="clDetails" />
+    <sensor watch="clDetails" transform="processData" pipe="calculatedData" auto="true" />
+    <sensor watch="detailPoint" extract="_dt"  pipe="detailPointDt" />
+    <sensor watch="detailPointDt" change="true"  pipe="detailPointChanged" />
+
+    <sensor watch="detailPointChanged,refreshDomainFilters" batch="true" run="requestData" auto="true" />
+
+    <data name="detailPointChanged" />
+    <data name="detailPointDt" />
+
+    <sensor watch="detailPoint" run="renderTimeLabel" auto="true" />
+    <sensor watch="calculatedData,sortField,sortDir" change="true" batch="true" run="applySort" auto="true" />
+    <sensor watch="threadOptions" transform="byName" pipe="threadsByName" auto="true" />
+    <sensor watch="calculatedData" run="renderStatusLabel" auto="true" />
+
+    <sensor watch="uiSortField" run="chooseSortAndDirection" />
+
+    <prop find="detailPoint" />
+    <prop find="siteOptions" />
+    <prop find="uiFilterApply" />
+
+    <prop find="configData" />
+
+    <prop find="displayMode" />
+
+    <prop find="threadOptions" />
+    <prop find="thread" />
+    <prop find="site" />
+    <prop find="vendor" />
+
+    <prop find="machineOptions" />
+    <prop find="divisionOptions" />
+    <prop find="facilityOptions" />
+    <prop find="vendorOptions" />
+
+    <prop find="sortedRecords" />
+
+    <data name="uiSortField" prop="true" />
+
+    <data name="sortField" prop="true" />
+    <data name="sortDir" value="true" prop="true" />
+    <data name="calculatedData" prop="true" />
+    <data name="viewingRecords" prop="true" />
+
+    <data name="threadsByName" prop="true" />
+
+    <!-- todo standardize paging/sorting hoist model -->
+
+    <data name="gridTitle" prop="true" />
+    <data name="pagedRecords" prop="true" />
+    <data name="nextPageCmd" />
+    <data name="prevPageCmd" />
+    <data name="firstPageCmd" />
+    <data name="lastPageCmd" />
+
+    <data name="perPage" value="num 20" prop="true" note="max records per page, 0 is no paging" />
+    <data name="pageNum" value="num 0" prop="true" />
+    <data name="showAll" value="false" prop="true" />
+    <sensor watch="nextPageCmd" transform="toNextPage" pipe="pageNum" />
+    <sensor watch="prevPageCmd" transform="toPrevPage" pipe="pageNum" />
+    <sensor watch="firstPageCmd" transform="toFirstPage" pipe="pageNum" />
+    <sensor watch="lastPageCmd" transform="toLastPage" pipe="pageNum" />
+    <sensor watch="gridTitle" run="renderTitle" auto="true" />
+
+    <sensor watch="sortedRecords" batch="true" transform="toPagedRecords" pipe="pagedRecords" auto="true" />
+    <sensor watch="pagedRecords,pageNum,perPage" batch="true" transform="toViewingRecords" pipe="viewingRecords" auto="true" />
+    <sensor watch="viewingRecords,perPage" batch="true" run="render" auto="true" />
+
+    <sensor watch="displayMode" distinct="true" run="vis" autorun="true" />
+
+    <cog find="pager" url="pager.html" />
+    <cog find="holder" url="KATANA_LOADER_OVERLAY" source="prop configLoader" />
+</blueprint>
+
+<display>
+    <div id="holder" style="position: relative;">
+
+        <svg id="svg" width="100%" height="100%" viewBox="0 0 370 412" preserveAspectRatio="xMidYMid meet">
+            <defs>
+
+
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="wrote_messages_fill">
+                    <stop offset="10%" stop-color="rgb(136,85,213)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(107,70,178)" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="read_messages_fill">
+                    <stop offset="10%" stop-color="rgb(81,138,213)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(61,118,193)" stop-opacity="1"></stop>
+                </linearGradient>
+
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="errored_messages_fill">
+                    <stop offset="10%" stop-color="#d21" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#a00" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="red_threads_fill">
+                    <stop offset="10%" stop-color="#d21" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#a00" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="yellow_threads_fill">
+                    <stop offset="10%" stop-color="#db2" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#a81" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="green_threads_fill">
+                    <stop offset="10%" stop-color="#1c1" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#080" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="inbound_queue_pre_fill">
+                    <stop offset="10%" stop-color="rgb(102,170,255)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(82,150,235)" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="inbound_queue_post_fill">
+                    <stop offset="10%" stop-color="rgb(68,153,204)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(48,133,184)" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="outbound_queue_pre_fill">
+                    <stop offset="10%" stop-color="rgb(34,119,170)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(14,99,150)" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="outbound_queue_post_fill">
+                    <stop offset="10%" stop-color="rgb(17,85,136)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(7,65,116)" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="inbound_latency_fill">
+                    <stop offset="10%" stop-color="rgb(81,138,213)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(61,118,193)" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="engine_latency_fill">
+                    <stop offset="10%" stop-color="#99f" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#88e" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="outbound_latency_fill">
+                    <stop offset="10%" stop-color="rgb(136,85,213)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(107,70,178)" stop-opacity="1"></stop>
+                </linearGradient>
+
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="wrote_bytes_fill">
+                    <stop offset="10%" stop-color="rgb(136,85,213)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(107,70,178)" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="read_bytes_fill">
+                    <stop offset="10%" stop-color="rgb(81,138,213)" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="rgb(61,118,193)" stop-opacity="1"></stop>
+                </linearGradient>
+
+
+
+
+            </defs>
+
+        </svg>
+
+        <div style="display: flex;">
+            <span id="title" style="flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; padding: 4px 4px 4px 6px; font-family: Verdana, 'Helvetica Neue', Helvetica, Arial, sans-serif;"></span>
+            <div id="pager" style="flex: 1 0 180px; text-align: right;"></div>
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        init: function(){
+            var self = this;
+            self.sortField.write(self.fields[0]);
+            self.initLayout();
+
+            var sites      = self.siteOptions.read();
+            var machines   = self.machineOptions.read();
+            var divisions  = self.divisionOptions.read();
+            var facilities = self.facilityOptions.read();
+
+            self.sitesBySimpleName    = _.indexBy(sites, 'simpleName');
+            self.sitesByName          = _.indexBy(sites, 'name');
+            self.sitesById            = _.indexBy(sites, 'id');
+            self.machinesById         = _.indexBy(machines, 'id');
+            self.divisionsById        = _.indexBy(divisions, 'id');
+            self.facilitiesById       = _.indexBy(facilities, 'id');
+        },
+
+        configLoader: {show: 'clDetails'},
+
+        getLongVendorName: function(thread) {
+            var vendors = this.vendorOptions.read();
+            this.vendorsById = _.indexBy(vendors, 'id');
+
+            var threadSegments = thread.split('_');
+            var vendorId = threadSegments[1];
+            return (this.vendorsById[vendorId]) ? this.vendorsById[vendorId].name : 'Not Reported';
+        },
+
+        vis: function() {
+            var mode = this.displayMode.read();
+            this.holder.toggle(mode === 'matrix');
+        },
+
+        chooseSortAndDirection: function(uiSortField){
+            var sortField = this.sortField.read();
+            if(sortField.name === uiSortField.name)
+                this.sortDir.toggle();
+            else
+                this.sortDir.write(true);
+            this.sortField.write(uiSortField);
+
+        },
+
+        renderTitle: function(){
+            var title = this.gridTitle.read();
+            this.title.text(title);
+        },
+
+        toLastPage: function(){
+
+            var pages = this.pagedRecords.read() || [];
+            return pages.length - 1;
+
+        },
+
+        toFirstPage: function(){
+
+            return 0;
+
+        },
+
+        toNextPage: function(){
+
+            var pages = this.pagedRecords.read() || [];
+            var n = this.pageNum.read() || 0;
+            return Math.min(n + 1, pages.length - 1);
+
+        },
+
+        toPrevPage: function(){
+
+            var n = this.pageNum.read() || 0;
+            return Math.max(n - 1, 0);
+
+        },
+
+        toViewingRecords: function(){
+            var pageNum = this.pageNum.read();
+            var pagedRecs = this.pagedRecords.read();
+            return (pagedRecs && pagedRecs[pageNum]) || [];
+        },
+
+        toPagedRecords: function(){
+            var pagedRecs = [];
+            var sortedRecs = [].concat(this.sortedRecords.read() || []);
+            var perPage = this.perPage.read() || sortedRecs.length;
+
+            while(sortedRecs.length){
+                var page = sortedRecs.splice(0, perPage);
+                pagedRecs.push(page);
+            }
+
+            return pagedRecs;
+        },
+
+        byName: function(items){
+            return _.indexBy(items, 'name');
+        },
+
+        renderTimeLabel: function(detailPoint){
+            var self = this;
+
+            var dateFormat = d3.time.format('%-I:%M %p %a %b %e');
+            var timeLabel = (detailPoint && detailPoint.dt) ? dateFormat(detailPoint.dt) : '';
+
+//            console.log('\n', 'detailPoint.dt:', detailPoint.dt,
+//                        '\n', 'timeLabel:     ', timeLabel, '\n\n');
+
+            self.timeLabel.text(timeLabel);
+
+        },
+
+        renderStatusLabel: function(){
+
+            var self = this;
+            var site = self.site.read();
+            var vendor = self.vendor.read();
+            var items = self.calculatedData.read();
+            var sites = self.siteOptions.read();
+            var siteName = sites[site] && sites[site].name;
+            var title = (site === 'All' && vendor === 'All') ? 'Site Status' : 'Thread Status';
+            self.statusLabel.text(title);
+
+
+            self.siteLabel.text(siteName ? 'for ' + siteName : '');
+
+            /* comma format item count */
+            var count = d3.format("0,000")(items.length);
+            var siteNoun   = (count == 1) ? ' Site'   : ' Sites';
+            var threadNoun = (count == 1) ? ' Thread' : ' Threads';
+            var pagingTitle = (site === 'All' && vendor === 'All') ? count + siteNoun : count + threadNoun;
+            this.gridTitle.write(pagingTitle);
+
+        },
+
+        requestData: function(msg){
+
+            console.log('\n', 'msg passed to requestData:', msg, '\n\n');
+
+            var detailPoint = this.detailPoint.read();
+            if(!detailPoint)
+                return;
+
+//            if(this.thread.read())
+//                return; // don't get thread based data
+
+            var options = this.mapItem.createParams({site: "site", vendor:"vendor", datatype:"dataType", machine:"machine", test:"test", build:"build", division: "division"});
+            options.dt = detailPoint._dt;
+
+            this.clDetails.request(options);
+
+        },
+
+        fields: [
+
+            {name: 'green_threads', title: 'up'},
+            {name: 'yellow_threads', title: 'other'},
+            {name: 'red_threads', title: 'down'},
+            {name: 'wrote_messages', title: 'writes'},
+            {name: 'read_messages', title: 'reads'},
+            {name: 'errored_messages', title: 'errors'},
+            {name: 'wrote_bytes', title: 'write bytes'},
+            {name: 'read_bytes', title: 'read bytes'},
+            {name: 'outbound_queue_post', title: 'state 11'},
+            {name: 'outbound_queue_pre', title: 'state 10'},
+            {name: 'inbound_queue_post', title: 'state 2'},
+            {name: 'inbound_queue_pre', title: 'state 1'},
+            {name: 'outbound_latency', title: 'outbound'},
+            {name: 'engine_latency', title: 'engine'},
+            {name: 'inbound_latency', title: 'inbound'}
+        ],
+
+        initLayout: function(){
+
+            var self = this;
+
+            var margin = {top: 90, right: 20, bottom: 10, left: 120};
+
+            var fullWidth =  370;
+            var fullHeight = 450;
+
+            var width = self.width = fullWidth - margin.left - margin.right;
+            var height = self.height = fullHeight - margin.top - margin.bottom;
+
+
+            var svg = d3.select(this.svg.get(0));
+
+            self.chartingArea = svg
+                    .append('g')
+                    .attr('name','chartingArea')
+                    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+            self.chartingArea
+                    .append('rect')
+                    .attr('width', 243)
+                    .attr('height', 323)
+                    .attr('x',-2)
+                    .attr('y',-2)
+                    .style('fill','rgba(0, 0, 0, 1)')
+                    .style('stroke', 'rgb(103, 94, 46)')
+                    .style('stroke-width', '1px');
+
+            self.fieldsArea = svg
+                    .append('g')
+                    .attr('transform', 'translate(' + (margin.left + 4 )+ ',' + (margin.top - 7) + ')')
+                    .attr('name', 'fieldsArea');
+
+            self.timeLabel = svg
+                    .append('text')
+                    .attr('transform', 'translate(365,20)')
+                    .attr('text-anchor','end')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '16px')
+                    .attr('fill', 'rgb(181,169,108)');
+
+            self.statusLabel = svg
+                    .append('text')
+                    .attr('transform', 'translate(5,20)')
+                    .attr('text-anchor','start')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '16px')
+                    .attr('fill', 'rgb(181,169,108)');
+
+            self.siteLabel = svg
+                    .append('text')
+                    .attr('transform', 'translate(10,36)')
+                    .attr('text-anchor','start')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '12px')
+                    .attr('fill', 'rgb(181,169,108)');
+
+            self.fieldLabels = self.fieldsArea.selectAll('[name=field]').data(self.fields);
+
+            self.fieldLabels.enter()
+                    .append('text')
+                    .attr('name','field')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '10px')
+                    .style('fill', 'rgb(181,169,108)')
+                    .style('cursor', 'pointer')
+                    .text(function(d,i) { return d.title;})
+                    .attr('transform', function(d,i){ return 'translate('+(i * 16) + ',0) rotate(-60)';})
+                    .on('click',function(d){
+                        self.uiSortField.write(d);
+                    })
+                    .on('mouseenter', function(d){
+                        var chosen = d.name === self.sortField.read().name;
+                        d3.select(this).style('fill', chosen ? 'rgb(255,249,178)' : 'rgb(231,219,158)');
+                    })
+                    .on('mouseleave', function(d){
+                        var chosen = d.name === self.sortField.read().name;
+                        d3.select(this).style('fill', chosen ? 'rgb(255,249,178)' : 'rgb(181,169,108)');
+                    })
+            ;
+
+            self.categoryArea = svg
+                    .append('g')
+                    .attr('transform', 'translate(' + margin.left + ',' + (margin.top) + ')')
+                    .attr('name', 'categoryArea');
+
+        },
+
+        determineDir: function(msg, topic, packet){
+
+//            console.log("det dir");
+//            console.log(packet);
+            return true;
+
+        },
+
+        processData: function(msg){
+            var self = this;
+            var arr = msg.data || [];
+            var siteFilter = self.site.read();
+
+//            console.log('\n', 'first data point:', arr[0], '\n\n');
+
+            var i, j, d, f, pf, v, max;
+
+            for(j = 0; j < self.fields.length; j++){
+
+                f = self.fields[j].name; // example: 'green_threads'
+                pf = f + "_pct_max";
+                max = 0;
+
+//                console.log('f:', f);
+
+                for(i = 0; i < arr.length; i++){
+                    d = arr[i];
+
+                    var siteObj;
+                    if (siteFilter === 'All') {
+                        siteObj = self.sitesBySimpleName[d.site] || self.sitesByName[d.site];
+                    } else {
+                        siteObj = self.sitesById[siteFilter];
+                    }
+
+                    var machineId  = siteObj && siteObj.machine_id;
+                    var divisionId = siteObj && siteObj.divisionId;
+                    var facilityId = siteObj && siteObj.facilityId;
+
+                    d.site_name = siteObj && siteObj.name;
+                    d.machine   = siteObj && self.machinesById[machineId]    && self.machinesById[machineId].name;
+                    d.division  = siteObj && self.divisionsById[divisionId]  && self.divisionsById[divisionId].name;
+                    d.facility  = siteObj && self.facilitiesById[facilityId] && self.facilitiesById[facilityId].name;
+                    d.tier      = siteObj && siteObj.is_test;
+
+                    if (d.thread) {
+                        d.vendor = self.getLongVendorName(d.thread);
+                    }
+
+                    v = Number(d[f]);
+                    if(v > max)
+                        max = v;
+                }
+
+                for(i = 0; i < arr.length; i++){
+                    d = arr[i];
+                    v = d[f];
+                    d[pf] = max > 0 ? v / max : 0;
+
+                }
+
+//                console.log(f);
+//                console.log(max);
+
+            }
+
+//            console.log(arr);
+
+            return arr;
+
+        },
+
+        applySort: function(){
+
+            var sortDir = this.sortDir.read();
+            var arr = this.calculatedData.read();
+            var f = this.sortField.read();
+            var field_name = f.name + '_pct_max';
+            var sorted = _.sortBy(arr, field_name);
+            if(sortDir)
+                sorted = sorted.reverse();
+            this.sortedRecords.write(sorted);
+
+        },
+
+        getFormattedTime: function(timestamp) {
+            if (!timestamp) return 'Not Reported';
+            /* remove the trailing Z to use local time when fed to Moment.js */
+            var localStamp = timestamp.slice(0, -1);
+            return moment(localStamp).format('h:mm A ddd MMM D');
+        },
+
+        render: function(){
+            var viewingRecords = this.viewingRecords.read();
+            var viewingThreadId = this.thread.read();
+            var threadOptions = this.threadOptions.read() || {};
+            var viewingThread = threadOptions[viewingThreadId];
+
+            var self = this;
+
+            var vendor = self.vendor.read();
+            var site = self.site.read();
+
+            self.rows = self.chartingArea.selectAll('[name=row]').data(viewingRecords, function(d){ return d.site + ':' + d.thread;});
+
+            self.rows.enter()
+                    .append('g')
+                    .attr('name','row')
+                    .attr('transform', function(d,i){ return 'translate(0,'+(i * 16) + ')';})
+                    .each(function(d){
+                        var g = d3.select(this);
+
+                        var rowData = d;
+
+                        var items = g.append('text')
+                                .attr('name','field')
+                                .attr('text-anchor','end')
+                                .attr('font-family', 'sans-serif')
+                             //   .attr('font-size', '10px')
+                                .attr('font-size', function(d) {
+                                    if(vendor !== 'All' && site === 'All')
+                                        return '7px';
+                                    return '9px';
+                                })
+                                .style('cursor', 'pointer')
+                                .text(function(d) {
+                                    if(vendor !== 'All' && site === 'All')
+                                        return d.site + ": " + d.thread;
+                                    return d.site || d.thread;
+                                })
+                                .attr('transform', function(d,i){ return 'translate(-10,'+ (i * 16 + 10) + ')';})
+                                .on('click', function(d){
+                                    var siteObj, threadObj;
+
+                                    if(vendor !== 'All' && site === 'All'){
+                                    /* thread clicked when filtered to vendor */
+                                        siteObj = self.sitesBySimpleName[d.site] || self.sitesByName[d.site];
+                                        var soloThreadOptions = {};
+                                        soloThreadOptions[d.thread_id] = {id: d.thread_id, abbr: d.thread, name: d.thread};
+                                        self.threadOptions.write(soloThreadOptions);
+                                            self.uiFilterApply.write({name: 'site', optionId: siteObj.id});
+                                            self.uiFilterApply.write({name: 'thread', optionId: d.thread_id});
+                                    } else if(d.site) {
+                                    /* site clicked */
+                                        if (!self.sitesBySimpleName[d.site] && !self.sitesByName[d.site]) {
+                                            console.log('\n', 'no site found', '\n\n');
+                                            return;
+                                        }
+                                        siteObj = self.sitesBySimpleName[d.site] || self.sitesByName[d.site];
+                                        self.uiFilterApply.write({name: 'site', optionId: siteObj.id});
+                                    } else {
+                                    /* thread clicked */
+                                        var threadsByName = self.threadsByName.read() || {};
+                                        threadObj = threadsByName[d.thread];
+                                        if(threadObj)
+                                            self.uiFilterApply.write({name: 'thread', optionId: threadObj.id});
+                                    }
+                                    //console.log('click site:'+ d.thread);
+                                })
+                        ;
+
+                        items.call(d3.kodama.tooltip()
+                                .attr({class: 'katana_tooltip_small'})
+                                .prep(function(d){
+                                    var title = (vendor !== 'All' && site === 'All')
+                                        ? d.site + ": " + d.thread
+                                        : d.site || d.thread;
+
+                                    var detailPoint = self.detailPoint.read();
+                                    var updated     = self.getFormattedTime(detailPoint._dt);
+                                    var startTime   = self.getFormattedTime(d.start_time);
+                                    var lastError   = self.getFormattedTime(d.last_error);
+                                    var lastRead    = self.getFormattedTime(d.last_read);
+                                    var lastWrite   = self.getFormattedTime(d.last_write);
+
+                                    var site_name =                                    d.site_name || 'Not Reported';
+                                    var machine   = (d.machine ===  'none') ? 'None' : d.machine   || 'Not Reported';
+                                    var division  = (d.division === 'none') ? 'None' : d.division  || 'Not Reported';
+                                    var facility  = (d.facility === 'none') ? 'None' : d.facility  || 'Not Reported';
+
+                                    if (d.thread) {
+                                        var longVendorName = self.getLongVendorName(d.thread);
+                                    }
+
+                                    var tier = (d.tier === undefined)
+                                            ? 'Not Reported'
+                                            : (d.tier === 1) ? 'Test' : 'Prod';
+
+                                    return {
+                                        title: title,
+                                        items: (!d.thread)
+                                            ? [
+                                                { title: 'Machine',           value: machine },
+                                                { title: 'Division',          value: division },
+                                                { title: 'Facility',          value: facility },
+                                                { title: 'Tier',              value: tier },
+                                                { title: 'Updated',           value: updated }
+                                            ]
+                                            : [
+                                                { title: 'Site',              value: site_name },
+                                                { title: 'Machine',           value: machine },
+                                                { title: 'Division',          value: division },
+                                                { title: 'Facility',          value: facility },
+                                                { title: 'Vendor',            value: longVendorName },
+                                                { title: 'Tier',              value: tier },
+                                                { title: 'Thread Start Time', value: startTime },
+                                                { title: 'Last Write',        value: lastWrite },
+                                                { title: 'Last Read',         value: lastRead },
+                                                { title: 'Last Error',        value: lastError },
+                                                { title: 'Updated',           value: updated }
+                                        ]
+                                    };
+                                })
+                        );
+
+                        g.selectAll('rect').data(self.fields).enter()
+                                .append('rect')
+                                .attr('x', function(d,i){ return i * 16; })
+                                .attr('y', 0)
+                                .attr('width', 15)
+                                .attr('height', 15)
+                                .style('opacity', function(d){ return Math.sqrt(Math.sqrt(rowData[d.name+'_pct_max'])); })
+                                .attr('fill', function (d) {
+                                    return 'url(#' + self[d.name + '_fill'].attr('id') + ')';
+                                });
+
+
+                    });
+
+            self.rows
+                    .each(function(d){
+                        var g = d3.select(this);
+                        var rowData = d;
+
+                        var rects = g.selectAll('rect').data(self.fields)
+                                .style('opacity', function(d){ return Math.sqrt(Math.sqrt(rowData[d.name+'_pct_max'])); })
+                                .attr('fill', function (d) {
+                                    return 'url(#' + self[d.name + '_fill'].attr('id') + ')';
+                                });
+
+
+                        rects.call(d3.kodama.tooltip()
+                                        .attr({class: 'katana_tooltip_small'})
+                                        .prep(function(d){
+
+//                                            var itemType = rowData.site ? 'Site' : 'Thread';
+                                            var itemName = rowData.site || rowData.thread;
+                                            /* parse item's value as an integer */
+                                            var itemValue = parseInt(rowData[d.name], 10);
+                                            /* comma format item's value */
+                                            itemValue = d3.format("0,000")(itemValue);
+
+                                            return {
+                                                title: itemName,
+                                                items: [
+                                                    {title: d.title, value: itemValue}
+                                                ]
+
+                                            };
+                                        })
+                        );
+
+                    });
+
+            self.rows
+                    .style('fill', function(d) {
+                        return (viewingThread && viewingThread.name === d.thread) ? 'rgb(255,249,178)' : 'rgb(181,169,108)';
+                    });
+
+            self.rows.transition().duration(500).attr('transform', function(d,i){ return 'translate(0,'+(i * 16) + ')';});
+
+            self.rows.exit().remove();
+
+            self.fieldLabels
+                    .style('fill', function(d){
+                        var chosen = d.name === self.sortField.read().name;
+                        return chosen ? 'rgb(255,249,178)' : 'rgb(181,169,108)';
+            })
+        }
+
+
+    });
+
+</script>

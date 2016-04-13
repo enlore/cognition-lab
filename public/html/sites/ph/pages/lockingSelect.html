@@ -1,0 +1,68 @@
+<blueprint>
+    <prop find="options" />
+    <prop find="selectState" />
+    <prop find="formLocked" />
+
+    <sensor watch="formLocked" change="true" run="toggleLock" />
+
+    <sensor watch="options,selectState" run="render" auto="true" batch="true" />
+</blueprint>
+
+<display>
+    <div class="control-group flash-on-changed" style="display: table-row;">
+        <label id="selectLabel" style="display: table-cell;"></label>
+
+        <select id="selectComp" name="" style="display: table-cell;" class="disabled" disabled>
+            <option value="Not Engaged">Not Engaged</option>
+            <option value="Onboarding">Onboarding</option>
+            <option value="Testing/QA">Testing/QA</option>
+            <option value="Live/In Production">Live/In Production</option>
+        </select>
+
+        <i id="responseIndicator" class="fa fa-check update-indicator" style="display: none;"></i>
+    </div>
+</display>
+
+<script>
+    $.cog({
+        init: function init() {},
+        destroy: function destroy() {},
+
+        toggleLock: function toggleLock (lockState) {
+          $(this.selectComp.raw()).prop("disabled", lockState ? true : false);
+          $(this.selectComp.raw()).toggleClass("disabled");
+        },
+
+        render: function render() {
+            var options     = this.options.read()
+              , stateData   = this.selectState.read();
+
+            if (!stateData) {
+                return
+            }
+
+            $(this.responseIndicator.raw()).hide();
+
+            var value = stateData.properties.rollout[options.field];
+
+            $(this.selectLabel.raw()).text(options.title);
+
+            var statusConversions = {
+                1: "Not Engaged",
+                2: "Onboarding",
+                3: "Testing/QA",
+                4: "Live/In Production"
+            };
+
+            $(this.selectComp.raw()).val(statusConversions[value]);
+
+            $(this.selectComp.raw()).attr('name', options.field);
+
+            var self = this;
+            $(this.selectComp.raw()).on("success", function (e) {
+              $(self.selectComp.raw()).toggleClass("success");
+              $(self.responseIndicator.raw()).show();
+            })
+        }
+    })
+</script>

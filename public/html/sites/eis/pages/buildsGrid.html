@@ -1,0 +1,252 @@
+<blueprint>
+
+    <alias name="TEXT_RENDERER" url="textRenderer.html" />
+
+    <prop find="displayMode" />
+    <sensor watch="displayMode" distinct="true" run="vis" autorun="true" />
+
+    <prop find="buildOptions" />
+
+    <prop find="test" />
+
+    <prop find="detailPoint" />
+    <sensor watch="detailPoint" run="renderTimeLabel" auto="true" />
+    <sensor watch="detailPoint" run="requestData" />
+
+    <prop find="clBuilds" />
+    <sensor watch="clBuilds" transform="filterBuilds" pipe="records" auto="true" />
+
+    <data name="hoverBuild" prop="true" />
+    <data name="selBuild" prop="true" />
+    <data name="uiSelBuild" prop="true" />
+
+    <data name="buildsCount" prop="true" />
+    <sensor watch="buildsCount" run="renderTitle" />
+
+    <sensor watch="build" transform="toBuild" pipe="selBuild" auto="true" />
+
+    <sensor watch="uiSelBuild" transform="toFilter" pipe="filterList" />
+
+    <data name="records" prop="true" />
+
+    <cog find="grid" url="KATANA_GRID_V2" source="run gridOptions" item="data options" />
+    <cog find="holder" url="KATANA_LOADER_OVERLAY" source="prop configLoader" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="position: relative;" >
+        <svg id="svg" width="100%" height="100%" viewBox="0 0 370 30" preserveAspectRatio="xMidYMid meet" />
+        <div id="title" style="font: 12px sans-serif; margin: 15px 0 -30px 8px;" />
+        <div id="grid" style="padding: 6px;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        configLoader: {show: 'clBuilds'},
+        init: function() {
+            var self = this;
+
+            var svg = d3.select(this.svg.get(0));
+
+            self.timeLabel = svg
+                    .append('text')
+                    .attr('transform', 'translate(365,20)')
+                    .attr('text-anchor','end')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '16px')
+                    .attr('fill', 'rgb(181,169,108)');
+
+            self.statusLabel = svg
+                    .append('text')
+                    .attr('transform', 'translate(5,20)')
+                    .attr('text-anchor','start')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '16px')
+                    .attr('fill', 'rgb(181,169,108)');
+
+            this.statusLabel.text('Builds');
+        },
+
+        vis: function() {
+            var mode = this.displayMode.read();
+            this.holder.toggle(mode === 'builds');
+        },
+
+        requestData: function () {
+            var dateFormat = d3.time.format('%-I:%M %p %a %b %e');
+
+            console.log('∆  request builds data    ', dateFormat(new Date()));
+            /* log an empty line to separate batches representing user actions or auto refresh */
+            setTimeout(function(){ console.log(''); }, 4000);
+
+            var detailPoint = this.detailPoint.read();
+
+            var options = this.mapItem.createParams({
+                span:'duration',
+                end:'endDateTime',
+                site:'site',
+                vendor:'vendor',
+                thread:'thread',
+                datatype:'dataType',
+                machine:'machine',
+                division:'division',
+                test:'test'
+            });
+
+            options.span = 21 * 3600 * 24; /* 21 days */
+            options.build = 'All';
+
+            /* log the currently selected tier */
+            var tier;
+            if (options.test == 'All') tier = 'prod and test';
+            if (options.test == '0')   tier = 'prod';
+            if (options.test == '1')   tier = 'test';
+            console.log('--', tier, '--');
+
+            /* get detailPoint's time zone offset */
+            var extract = String(detailPoint.dt).match('GMT(.*)00')[1];
+            /* set the end parameter using (for unclear reasons) twice the offset */
+            options.end = moment(detailPoint.dt).utcOffset(extract * 2).format("YYYY-MM-DDTHH:mm:ss");
+
+            this.clBuilds.request(options);
+        },
+
+        renderTitle: function(buildsCount) {
+            /* comma format item count */
+            var count = d3.format("0,000")(buildsCount);
+            var buildNoun = (count == 1) ? ' Build' : ' Builds';
+            this.title.text(count + buildNoun);
+        },
+
+        renderTimeLabel: function(d){
+            var self = this;
+
+            if (!d) console.log('detailPoint is missing');
+
+            var dateFormat = d3.time.format('%-I:%M %p %a %b %e');
+
+            var timeLabel = (d && d.dt) ? dateFormat(d.dt) : '';
+
+            console.log('timeLabel                ⦿', timeLabel);
+
+            self.timeLabel.text(timeLabel);
+        },
+
+        toFilter: function(build) {
+//            console.log('uiSelBuild:', build);
+
+            return [{name:'build',optionId:build.id}];
+        },
+
+        toBuild: function(msg) {
+//            console.log('selBuild:', this.buildOptions.read()[msg]);
+
+            return this.buildOptions.read()[msg] || null;
+        },
+
+        filterBuilds: function(msg) {
+            var builds_data = msg.data;
+
+            /* create builds array as in clStatusHistory.html's toBuildDefs */
+            // marry the builds from the service with the build definition data from the config
+            var build_ids = _.map(builds_data, 'build_id'); // yields array of build ids
+            var build_options = this.buildOptions.read();
+
+            var builds = [];
+            var build;
+
+            for (var i = 0; i < build_ids.length; i++) {
+                build = build_options[build_ids[i]];
+                if (build)
+                    builds.push(build);
+            }
+
+            this.buildsCount.write(builds.length);
+
+            for (i = 0; i < builds.length; i++) {
+                build = builds[i];
+                /* save sites property with spaces between sites in sites_array */
+                build.sites = build.sites_array.replace( /,/g, ', ');
+
+                if (i == builds.length - 1) {
+                    var niceEndPoint = moment(build.updated).utcOffset(-5).format('h:mm A ddd MMM D');
+                    console.log('latest build dt/count/id ●', niceEndPoint, '', i + 1, '', build.id);
+                }
+
+//                /* while developing, log builds outside the specified tier */
+//                var test = this.test.read();
+//                if (test == 0 && build.is_test)  console.log('misplaced test build:', build);
+//                if (test == 1 && !build.is_test) console.log('misplaced prod build:', build);
+            }
+
+            /* transform builds as in cloverleaf.html's writeConfigData */
+            var buildOptions = {};
+            for (i = 0; i < builds.length; i++){
+                build = builds[i];
+                buildOptions[build.id] = build;
+
+                if (!build.simpleName) {
+
+                    if (i === 0) console.log('\n', 'fallback used for build name', '\n\n');
+
+                    build.simpleName = build.name;
+                }
+            }
+
+            return buildOptions;
+        },
+
+        gridOptions: function() {
+            return {
+                headerHeight: 22,
+                rowHeight: 25,
+                paneHeight: 500,
+                perPage: 20,
+                sort: {field: 'updated', dir: 'desc'},
+                columns: [
+                    {
+                        field: 'simpleName',
+                        flex: '2 1 135px',
+                        title: 'Name',
+                        renderer: 'TEXT_RENDERER'
+                    },
+                    {
+                        field: 'tier',
+                        flex: '1 5 35px',
+                        title: 'Tier'
+                    },
+                    {
+                        field: 'updated_by',
+                        flex: '5 5 80px',
+                        title: 'User',
+                        renderer: 'TEXT_RENDERER'
+                    },
+                    {
+                        field: 'sites',
+                        flex: '5 5 50px',
+                        title: 'Sites',
+                        renderer: 'TEXT_RENDERER'
+                    },
+                    {
+                        field: 'updated',
+                        flex: '4 2 50px',
+                        type: 'date',
+                        format: 'age',
+                        title: 'Released',
+                        tz: 'gmt'
+                    }
+                ],
+                hoverShow: 'hoverBuild',
+                selShow: 'selBuild',
+                selTell: 'uiSelBuild',
+                jumpsToSelected: true,
+                exportName: 'CloverleafBuilds'
+            };
+        }
+
+    });
+</script>

@@ -1,0 +1,38 @@
+<blueprint>
+
+    <alloy url="feed.html" />
+
+    <sensor watch="compHistRecords" pipe="records" auto="true"/>
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <cog find="grid" url="KATANA_GRID" />
+
+</blueprint>
+
+<display>
+    <div id="grid" class="small"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        defineOptions:  {
+                headerHeight: 25,
+                rowHeight: 22,
+                showAll: true
+        },
+
+        defineColumns:  [
+                { field: "name", title: "Component", flex: '1 1 120px' },
+                { field: 'status', type: 'status',  title: 'Status', flex: '1 0 50px'},
+                { field: "volumes", type: 'graph', title: "Volume", flex: '2 1 120px' },
+                { field: "totalVolume", type: 'number', label: "Total", title: "Total Message Volume", flex: '1 1 120px'}
+        ]
+
+    });
+</script>

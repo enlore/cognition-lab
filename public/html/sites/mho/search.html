@@ -1,0 +1,81 @@
+<blueprint>
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <sensor watch="umidSearch" run="umidSearch" auto="true"/>
+
+    <net name="msgInfo" path="SERVICE_ROOT" url="scMsgData" prop="true" />
+    <sensor watch="msgInfo" run="updateGrid" auto="true" />
+
+    <cog find="grid" url="KATANA_GRID_V2" source="prop gridOptions" item="data options" />
+</blueprint>
+
+<display>
+    <div style="display: flex; padding: 8px;" >
+        <div class="katana_panel" style="padding: 6px; flex: 1; color: #cdf;" >
+            <div >
+                <div id="title" style="font: 12px sans-serif; margin: 15px 0 -24px 8px;" />
+                <div id="grid" class="small" style="text-overflow: clip;" />
+            </div>
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        gridOptions: {
+            headerHeight: 22,
+            rowHeight: 25,
+            paneHeight: 500,
+            perPage: 20,
+            sort: { field: 'MsgTime', dir: 'desc' },
+            columns: [
+                { field: 'MsgTime',  title: 'Created',    flex: '6' },
+                { field: 'App',      title: 'Source App', flex: '3' },
+                { field: 'Facility', title: 'Facility',   flex: '3' },
+                { field: 'MsgType',  title: 'Msg Type',   flex: '3' },
+                { field: 'MCID',     title: 'MCID',       flex: '11' },
+                { field: 'src',      title: '@ Src',      flex: '2', type: 'bool', edit: false },
+                { field: 'cl',       title: '@ CL',       flex: '2', type: 'bool', edit: false },
+                { field: 'bt',       title: '@ BT',       flex: '2', type: 'bool', edit: false },
+                { field: 'dest',     title: '@ Dest',     flex: '2', type: 'bool', edit: false },
+                { field: 'Errors',   title: 'Errors',     flex: '2' },
+                { field: 'LastErr',  title: 'Last Error', flex: '3' },
+                { field: 'Dest',     title: 'Dest',       flex: '3' },
+                { field: 'Event',    title: 'Event',      flex: '2' },
+                { field: 'Latency',  title: 'Latency',    flex: '3' }
+            ]
+        },
+
+        umidSearch: function(msg) {
+            var searchText = msg; //$('#fullSearch').val();//this.mapItem.localSel.find('fullSearch');
+
+            var umid = '';
+            var mcid = '';
+
+            if(searchText.indexOf('_')>0) {
+                umid=searchText;
+                if(searchText.lastIndexOf('_')<searchText.length ) mcid=searchText.substr(searchText.lastIndexOf('_')+1);
+            }
+            else mcid=searchText;
+
+            if (mcid=='') this.params = {UMID: umid};
+            else this.params = {msg_control_id:mcid, UMID: umid}; //UMID + parse
+
+            this.msgInfo.request(this.params);
+        },
+
+        updateGrid: function(msgInfo) {
+            var messages = msgInfo.data;
+            /* comma format item count */
+            var count = d3.format('0,000')(messages.length);
+            /* write grid title */
+            this.title.text('Search Results: ' + count + ' Messages');
+
+            this.records.write(messages);
+        }
+
+    });
+</script>

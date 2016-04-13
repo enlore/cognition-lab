@@ -1,0 +1,79 @@
+<blueprint>
+    <data name="msgHeatMap" url="MSG_HEATMAP_SVC" prop="true" />
+    <data name="heatMapRefresh"/>
+
+    <data name="heatMapTree" prop="true" />
+    <data name="heatMapRecords" />
+
+    <data name="displayMode" value="chart" />
+    <data name="viewIssue" value="tracking" />
+    <data name="zoomedIn" value="false" prop="true" />
+
+    <sensor watch="refreshAllFilters" run="requestData" batch="true" auto="true" />
+    <sensor watch="msgHeatMap" run="receiveData" autorun="true" />
+
+    <sensor watch="heatMapTree,viewIssue" pipe="heatMapRefresh" ></sensor>
+
+    <cog find="viewIssueMenu" url="viewIssueMenu.html" />
+    <cog find="displayModeMenu" url="displayModeMenu.html" />
+
+    <cog find="chart" and="append" url="heatMapDisplay.html" />
+    <cog find="grid" and="append" url="datagrid.html" />
+
+    <prop find="activeSiteDomain" />
+    <prop find="activePageDef" />
+</blueprint>
+
+<display>
+    <div style="padding: 8px;">
+        <div class="katana_panel_night" style="padding: 6px;">
+
+            <div id="viewIssueMenu" style="float:left;" />
+
+            <div id="displayModeMenu" style="float: right;" />
+
+            <div style="clear: both; padding-top: 5px;">
+                <div id="chart" />
+                <div id="grid" />
+            </div>
+
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        pageDef: function(){
+            var domain = this.activeSiteDomain.read();
+
+            return {
+                title: 'Message Quality',
+                domain: domain,
+                time: 'endSpan'
+            };
+        },
+
+        init: function() {
+            var def = this.pageDef();
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+        },
+
+        receiveData: function(msg) {
+            var rawData = msg.data;
+
+            var treeData = {name: "root", children: _.cloneDeep(rawData)};
+
+            this.heatMapTree.write(treeData);
+            this.zoomedIn.write(false);
+        },
+
+        requestData: function(){
+            var options = this.mapItem.createParams({span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility",msg_type:"messageType"});
+            options.groupColA="facility";
+            options.groupColB="msg_type";
+
+            this.msgHeatMap.request(options);
+        }
+    });
+</script>

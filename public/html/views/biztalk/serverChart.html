@@ -1,0 +1,71 @@
+<blueprint>
+
+    <alias name="CPU_USAGE_RENDERER" url="cpuUsageRenderer.html" />
+    <alias name="MEMORY_USAGE_RENDERER" url="memoryUsageRenderer.html" />
+    <alias name="DISK_USAGE_RENDERER" url="diskUsageRenderer.html" />
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <sensor watch="serverChartData" transform="updateChart" pipe="records" auto="true" />
+
+    <cog find="grid" url="KATANA_GRID" />
+</blueprint>
+
+<display>
+    <div id="grid" />
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        defineOptions: {
+            headerHeight: 28,
+            rowHeight: 25,
+            paneHeight: 397
+        },
+
+        defineColumns: [
+             { field:"server",     title:"Server",          flex:"1 1 150px" }
+            ,{ field:"hours",      title:"Hours of Uptime", flex:"0 0 110px" }
+            ,{ field:"cpuFreePct", title:"CPU Usage",       flex:"3 1 80px", renderer:"CPU_USAGE_RENDERER" }
+            ,{ field:"memFreePct", title:"Memory Usage",    flex:"3 1 80px", renderer:"MEMORY_USAGE_RENDERER" }
+            ,{ field:"cFreePct",   title:"C: Usage",        flex:"3 1 80px", renderer:"DISK_USAGE_RENDERER" }
+            ,{ field:"eFreePct",   title:"E: Usage",        flex:"3 1 80px", renderer:"DISK_USAGE_RENDERER" }
+        ],
+
+        updateChart: function(serverChartData) {
+            for (var i = 0; i < serverChartData.length; i++) {
+                function getPct(drive) {
+                    drive.usedGB  =                 Math.round((drive.totalGB - drive.freeGB) * 100)   / 100; /* round to 2 decimal places */
+                    drive.usedPct = drive.totalGB ? Math.round((drive.usedGB / drive.totalGB) * 10000) / 10000 : 0; /* round to 4 decimal places */
+                    drive.freePct = drive.totalGB ? Math.round((drive.freeGB / drive.totalGB) * 10000) / 10000 : 0;
+                }
+
+                var d = serverChartData[i];
+
+                if (d.cDrive) {
+                    getPct(d.cDrive);
+                    d.cFreePct = "C: " + d.cDrive.freePct; /* prepend the drive letter as a signal to diskUsageRenderer */
+                }
+
+                if (d.eDrive) {
+                    getPct(d.eDrive);
+                    d.eFreePct = "E: " + d.eDrive.freePct;
+                }
+
+                if (d.memory) d.memFreePct = d.memory.freePct;
+
+                if (d.cpu) d.cpuFreePct = d.cpu.freePct;
+            }
+
+            return serverChartData;
+        }
+
+    });
+</script>

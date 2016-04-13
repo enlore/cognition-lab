@@ -1,0 +1,32 @@
+<blueprint>
+    <prop find="itemData" />
+    <sensor watch="itemData" run="render" auto="true" />
+
+
+</blueprint>
+
+<display>
+    <div style="display: flex;">
+        <div style="padding: 2px 4px;"><span>FTP No Record</span></div>
+        <div style="padding: 2px 4px;"><div id="box" style="width: 16px; height: 16px; background: red; "></div></div>
+        <div style="padding: 2px 4px;">232</div>
+    </div>
+</display>
+
+
+<script>
+    $.cog({
+
+
+        init: function(){
+
+        },
+
+        render: function(m){
+            console.log(m);
+        }
+
+
+
+    });
+</script>

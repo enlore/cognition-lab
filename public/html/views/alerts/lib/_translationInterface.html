@@ -1,0 +1,24 @@
+<blueprint>
+    <alloy name="translator" url="TRANSLATOR_SERVICE" />
+
+    <prop find="transControl" />
+
+    <!--This interface is also being a gatekeeper of requirements-->
+    <sensor needs="transControl,configEIS,configCDM" retain="true" run="translate" auto="true" />
+</blueprint>
+
+<script>
+    $.cog({
+        init: function () {
+
+        },
+
+        translate: function () {
+            var records = this.transControl.read()
+
+            var trans = this.translator.translate(records)
+
+            this.transControl.write(trans, "translated")
+        }
+    })
+</script>

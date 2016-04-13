@@ -1,0 +1,778 @@
+<blueprint>
+    <require path="JS_LIB" url="chroma.min.js" />
+    <prop find="displayMode" />
+    <sensor watch="heatMapRefresh" batch="true" run="drawHeatMap" autorun="true" />
+    <sensor watch="displayMode" distinct="true" run="vis" autorun="true" />
+    <prop find="getOptionItem" is="method" />
+</blueprint>
+
+<display>
+    <div id="holder" >
+        <div class="aspect5to3" >
+            <div class="aspectInner">
+                <div id="chartHolder" />
+            </div>
+        </div>
+    </div>
+</display>
+
+
+<script>
+$.cog({
+
+    init: function(){
+       this.initHeatMap();
+    },
+
+    vis: function() {
+        var mode = this.displayMode.read();
+        this.holder.toggle(mode === 'chart');
+    },
+
+    initHeatMap: function(){
+        this.huid = 0;
+
+        var colorSteps = [
+            '#d2021e',
+            '#172333',
+            '#232e3d',
+            '#2f3847',
+            '#3b4351',
+            '#484e5d',
+            '#545967',
+            '#616672',
+            '#6e717d',
+            '#7c7e89']; /* medium slightly blue gray to medium-dark navy and then last value red */
+
+        var rootDiv = this.chartHolder.raw();
+        var svg = d3.select(rootDiv).append("svg")
+
+                .attr("width","100%")
+                .attr("height","100%")
+                .attr("viewBox", "0 0 1000 500")
+                .attr("preserveAspectRatio","xMidYMid meet")
+                .append("g")
+               // .attr("transform", "translate(.5,.5)")
+                ;
+
+        var i, c, g;
+
+        for(i=0; i < 10; i++){
+            c = colorSteps[i];
+            g = svg
+                    .append("radialGradient")
+                    .attr("id","cs"+i)
+                    .attr("cx","50%")
+                    .attr("cy","10%")
+                    .attr("r","90%");
+            g.append("stop").attr("offset",0).attr("stop-color",chroma(c).brighten(20).hex());
+            g.append("stop").attr("offset",.4).attr("stop-color",c);
+            g.append("stop").attr("offset",1).attr("stop-color",chroma(c).darken(15).hex());
+        }
+
+        for(i=0; i < 10; i++){
+            c = colorSteps[i];
+            g = svg
+                    .append("radialGradient")
+                    .attr("id","csf"+i)
+                    .attr("cx","50%")
+                    .attr("cy","10%")
+                    .attr("r","90%");
+            g.append("stop").attr("offset",0).attr("stop-color",chroma(c).brighten(10).hex());
+            g.append("stop").attr("offset",.4).attr("stop-color",c);
+            g.append("stop").attr("offset",1).attr("stop-color",chroma(c).darken(7).hex());
+        }
+
+        for(i=0; i < 10; i++){
+            c = colorSteps[i];
+            g = svg
+                    .append("radialGradient")
+                    .attr("id","csu"+i)
+                    .attr("cx","50%")
+                    .attr("cy","10%")
+                    .attr("r","90%");
+            g.append("stop").attr("offset",0).attr("stop-color",chroma(c).brighten(3).hex());
+            g.append("stop").attr("offset",.4).attr("stop-color",c);
+            g.append("stop").attr("offset",1).attr("stop-color",chroma(c).darken(5).hex());
+        }
+
+        var danger_node = svg
+                .append("radialGradient")
+                .attr("id","danger_node")
+                .attr("cx","50%")
+                .attr("cy","10%")
+                .attr("r","90%");
+
+        danger_node
+                .append("stop")
+                .attr("offset",0)
+                .attr("stop-color","#fc7266");
+
+        danger_node
+                .append("stop")
+                .attr("offset",.4)
+                .attr("stop-color","#e71814");
+
+        danger_node
+                .append("stop")
+                .attr("offset",1)
+                .attr("stop-color","#b31512");
+
+        var gemFade = svg
+                .append("linearGradient")
+                .attr("y1", 0)
+                .attr("y2", 1)
+                .attr("x1", 0)
+                .attr("x2", 0)
+                .attr("id", "gemFade");
+
+        gemFade
+                .append("stop")
+                .attr("offset", "0%")
+                .attr("stop-color", "#fff")
+                .attr("stop-opacity",.75);
+
+        gemFade
+                .append("stop")
+                .attr("offset", "50%")
+                .attr("stop-color", "#fff")
+                .attr("stop-opacity",.25);
+
+        var normal_node = svg
+                .append("radialGradient")
+                .attr("id","normal_node")
+                .attr("cx","25%")
+                .attr("cy","25%")
+                .attr("r","90%");
+
+      //  normal_node
+      //          .append("stop")
+      //          .attr("offset",0)
+      //          .attr("stop-color","#e0e2e7");
+
+        normal_node
+                .append("stop")
+                .attr("offset",0)
+                .attr("stop-color","#20a8e3");
+
+        normal_node
+                .append("stop")
+                .attr("offset",1)
+                .attr("stop-color","#1088c3");
+
+        this.node_layer = svg.append("g");
+        this.text_layer = svg.append("g");
+    },
+
+    drawHeatMap: function(){
+        var mi = this.mapItem;
+        var treeData = mi.findData("heatMapTree").look();
+        var issue = mi.findData("viewIssue").look();
+
+        var self = this;
+        var colorSteps =[
+            '#000033',
+            '#00113d',
+            '#041a48',
+            '#0b2553',
+            '#132e5e',
+            '#1a3a6a',
+            '#204476',
+            '#274f81',
+            '#2d5b8d',
+            '#336699'];
+
+        var flatColors = [];
+        var borders = [];
+        var lowlights = [];
+        var lowlightsFlat = [];
+        var midlights = [];
+        var highlightsFlat = [];
+        var highlights = [];
+        var ultralights = [];
+
+        for(var i=0; i <colorSteps.length;i++){
+            flatColors[i] = chroma(colorSteps[i]).hex();
+            colorSteps[i] = chroma(colorSteps[i]).darken(40 + i * 2).saturate().hex();
+            borders.push(chroma(colorSteps[i]).brighten(90).hex());
+            lowlights.push(chroma(colorSteps[i]).darken(25).hex());
+            lowlightsFlat.push(chroma(colorSteps[i]).darken(15).hex());
+            midlights.push(colorSteps[i]);
+            highlightsFlat.push(chroma(colorSteps[i]).brighten(10).hex());
+            highlights.push(chroma(colorSteps[i]).brighten(20).hex());
+            ultralights.push(chroma(colorSteps[i]).brighten(90).saturate().hex());
+        }
+
+        var w = 1000,
+            h = 500,
+            x = d3.scale.linear().range([0, w]),
+            y = d3.scale.linear().range([0, h]),
+            root,
+            node;
+
+        node = root = _.cloneDeep(treeData);
+
+        if(!node) return;
+
+        self.zoomRoot = root;
+
+        var metric;
+        var denom;
+        var issueDisplayFunc;
+
+        switch(issue){
+            case "tracking":
+                metric = "no_dest";
+                denom = "sent";
+                issueDisplayFunc = this.trackingTip;
+                break;
+            case "naks":
+                metric = "nak";
+                denom = "no_dest";
+                issueDisplayFunc = this.errorsTip;
+                break;
+            case "moderate latency":
+                metric = "b2";
+                denom = "sent";
+                issueDisplayFunc = this.moderateLatencyTip;
+                break;
+            case "extreme latency":
+                metric = "b3";
+                denom = "sent";
+                issueDisplayFunc = this.extremeLatencyTip;
+                break;
+            case "severe latency":
+                metric = "b4";
+                denom = "sent";
+                issueDisplayFunc = this.severeLatencyTip;
+                break;
+            case "critical latency":
+                metric = "b5";
+                denom = "sent";
+                issueDisplayFunc = this.criticalLatencyTip;
+                break;
+        }
+
+        self.issueDisplayFunc = issueDisplayFunc;
+
+        var msgTypeLookup = this.mapItem.findMethod("getMessageType");
+        var facilityLookup = this.mapItem.findMethod("getFacility");
+        var itemDisplayText = this.mapItem.findMethod("itemDisplayText");
+
+        aggregate(root, 0);
+        //console.log(root);
+        var records = extractRecords(root.children);
+        //console.log(records);
+        mi.findData("heatMapRecords").tell(records);
+
+        function extractRecords(nodes) {
+            //console.log(nodes);
+            var records=[];
+            if(!nodes) return [];
+            for (var x=0; x<nodes.length; x++) {
+                //console.log(nodes[x]);
+                var o = {};
+                o.messageType=nodes[x].title;
+                o.facilityCount= nodes[x].children.length;
+                o.totalMessages= nodes[x].data.sent;
+                o.unreconMessages = nodes[x].data.no_dest;
+                o.pctUnreconMessages = nodes[x].data.sent && nodes[x].data.no_dest / nodes[x].data.sent;
+                o.naks = nodes[x].data.nak;
+                o.pctNaks = nodes[x].data.no_dest && nodes[x].data.nak / nodes[x].data.no_dest;
+                o.moderateLatency = nodes[x].data.b2;
+                o.pctModerateLatency = nodes[x].data.sent && nodes[x].data.b2 / nodes[x].data.sent;
+                o.extremeLatency = nodes[x].data.b3;
+                o.pctExtremeLatency=nodes[x].data.sent && nodes[x].data.b3 / nodes[x].data.sent;
+                o.severeLatency = nodes[x].data.b4;
+                o.pctSevereLatency=nodes[x].data.sent && nodes[x].data.b4 / nodes[x].data.sent;
+                o.criticalLatency = nodes[x].data.b5;
+                o.pctCriticalLatency=nodes[x].data.sent && nodes[x].data.b5 / nodes[x].data.sent;
+
+                //console.log(o);
+                records.push(o);
+            }
+
+            return records;
+        }
+
+        function aggregate(node, depth) {
+
+            if(!node) return;
+
+            node.huid = ++self.huid;
+            node.depth = depth;
+            if(node.depth == 1){
+                //node.title = msgTypeLookup(node.name).name;
+                node.title = self.getOptionItem('messageType',node.name).name;
+            } else if (node.depth == 2) {
+                node.title = node.name;
+            }
+
+            var d;
+
+            if(!node.children) {
+                d = node.data;
+                d.noDestPct = (d[denom] > 0)  ? 1.0 - d[metric] / d[denom] : 0;
+                d.noDestIndex = Math.floor(d.noDestPct * d.noDestPct *9.99);
+                return;
+            }
+
+            var i, n;
+            var agg = {sent: 0, no_dest: 0, nak: 0, b2: 0, b3: 0};
+
+            var good = [];
+            for (i = 0; i < node.children.length; i++) {
+
+                n = node.children[i];
+                aggregate(n,depth+1);
+
+                if(!n.data || n.data[metric] == 0) {
+                    continue;
+                }
+                good.push(n);
+
+                d = n.data;
+                agg.nak += d.nak;
+                agg.b2 += d.b2;
+                agg.b3 += d.b3;
+                agg.b4 += (d.b4 ? d.b4 : 0);
+                agg.b5 += (d.b5 ? d.b5 : 0);
+                agg.no_dest += d.no_dest;
+                agg.sent += d.sent;
+
+                agg.noDestPct = (agg[denom] > 0) ? 1.0 - agg[metric] / agg[denom] : 0;
+                agg.noDestIndex = Math.floor(agg.noDestPct * agg.noDestPct * 9.99);
+            }
+
+            node.children = good;
+
+            var remain = [];
+            var regroup = [];
+
+            for (i = 0; i < node.children.length; i++) {
+                n = node.children[i];
+                d = n.data;
+                d.noDestPct = (d[denom] > 0) ? 1.0 - d[metric] / d[denom] : 0;
+                d.noDestIndex = Math.floor(d.noDestPct * 9.99);
+
+                d.pctSize = (agg[metric] > 0) ? d[metric] / agg[metric] : 0;
+                remain.push(n);
+
+            }
+
+            if(regroup.length > 0){
+                var groupNode = {name: "others", children: regroup};
+                aggregate(groupNode,depth+1);
+                remain.push(groupNode);
+            }
+            node.children = remain;
+            node.data = agg;
+        }
+
+        function getTipData(d) {
+
+            if (d.depth == 0) return;
+
+            var tipData = {};
+            var facilityNode = (d.depth == 2) ? d : null;
+            var msgNode = (facilityNode) ? facilityNode.parent : d;
+
+//            var msgType = msgTypeLookup(msgNode.name);
+//            var facility = (facilityNode) ? facilityLookup(facilityNode.name) : null;
+
+            var msgType = self.getOptionItem('messageType',msgNode.name);
+            var facility = (facilityNode) ? self.getOptionItem('facility',facilityNode.name) : null;
+
+            var title = msgType.name || msgType.abbr; //itemDisplayText(msgType);
+            if (facility) title += " at<br/>" + (facility.name || facility.abbr);
+
+            tipData.title = title;
+            tipData.items = [];
+
+
+            if (!facilityNode)  // looking at multiple facilities
+                tipData.items.push({title:'Facilities',value: kendo.toString(Number(d.children.length), "n0") });
+
+
+            if (self.issueDisplayFunc)
+                tipData.items = tipData.items.concat(self.issueDisplayFunc(d));
+
+            return tipData;
+
+        }
+
+        var treemap = d3.layout.treemap()
+                .round(true)
+                .size([w, h])
+                .padding(3)
+                .value(function(d) {
+              //      console.log(d);
+              //      console.log(metric);
+              //      console.log("is :"+ d.data[metric]);
+                    return d.data[metric];
+                });
+
+        //aggregate(root, 0);
+
+        var nodes = treemap.nodes(root);//.filter(function(d) { return d.dx > 1 && d.dy > 1; });
+
+
+        var cell = self.node_layer.selectAll("g")
+                .data(nodes, function(d){
+                   var uniq = d.name;
+                   if(d.parent) uniq = d.parent.name + ":" + uniq;
+                return uniq;});
+
+        var cellEnter = cell.enter()
+                .append("svg:g")
+                .attr("class", "cell")
+                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+                .on("click", function(d) {
+                     self.zoomFromClickOn(d);
+                });
+
+
+        var cellUpdate = cellEnter.append("svg:rect")
+                .attr("rx", 3)
+                .attr("ry", 3)
+                .style("fill-opacity",function(d) {
+
+                    var a = d.depth - self.zoomRoot.depth;
+
+                    if(a < 2) return 1;
+                    return 1;
+
+                })
+                .attr("stroke-width","1px")
+                .style("opacity",1)
+                        .call(d3.kodama.tooltip()
+                                .attr({class: 'katana_tooltip'})
+                                .prep(getTipData))
+
+
+                        .on("mouseover",function(d){
+                            d3.select(this).style("stroke","#fff");
+
+
+
+                        })
+                        .on("mouseout",function(d){
+
+                            d3.select(this)
+
+                            .style("stroke", function(d) {
+                                var a = d.depth - self.zoomRoot.depth;
+                                if (a < 2) return lowlightsFlat[d.data.noDestIndex];
+                                return lowlightsFlat[d.parent.data.noDestIndex];
+                            });
+
+
+
+                        })
+        ;
+
+        cell.exit().remove();
+
+        var tcell = self.text_layer.attr("class","faintTextShadow").selectAll("g")
+                .data(nodes, function(d){
+                    var uniq = d.name;
+                    if(d.parent) uniq = d.parent.name + ":" + uniq;
+                    return uniq;});
+
+        var tcellEnter = tcell
+                .enter().append("svg:g")
+                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+
+        tcellEnter.append("svg:text")
+                .attr("text-anchor", "middle")
+                .text(function(d) {
+                  return  d.title;
+                })
+                .style("pointer-events","none")
+                .style("visibility", "hidden");
+
+        tcell.exit().remove();
+
+        self.zoomMethod = function zoom(d, dur, issueDisplayFunc) {
+            var cc = 0;
+            self.zoomRoot = d;
+            var records = extractRecords(d.children);
+            self.mapItem.findData("heatMapRecords").tell(records);
+
+            var zoomedInState = self.zoomRoot.depth == 1;
+            this.mapItem.findData("zoomedIn").write(zoomedInState);
+
+            function extractRecords(nodes) {
+                //console.log(nodes);
+                if(!nodes) return [];
+                var records=[];
+                for (var x=0; x<nodes.length; x++) {
+                    //console.log(nodes[x]);
+                    var o = {};
+                    o.messageType=nodes[x].title;
+                    o.facilityCount= nodes[x].children && nodes[x].children.length;
+                    o.facilityName = nodes[x].title;
+                    o.totalMessages= nodes[x].data.sent;
+                    o.unreconMessages = nodes[x].data.no_dest;
+                    o.pctUnreconMessages = nodes[x].data.sent && nodes[x].data.no_dest / nodes[x].data.sent;
+                    o.naks = nodes[x].data.nak;
+                    o.pctNaks = nodes[x].data.no_dest && nodes[x].data.nak / nodes[x].data.no_dest;
+                    o.moderateLatency = nodes[x].data.b2;
+                    o.pctModerateLatency = nodes[x].data.sent && nodes[x].data.b2 / nodes[x].data.sent;
+                    o.extremeLatency = nodes[x].data.b3;
+                    o.pctExtremeLatency=nodes[x].data.sent && nodes[x].data.b3 / nodes[x].data.sent;
+                    o.severeLatency = nodes[x].data.b4;
+                    o.pctSevereLatency=nodes[x].data.sent && nodes[x].data.b4 / nodes[x].data.sent;
+                    o.criticalLatency = nodes[x].data.b5;
+                    o.pctCriticalLatency=nodes[x].data.sent && nodes[x].data.b5 / nodes[x].data.sent;
+                    //console.log(o);
+                    records.push(o);
+                }
+
+                return records;
+            }
+
+            var z = d;
+            var kx = w / (d.dx - 6), ky = h / (d.dy - 6);
+            var p = 2;
+
+            x.domain([d.x +3, d.x + d.dx -3]);
+            y.domain([d.y + 3, d.y + d.dy -3]);
+
+            var t = self.node_layer.selectAll("g.cell").transition()
+                    .duration(dur)
+                    .attr("transform", function(d) {
+                        return "translate(" + (x(d.x + p / kx *.5)) + "," + (y(d.y+p /ky *.5)) + ")";
+                    });
+
+            t.select("rect")
+
+                    .attr("pointer-events", function(d) {
+                        if(d.depth == 2 && self.zoomRoot.depth == 0) return "none";
+                        return "visible";
+            })
+                    .attr("width", function(d) { return Math.max(kx * (d.dx - p / kx) ,0); })
+                    .attr("height", function(d) { return Math.max(ky * (d.dy - p / ky),0); })
+
+              //      .style("fill", function(d) { return  midlights[d.data.noDestIndex]; })
+                 .style("fill", function(d) {
+                        return "url(#csu" + d.data.noDestIndex +  ")";
+                        if(ky * d.dy < 50)
+                            return "url(#csu" + d.data.noDestIndex +  ")";
+                      //  return flatColors[d.data.noDestIndex];
+                        //    return highlightsFlat[d.data.noDestIndex];
+
+                        if(ky * d.dy < 200)
+                            return "url(#csu" + d.data.noDestIndex +  ")";
+                        return "url(#csf" + d.data.noDestIndex +  ")"; })
+                        //"url(#cs" + d.data.noDestIndex +  ")"; })
+                   // .attr("stroke", function(d){return borders[d.data.noDestIndex];})
+                    .style("fill-opacity",function(d) {
+                        var a = d.depth - self.zoomRoot.depth;
+
+                       if(a < 2) return 1;
+                        return 1;
+
+                    })
+
+                    .attr("stroke", function(d){
+                        var a = d.depth - z.depth;
+                        if(a < 2) return lowlightsFlat[d.data.noDestIndex];
+                        return lowlightsFlat[d.parent.data.noDestIndex];
+                    })
+                    .attr("stroke-opacity",function(d) {
+
+                        //return d.depth == 1 ? 1 : .5;
+                        var a = d.depth - self.zoomRoot.depth;
+
+                        if(a < 2) return .6;
+                        return .5;
+
+                    })
+                   ;
+//                    .on("mouseover",function(d){
+//
+//                    })
+//                    ;
+//                    .on("mouseover",function(d){
+//
+//                        if(d.depth == 0) return;
+//
+//                        var facilityNode = (d.depth == 2) ? d : null;
+//                        var msgNode = (facilityNode) ? facilityNode.parent : d;
+//
+//                        var msgType = msgTypeLookup(msgNode.name);
+//                        var facility = (facilityNode) ? facilityLookup(facilityNode.name) : null;
+//
+//                        var title = itemDisplayText(msgType);
+//                        if(facility) title += " at<br/>" + itemDisplayText(facility);
+//
+//                        var body =  "<table>";
+//
+//                        if(!facilityNode){ // looking at multiple facilities
+//                            body += "<tr><td align='right' style='padding-right:10px;'>Facilities:</td><td >" + kendo.toString(Number(d.children.length), "n0") + "</td></tr>";
+//                        }
+//
+//                        body += self.issueDisplayFunc(d);
+//                        $(this).popover({placement: 'left', trigger: 'hover', container: 'body',html:true, 'title': "<div id='popover-title'>" + title + "</div>", 'content': body});
+//                        $(this).popover("show");
+//
+//                    })
+//                    .on("mouseout",function(d){
+//                        $(this).popover("destroy");
+//
+//                    })
+//                    .each(function(d)
+//                    {
+//
+//                        return;
+//                        if(d.depth == 0) return;
+//
+//                        var facilityNode = (d.depth == 2) ? d : null;
+//                        var msgNode = (facilityNode) ? facilityNode.parent : d;
+//
+//                        var msgType = msgTypeLookup(msgNode.name);
+//                        var facility = (facilityNode) ? facilityLookup(facilityNode.name) : null;
+//
+//                        var title = itemDisplayText(msgType);
+//                        if(facility) title += " at<br/>" + itemDisplayText(facility);
+//
+//                        $(this).popover('destroy');
+//                        var body =  "<table>";
+//
+//                        if(!facilityNode){ // looking at multiple facilities
+//                            body += "<tr><td align='right' style='padding-right:10px;'>Facilities:</td><td >" + kendo.toString(Number(d.children.length), "n0") + "</td></tr>";
+//                        }
+//
+//                        body += self.issueDisplayFunc(d);
+//                        $(this).popover({delay: { show: 250, hide: 100 },placement: 'left', trigger: 'hover', container: 'body',html:true, 'title': "<div id='popover-title'>" + title + "</div>", 'content': body});
+//
+//
+//
+//                    })
+   //         ;
+
+            var t = self.text_layer.selectAll("g")
+                    .attr("transform", function(d) {
+                        return "translate(" + (x(d.x + p / kx *.5)) + "," + (y(d.y+p /ky *.5)) + ")";
+                    });
+
+           t.select("text")
+                   .style("pointer-events","none")
+                    .attr("x", function(d) { return kx * d.dx / 2; })
+                    .attr("y", function(d) { return ky * d.dy * .5; })
+                   .style("font-size", function(d){
+                       var m =  Math.floor(2 + Math.min(Math.sqrt(d.dx * kx),Math.sqrt(d.dy * ky * 1.5)));
+                       return m + "px";
+                   })
+//                   .style("font-size", function(d) {
+//                       return Math.min(2 * d.dy, (2 * d.dx * kx - 8) / this.getComputedTextLength() * 24) + "px";
+//                   })
+                 //  .attr("dy", ".35em")
+                   .style("fill", function(d){
+                       return "#ffffff";
+
+                       // calculate text color based on background color
+//                       var a = d.depth - z.depth;
+//                       if(a < 2) return ultralights[d.data.noDestIndex];
+//                       return ultralights[d.parent.data.noDestIndex];
+
+                   })
+                   .style("visibility", function(d) {
+
+                       var a = d.depth - z.depth;
+                       if(a != 1) return "hidden";
+                       if(d.dx * kx < d.title.length * 8) return "hidden";
+                       if(d.dy * ky < 18) return "hidden";
+                       d.w = this.getComputedTextLength() * 1.2;
+                       return (d.dx * kx > d.w)? "visible" : "hidden"; }
+           )
+                   .style("fill-opacity", 0)
+                   .filter(function(d){
+
+                       var a = d.depth - z.depth;
+                       return (a == 1);
+                   })
+                   .transition()
+                   .delay(function(){ return 500 ;})
+                   .duration(500)
+                   .style("fill-opacity", 1)
+           ;
+
+            node = d;
+            if(d3.event)
+                d3.event.stopPropagation();
+        };
+
+        if(self.alreadyRun)
+            self.zoomMethod(root,1000, self.issueDisplayFunc);
+        else {
+            self.zoomMethod(root, 0, self.issueDisplayFunc);
+            self.alreadyRun = true;
+        }
+    } ,
+
+    zoomFromClickOn: function(d){
+        if(this.zoomRoot.depth == 1) {
+            this.zoomMethod(this.zoomRoot.parent, 1000);
+        }
+        else if(this.zoomRoot.depth == 0 && d.depth == 1) {
+            this.zoomMethod(d, 1000);
+        }
+        else if(this.zoomRoot.depth == 0 && d.depth == 2) {
+            this.zoomMethod(d.parent, 1000);
+        }
+    },
+
+    trackingTip: function(d){
+        return [
+            {title:'Messages',value: kendo.toString(Number(d.data.sent), "n0")},
+            {title:'Unreconciled',value: kendo.toString(Number(d.data.no_dest), "n0")},
+            {title:'Pct Unreconciled',value: kendo.toString(Number(1.0 - d.data.noDestPct), "p1")}
+        ];
+    },
+
+
+    errorsTip: function(d){
+        return [
+            {title:'Messages',value: kendo.toString(Number(d.data.sent), "n0")},
+            {title:'Unreconciled',value: kendo.toString(Number(d.data.no_dest), "n0")},
+            {title:'Naks',value: kendo.toString(Number(d.data.nak), "n0")},
+            {title:'Pct Naks',value: kendo.toString(Number(1.0 - d.data.noDestPct), "p1")}
+        ];
+    },
+
+    moderateLatencyTip: function(d){
+        return [
+            {title:'Messages',value: kendo.toString(Number(d.data.sent), "n0")},
+            {title:'Moderate Latency',value: kendo.toString(Number(d.data.b2), "n0")},
+            {title:'Pct Moderate',value: kendo.toString(Number(1.0 - d.data.noDestPct), "p1")}
+        ];
+    },
+
+    extremeLatencyTip: function(d){
+        return [
+            {title:'Messages',value: kendo.toString(Number(d.data.sent), "n0")},
+            {title:'Extreme Latency',value: kendo.toString(Number(d.data.b3), "n0")},
+            {title:'Pct Extreme',value: kendo.toString(Number(1.0 - d.data.noDestPct), "p1")}
+        ];
+    },
+
+    severeLatencyTip: function(d){
+        return [
+            {title:'Messages',value: kendo.toString(Number(d.data.sent), "n0")},
+            {title:'Severe Latency',value: kendo.toString(Number(d.data.b4), "n0")},
+            {title:'Pct Severe',value: kendo.toString(Number(1.0 - d.data.noDestPct), "p1")}
+        ];
+    },
+
+    criticalLatencyTip: function(d){
+        return [
+            {title:'Messages',value: kendo.toString(Number(d.data.sent), "n0")},
+            {title:'Critical Latency',value: kendo.toString(Number(d.data.b5), "n0")},
+            {title:'Pct Critical',value: kendo.toString(Number(1.0 - d.data.noDestPct), "p1")}
+        ];
+    }
+
+});
+</script>

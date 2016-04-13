@@ -1,0 +1,35 @@
+
+<blueprint>
+
+    <prop find="editRule" />
+    <sensor need="rule" extract="name" run="render" auto="true" />
+    <sensor node="inputBox" on="input" run="cacheName" />
+
+</blueprint>
+
+<display>
+
+    <div style="display: flex; flex: 1 1 auto;">
+        <input id="inputBox" class="katana_invisible_input" autofocus style="width: 100%;text-align: right; ">
+    </div>
+
+</display>
+
+
+<script>
+
+    $.cog({
+
+        render: function(name){
+            this.inputBox.val(name);
+//            this.inputBox.focus();
+        },
+
+        cacheName: function () {
+            var edit = this.editRule.read();
+            edit.name = this.inputBox.val();
+            edit._dirty = true
+        }
+
+    })
+</script>

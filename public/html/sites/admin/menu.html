@@ -1,0 +1,64 @@
+<blueprint>
+
+    <prop find="navSiteOptions" />
+    <prop find="uiNavToSite" />
+    <prop find="activePageUrl" />
+
+    <cog find="pageMenu" url="KATANA_BUTTON_MENU" source="prop pageMenuOptions" item="data options" />
+    <cog find="siteSelector" url="KATANA_SELECT_BOX" source="run getSiteListOptions" item="config options" />
+
+</blueprint>
+
+<display>
+    <div
+            style="padding: 1em 1em 0 1em; margin-left: 5px; flex: 1 1 auto;
+
+        border-right-color: rgb(2, 48, 86);
+border-top-color: rgb(9, 22, 59);
+border-width: 1px;
+border-style: solid;
+
+background: linear-gradient(to bottom,rgba(9, 68, 138, 1) 0%,rgba(2, 14, 25, 1) 100%);
+box-shadow: 3px 0px 15px rgba(0,0,0,.75);">
+
+        <div class="katana_panel" style="width: 100%;" >
+            <div style="margin-bottom: -.3em;">
+                <div id="pageMenu"></div>
+                <div style="height: 1em;"></div>
+                <div id="siteSelector" ></div>
+            </div>
+        </div>
+    </div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+        init: function(){
+            this.activePageUrl.write('USERS_PAGE');
+        },
+
+        getSiteListOptions: function(){
+            return {
+                label: 'Navigate to:',
+                title: 'label',
+                value: 'value',
+                show: 'activeSite',
+                items: this.navSiteOptions.read()
+            };
+        },
+
+        pageMenuOptions: {
+            url: 'KATANA_TEXT_BUTTON_RENDERER',
+            class: 'katana_nav_button',
+            show: 'activePageUrl',
+            menuStyle: {'flex-direction':'column'},
+            items: [
+                {value: 'USERS_PAGE'    , title:'Users'}
+            ]
+        }
+
+    });
+</script>

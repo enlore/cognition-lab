@@ -1,0 +1,78 @@
+
+
+<blueprint>
+
+    <sensor watch="durationSelection" autorun="true" run="dropdownUpdate" />
+    <sensor watch="endDateTime" autorun="true" run="dropdownUpdate" />
+    <prop find="duration" />
+    <prop find="durationText" />
+    <prop find="durationSelection" />
+    <prop find="endDateTime" />
+
+</blueprint>
+
+
+<display>
+<div data-n-item="durationFilter">
+    <div class="filter-holder">
+        <span class="filter-title">
+            Duration
+        </span>
+
+        <div class="filter-body">
+            <input id="dropdown" style="width: 80px;" />
+        </div>
+    </div>
+
+</div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+                init: function(){
+
+                    this.dropdownComp = this.dropdown.kendoDropDownList({
+                        dataTextField: "text",
+                        dataValueField: "value",
+                        dataSource: [
+                            {text:"1 hour",value:3600},
+                            {text:"2 hours",value:7200},
+                            {text:"3 hours",value:10800},
+                            {text:"6 hours",value:21600},
+                            {text:"12 hours",value:43200},
+                            {text:"1 day",value:86400},
+                            {text:"3 days",value:259200}
+                        ],
+                        index: 0,
+                        change: this.dropdownSelect.bind(this)
+                    }).data("kendoDropDownList");
+
+                },
+
+                dropdownUpdate: function(){
+
+                    var choice = Number(this.durationSelection.read());
+                    this.dropdownComp.value(choice);
+                    this.durationText.write(this.dropdownComp.text());
+                    console.log("set dur text to :"+ this.dropdownComp.text());
+                //    this.duration.write(choice || this.sinceMidnight());
+                },
+
+                dropdownSelect: function() {
+
+                    this.durationSelection.write(this.dropdownComp.value());
+
+                    //this.durationText.write(this.dropdownComp.text());
+                    //this.duration.write(Number(this.dropdownComp.value()) || this.sinceMidnight());
+                },
+
+
+                destroy: function(){
+                    this.dropdownComp.destroy();
+                }
+            });
+
+</script>

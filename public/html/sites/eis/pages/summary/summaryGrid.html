@@ -1,0 +1,159 @@
+<blueprint>
+    <sensor watch="refreshAllFilters" run="requestData" />
+
+    <prop find="clHealthSum" />
+    <sensor watch="clHealthSum" transform="receiveSumData" pipe="records" auto="true" />
+
+    <data name="records" prop="true" />
+    <sensor watch="records" run="renderTitle" auto="true" />
+
+    <prop find="filterList" />
+    <prop find="test" />
+
+    <prop find="fieldData" />
+
+    <cog find="grid" url="KATANA_GRID_V2" source="prop gridOptions" item="data options" />
+    <cog find="holder" url="KATANA_LOADER_OVERLAY" source="prop configLoader" />
+</blueprint>
+
+<display>
+    <div id="holder" style="position: relative;" >
+        <div id="title" style="font: 12px sans-serif; margin: 10px 0 -24px 8px; color: #cdf;" />
+        <div id="grid" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        configLoader: { show: 'clHealthSum' },
+
+        init: function() {
+        },
+
+        requestData: function() {
+            var options = this.mapItem.createParams({
+                site: 'site',
+                vendor: 'vendor',
+                thread: 'thread',
+                datatype: 'dataType',
+                machine: 'machine',
+                test: 'test',
+                division: 'division'
+            });
+
+//            console.log('▶︎    options.test:', options.test);
+//            console.log('▶︎    options:', options);
+
+            this.clHealthSum.request(options);
+        },
+
+        receiveSumData: function(clHealthSum) {
+            var sumData = clHealthSum.data || this.clHealthSum.read().data;
+            var fields = Object.keys(this.fieldData.read());
+
+            var count = (sumData) ? sumData.length : 0;
+
+            for (var i = 0; i < count; i++) {
+                var d = sumData[i];
+                d.rdb_size = d.rdb_size_hi || d.rdb_size_lo;
+                d.edb_size = d.edb_size_hi || d.edb_size_lo;
+
+                d.rdb_q = d.rdb_q_hi || d.rdb_q_lo;
+                d.edb_q = d.edb_q_hi || d.edb_q_lo;
+
+                d.process = d.hung;
+                d.thread = d.dead;
+
+                /* convert to percentage and round to 1 decimal place, or fall back to -1 */
+                d.cpu_util_pct  = (d.cpu.cpu_util_pct    === null) ? null : Math.round(d.cpu.cpu_util_pct    * 1000) / 10 || -1;
+                d.mem_util_pct  = (d.memory.mem_util_pct === null) ? null : Math.round(d.memory.mem_util_pct * 1000) / 10 || -1;
+                d.disk_util_pct = (d.disk.disk_util_pct  === null) ? null : Math.round(d.disk.disk_util_pct  * 1000) / 10 || -1;
+
+                /* convert null, undefined, or NaN values to -1 for proper sorting in the grid */
+                for (var j = 0; j < fields.length; j++) {
+                    var field = fields[j];
+                    if (d[field] === null || d[field] === undefined || d[field] === 'NaN')
+                        d[field] = -1;
+                }
+            }
+
+            return sumData;
+        },
+
+        gridOptions: {
+            headerHeight: 22,
+            rowHeight: 25,
+            paneHeight: 250,
+            perPage: 10,
+            sort: { field: 'machine', dir: 'asc' },
+            columns: [
+                { field: 'machine',       dir: 'asc',  title: 'Machine',        flex: '1 0 80px', renderer: 'SUMMARY_TEXT_RENDERER' },
+
+                { field: 'rdb_status',    dir: 'desc', title: 'RDB Status',     flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'rdb_size',      dir: 'desc', title: 'RDB Size',       flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'rdb_q',         dir: 'desc', title: 'RDB Queue',      flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+
+                { field: 'edb_status',    dir: 'desc', title: 'EDB Status',     flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'edb_size',      dir: 'desc', title: 'EDB Size',       flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'edb_q',         dir: 'desc', title: 'EDB Queue',      flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+
+                { field: 'cleanup',       dir: 'desc', title: 'Cleanup Run',    flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'lock_mgr',      dir: 'desc', title: 'Lock Manager',   flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'monitor_d',     dir: 'desc', title: 'Monitor Daemon', flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'process',       dir: 'desc', title: 'Processes',      flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'thread',        dir: 'desc', title: 'Threads',        flex: '1 1 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+
+                { field: 'cpu_util_pct',  dir: 'desc', title: 'CPU % Used',     flex: '1 0 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'mem_util_pct',  dir: 'desc', title: 'Memory % Used',  flex: '1 0 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true },
+                { field: 'disk_util_pct', dir: 'desc', title: 'Disk % Used',    flex: '1 0 60px', renderer: 'COLOR_BOX_RENDERER', clickable: true }
+            ]
+        },
+
+        renderTitle: function(msg) {
+            var self = this;
+            var records = msg || this.records.read() || null;
+            var rowCount = records && records.length || 1;
+            var filterList = this.filterList.read();
+
+            function capitalize(str) { return str.substr(0,1).toUpperCase() + str.substr(1).toLowerCase(); }
+
+            /* comma format item count (with a subtraction for the summary row) */
+            var formattedCount = d3.format("0,000")(rowCount - 1);
+
+//            console.log('▶︎    filterList:', filterList);
+//            console.log('▶︎    formattedCount:', formattedCount);
+
+            /* dynamically set grid title */
+            var noun = (formattedCount == 1) ? ' Machine' : ' Machines';
+            var intro = 'Problem Areas for ';
+            var context = '';
+            for (var i = 0; i < filterList.length; i++) {
+                var d = filterList[i];
+                var connector = (i > 0) ? ' & ' : '';
+                var filterSel = d.optionId;
+                var filterName = capitalize(d.name);
+                if (d.name === 'test') {
+                    filterSel = (d.optionId === '1') ? 'Test' : 'Prod and Test';
+                    filterName = 'Tier';
+                }
+                context += connector + filterSel + ' ' + filterName;
+            }
+            if (!filterList.length) context = 'All Prod Machines';
+            if (filterList.length === 1 && filterList[0].name === 'test')
+                context = 'All ' + filterSel + ' Machines';
+            var allLabel = (!filterList.length || (filterList.length === 1 && filterList[0].name === 'test'))
+                ? 'Enterprise '
+                : '';
+            var outro = (formattedCount == 0)
+                ? ': ' + allLabel + 'Summary Row'
+                : ': ' + allLabel + 'Summary Row plus ' + formattedCount + noun;
+            if (!records) outro = ': No Data Reported';
+            var title = intro + context + outro;
+
+            self.title.text(title);
+        }
+
+    });
+</script>

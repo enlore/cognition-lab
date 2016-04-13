@@ -1,0 +1,39 @@
+
+<blueprint>
+
+    <data name="records" prop="true" />
+
+    <net name="msgSample" url="MSG_SAMPLE_SVC" prop="true" />
+
+    <sensor watch="msgSample" transform="getData" pipe="records" auto="true" />
+    <sensor watch="refreshAllFilters,nak" batch="true" run="requestData" auto="true" />
+
+    <cog find="holder" url="samples.html" />
+
+</blueprint>
+
+<display>
+    <div id="holder"></div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+
+               getData: function(msg) {
+                   return msg.data;
+               },
+
+               requestData: function(){
+
+                    var options = this.mapItem.createParams({nak: "nak", span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility"});
+                    this.msgSample.request(options);
+
+                }
+
+
+            });
+
+</script>

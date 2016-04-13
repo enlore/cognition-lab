@@ -1,0 +1,298 @@
+<blueprint>
+    <data name="mode" value="grouped" prop="true" />
+
+    <prop find="uiSelectBucket" />
+
+    <prop find="latencyChartData" />
+    <sensor watch="latencyChartData" run="drawChart" auto="true" />
+
+    <cog find="modeMenu" url="modeMenu.html" />
+</blueprint>
+
+<display>
+    <style type="text/css">
+        text {
+            font: .75em sans-serif;
+            fill: #4c96c6;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #4c96c6;
+            shape-rendering: crispEdges;
+        }
+    </style>
+
+    <div style="display: flex; width: 100%; height: 1em; margin-bottom: 1.5em;" >
+        <div id="timestamp" style="display: flex; flex: 1 1; justify-content: flex-start; font-size: 1.5em; color: #b5a96c; margin: 6px 0 0 28px;" />
+        <div id="modeMenu" style="display: flex; flex: 1 1; justify-content: flex-end; margin: 5px 28px 4px 0;" />
+    </div>
+
+    <svg id="svg" width="100%" height="100%" viewBox="0 0 1027 220" preserveAspectRatio="xMidYMin meet">
+        <defs>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="1_fill"> <!--  orange  -->
+                <stop offset="10%" stop-color="rgb(221,141,34)"></stop>
+                <stop offset="90%" stop-color="rgb(221,110,34)"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="2_fill"> <!--  dark orange  -->
+                <stop offset="10%" stop-color="rgb(223,129,69)"></stop>
+                <stop offset="90%" stop-color="rgb(182,90,31)"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="3_fill"> <!--  darker orange  -->
+                <stop offset="10%" stop-color="rgb(226,78,42)"></stop>
+                <stop offset="90%" stop-color="rgb(175,61,34)"></stop>
+            </linearGradient>
+            <linearGradient y1="0%" y2="130%" x1="0" x2="0" id="4_fill"> <!--  strong red  -->
+                <stop offset="10%" stop-color="rgb(202,39,43)"></stop>
+                <stop offset="90%" stop-color="rgb(136,26,29)"></stop>
+            </linearGradient>
+        </defs>
+    </svg>
+</display>
+
+<script>
+    $.cog({
+
+        drawChart: function(latencyChartData) {
+            /* --- get data & save 'this' --- */
+
+            var chartData = latencyChartData || [];
+            var self = this;
+
+
+
+            /* --- build buckets data --- */
+
+            var i,
+                q = chartData,
+                buckets = [],
+                l,
+                sum,
+                commaFormat = d3.format('0,000');
+
+            for (i = 0; i < q.length; i++) {
+                l = buckets[i] = {};
+                var localDT = q[i].dt.slice(0, -1);
+
+                l.niceDate    = moment(localDT).format('h:mm A ddd MMM D');
+                l.x           = i;
+                l.y           = q[i].ct;
+                l.y0          = sum || 0;
+                l.bucket      = q[i].bucket;
+                l.startHr     = q[i].startHr;
+                l.endHr       = q[i].endHr;
+
+                sum = l.y + l.y0;
+            }
+
+            for (i = 0; i < buckets.length; i++) {
+                l = buckets[i];
+                /* include the total count of delayed messages */
+                l.total = sum;
+                /* calculate the bucket's percentage of total count */
+                l.pct = l.y / l.total;
+            }
+
+            console.log('▶︎    buckets:', buckets);
+
+
+
+            /* --- populate the timestamp --- */
+
+            this.timestamp.text(buckets[0].niceDate);
+
+
+
+            /* --- set up chart --- */
+
+            var bucketCount = buckets.length;
+
+            var yStackMax = sum,
+                yGroupMax = d3.max(buckets, function(d) { return d.y; });
+
+            var margin = { top:30, right:70, bottom:40, left:100 },
+                width  = 1000 - margin.left - margin.right,
+                height = 210 - margin.top - margin.bottom;
+
+            var x = d3.scale.ordinal()
+                    .domain(d3.range(1))
+                    .rangeRoundBands([0, width]);
+
+            var y = d3.scale.linear()
+                    .domain([0, yGroupMax])
+                    .range([height, 0]);
+
+            var xAxisScale = d3.scale.ordinal()
+                    .domain(d3.range(4))
+                    .rangeRoundBands([0, width]);
+
+            var xAxis = d3.svg.axis()
+                    .scale(xAxisScale)
+                    .tickSize(6)
+                    .tickFormat('');
+
+            var yAxis = d3.svg.axis()
+                    .scale(y)
+                    .orient('left')
+                    .tickFormat(d3.format('.2s'))
+                    .tickPadding(6)
+                    .ticks(5);
+
+
+
+            /* --- create chart --- */
+
+            var svg = d3.select(this.svg.get(0)).append('g')
+                    .attr('width', width + margin.left + margin.right)
+                    .attr('height', height + margin.top + margin.bottom)
+                    .append('g')
+                    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+            var bucket = svg.selectAll('rect')
+                    .data(buckets)
+                    .enter().append('rect')
+                    .attr("x", function(d) { return d.x * x.rangeBand() / bucketCount; })
+                    .attr('y', height)
+                    .attr('width', x.rangeBand() / bucketCount)
+                    .attr('height', 0)
+                    .style('opacity', 1)
+                    .style('fill', function(d) { return 'url(#' + self[d.bucket + '_fill'].attr('id') + ')'; })
+                    .call(d3.kodama.tooltip(buckets)
+                            .attr({class: 'katana_tooltip'})
+                            .prep(function(buckets) {
+                                return getTipData(buckets)
+                            }))
+                    .on('click', function(d) {
+                        var selected = { bucket: d.bucket };
+                        console.log('selected:', selected);
+                        self.uiSelectBucket.write(selected);
+                    });
+
+
+
+            /* --- define transition for initial drawing of chart --- */
+
+            bucket.transition()
+                    .delay(function(d) { return (d.x + 3) * 40; })
+                    .ease('linear')
+                    .attr('y', function(d) { return y(d.y); })
+                    .attr('height', function(d) { return height - y(d.y); });
+
+
+
+            /* --- create axes --- */
+
+            /* append x axis path */
+            svg.append('g')
+                    .attr('class', 'x axis')
+                    .attr('transform', 'translate(0,' + height + ')')
+                    .call(xAxis);
+
+            var xTick = svg.select('.axis').selectAll('g.tick')
+                    .data(buckets);
+
+            /* append x axis ticks and labels */
+            xTick.append('text')
+                    .attr('transform', 'translate(0, 19)')
+                    .style('fill', '#4c96c6')
+                    .attr('text-anchor', 'middle')
+                    .on('mouseover', function() { d3.select(this).style('cursor', 'default') })
+                    .text(function(d) { return d.startHr + ' to ' + d.endHr + ' Hour Delay'; });
+
+            /* append y axis path, ticks, and labels */
+            svg.append('g')
+                    .attr('class', 'y axis')
+                    .on('mouseover', function() { d3.select(this).style('cursor', 'default') })
+                    .call(yAxis);
+
+
+
+            /* --- define view mode click behavior --- */
+
+            this.modeMenu.on('click', function () {
+                var mode = self.mode.read();
+
+                if (mode == 'stacked') d3.select(this).call(transitionStacked);
+                if (mode == 'grouped') d3.select(this).call(transitionGrouped);
+            });
+
+
+
+            /* --- define transitions --- */
+
+            function transitionStacked() {
+                y.domain([0, yStackMax]);
+
+                svg.select('.y.axis')
+                        .transition()
+                        .duration(500)
+                        .ease('linear')
+                        .call(yAxis);
+
+                svg.select('.x.axis')
+                        .transition()
+                        .duration(500)
+                        .ease('linear')
+                        .style('opacity', 0);
+
+                bucket.transition()
+                        .duration(500)
+                        .delay(function(d, i) { return i * 60; })
+                        .attr('width', x.rangeBand())
+                        .attr('height', function(d) { return y(d.y0) - y(d.y0 + d.y); })
+                        .attr('y', function(d) { return y(d.y0 + d.y); })
+                        .transition()
+                        .attr('x', 0);
+            }
+
+            function transitionGrouped() {
+                y.domain([0, yGroupMax]);
+
+                svg.select('.y.axis')
+                        .transition()
+                        .delay(700)
+                        .duration(750)
+                        .ease('linear')
+                        .call(yAxis);
+
+                svg.select('.x.axis')
+                        .transition()
+                        .duration(500)
+                        .ease('linear')
+                        .style('opacity', 1);
+
+                bucket.transition()
+                        .duration(500)
+                        .delay(function(d, i) { return i * 60; })
+                        .attr("x", function(d) { return d.x * x.rangeBand() / bucketCount; })
+                        .transition()
+                        .attr('y', function(d) { return y(d.y); })
+                        .attr('height', function(d) { return height - y(d.y); })
+                        .attr('width', x.rangeBand() / bucketCount);
+            }
+
+
+
+            /* --- define bucket tooltip data --- */
+
+            function getTipData(d) {
+                var titleMsg = d.startHr + ' to ' + d.endHr + ' Hour Delay';
+                var formattedPct = (d.pct > 0.999 && d.pct < 1)
+                       ? '99.9+%'
+                       : numeral(d.pct).format('0.0%')         ;
+                var pctMsg = formattedPct + ' of ' + commaFormat(d.total) + ' Messages';
+
+                return {
+                    title: titleMsg,
+                    items: [
+                         { title: 'Messages',          value: commaFormat(d.y) }
+                        ,{ title: 'Percent of Delays', value: pctMsg }
+                        ,{ title: 'Date',              value: d.niceDate }
+                    ]
+                }
+            }
+        }
+
+    });
+</script>

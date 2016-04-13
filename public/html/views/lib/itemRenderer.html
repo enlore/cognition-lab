@@ -1,0 +1,25 @@
+<blueprint>
+    <sensor watch="itemData" run="render" autorun="true" />
+</blueprint>
+
+<display>
+    <div id="holder">
+    <span id="span"></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        render: function(d){
+
+            this.span.text(d);
+
+        }
+
+
+    });
+
+</script>

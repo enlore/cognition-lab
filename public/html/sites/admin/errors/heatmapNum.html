@@ -1,0 +1,63 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="record" />
+    <prop find="itemData" />
+    <prop find="selDate" />
+    <prop find="selFileKey" />
+
+    <sensor watch="itemData,selDate,selFileKey" group="true" retain="true" run="render" auto="true" />
+    <sensor node="holder" on="click" run="clickedCell" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%; height: 100%; border: 1px solid transparent;" >
+        <span id="span" style="text-align: right;"></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        colors: ['transparent', '#5370a8', '#756891', '#88627f', '#99596a', '#a5505a', '#b34343', '#ba3a34', '#c4261d', '#cc0000'],
+        //['transparent', '#476ea5', '#60638f', '#70597a', '#7a5066', '#814552', '#86393f', '#892d2b', '#8a1d19', '#8b0000'],
+
+//                ['#aaaadd', '#ae99c2', '#af8aa9', '#af798f', '#ac6976', '#a8595e', '#a34847', '#9c3630', '#94211a', '#8b0000'],
+
+        clickedCell: function(){
+
+            var c = this.column.read();
+            var r = this.record.read();
+
+            this.selDate.write(c.raw_date);
+            this.selFileKey.write(r.key);
+
+        },
+
+        render: function(msg){
+
+            var d = msg.itemData;
+
+            var r = this.record.read();
+            var n = +d || 0;
+            var c = this.column.read();
+            var f = c.format || '0,0';
+            var t = (n || c.showZero) ? numeral(n).format(f) : '';
+            this.span.text(t);
+
+            var max_ct = (this.record.read()).max_ct || 0;
+            var i = Math.ceil(n * (this.colors.length - 1) / max_ct);
+            var color = this.colors[i];
+
+            var borderColor = (msg.selFileKey === r.key && msg.selDate === c.raw_date) ? 'rgb(226, 174, 226)' : 'transparent';
+            this.holder.css({'background-color': color, 'border-color': borderColor});
+
+
+
+
+        }
+
+
+    });
+
+</script>

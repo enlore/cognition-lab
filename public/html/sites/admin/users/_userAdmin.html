@@ -1,0 +1,44 @@
+<blueprint>
+    <prop find="activePageDef" />
+
+    <data name="showEditUserDialog" />
+    <data name="showCreateUserDialog"  />
+    <data name="justCreatedUser" />
+
+    <data name="uiClickClearSearch" />
+    <data name="uiSearchInput" />
+
+    <cog find="editHolder" and="append" url="EDIT_USER_DIALOG" />
+    <cog find="createHolder" and="append" url="CREATE_USER_DIALOG" />
+    <cog find="userGrid" and="append" url="userGrid.html"  />
+    <cog find="optionsBar" and="append" url="optionsBar.html"  />
+</blueprint>
+
+<display>
+    <div style="padding: 8px; display: flex;">
+        <div id="editHolder" url="EDIT_USER_DIALOG" />
+        <div id="createHolder" url="CREATE_USER_DIALOG" />
+        <div class="panel panel-default" style="flex: 1 0 700px;" >
+            <div class="panel-body" style="" >
+                <div id="optionsBar" />
+                <div id="userGrid" />
+            </div>
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        init: function() {
+            this.activePageDef.write(this.pageDef);
+        },
+
+        pageDef: {
+            title: 'Users',
+            domain: 'none',
+            time: 'none'
+        }
+
+    });
+</script>

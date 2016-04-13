@@ -1,0 +1,49 @@
+<blueprint>
+    <sensor watch="user" filter="guestList" run="showButton" />
+    <sensor node="button" on="click" run="navigateAlerts" />
+    <prop find="activePageUrl" />
+</blueprint>
+
+<display>
+    <div id="button" style="display: none; flex-direction: row; justify-content: center; transition: all 150ms ease;
+            padding: 8px; border-radius: 4px; margin-top: 4px; margin-right: 4px; cursor: pointer;
+             background-color: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.25);
+
+            ">
+        <span class="fa fa-bell" style="font-size: 24px; color: rgb(196, 232, 252); " />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        guestList: function(user) {
+            var sites = user.sites;
+            var found = false;
+            var list = [
+                "cdm",
+                "eis",
+                "fm"
+            ];
+
+            for (var i = 0; i < sites.length; i++) {
+                var site = sites[i];
+                found = list.indexOf(site) !== -1;
+
+                if (found) return true;
+            }
+
+            return found;
+        },
+
+        showButton: function(showIt) {
+            if (showIt) this.button.css("display", "flex");
+        },
+
+        navigateAlerts: function() {
+            this.activePageUrl.write('ALERTS_PAGE');
+        }
+
+    });
+</script>

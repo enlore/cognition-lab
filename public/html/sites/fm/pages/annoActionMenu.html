@@ -1,0 +1,28 @@
+<blueprint>
+
+
+
+    <data name="options" value="prop defineButtons" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+    
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex;
+    justify-content: flex-end;"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        defineButtons:  {
+            items: [
+//                {value: 'revert', tell: 'cmd_revertAnnotation'},
+                {value: 'save', tell: 'cmd_updateAnnotation'}
+            ]
+        }
+
+    });
+
+</script>

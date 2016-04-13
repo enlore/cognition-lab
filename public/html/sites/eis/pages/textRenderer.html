@@ -1,0 +1,68 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="record" />
+
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%;" >
+        <span id="span" style="text-align: left;" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        render: function(itemData) {
+            var self = this;
+            var record = this.record.read();
+
+            this.span.text(String(itemData));
+
+            function getTipData() {
+//                console.log('record:', record);
+
+                if (record.id) {
+                    var updated = moment(record.updated).format('h:mm A ddd MMM D');
+                    var tier = (record.is_test) ? 'Test': 'Prod';
+
+                    return {
+                        id: self.mapItem.uid,
+                        title: 'Click to apply this build as a filter' + '<br>' + '<br>',
+                        items: [
+                             { title:'Build',    value:record.name }
+                            ,{ title:'Sites',    value:record.sites }
+                            ,{ title:'Tier',     value:tier }
+                            ,{ title:'Released', value:updated }
+                            ,{ title:'By',       value:record.updated_by }
+                        ]
+                    };
+                } else {
+                    var reported = moment(record.Reported_Date).format('h:mm A ddd MMM D');
+
+                    return {
+                        id: self.mapItem.uid,
+                        items: [
+                             { title:'Incident Number',     value:record.Incident_Number }
+                            ,{ title:'Status',              value:record.Status }
+                            ,{ title:'Priority',            value:record.Priority }
+                            ,{ title:'Type',                value:record.Code }
+                            ,{ title:'Site/Process/Thread', value:record.Thread }
+                            ,{ title:'Reported',            value:reported }
+                        ]
+                    };
+
+                }
+            }
+
+            self.holder.kodama(getTipData());
+        }
+
+    });
+
+</script>

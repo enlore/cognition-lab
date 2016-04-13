@@ -1,0 +1,39 @@
+<blueprint>
+    <prop find="item" />
+
+    <sensor watch="item" auto="true" run="render" />
+    <sensor node="tab" on="click" transform="getTabDef" pipe="activeTabDef" />
+    <sensor needs="item, activeTabDef" retain="true" run="determineActiveTab" auto="true" />
+</blueprint>
+
+<display>
+    <li class="alert-tab" style="float: left; display: inline-block;">
+        <a id="tab" class="alert-tab-anchor katana_nav_button"
+           style="text-decoration: none; display: block; padding: 10px 15px; font-size: 20px;" />
+    </li>
+</display>
+
+<script>
+    $.cog({
+        render: function render(tab) {
+            this.tab.text(tab.name)
+        },
+
+        getTabDef: function(ev) {
+            return this.item.read()
+        },
+
+        determineActiveTab: function determineActiveTab(args) {
+            var activeTabDef = args.activeTabDef;
+            var item = args.item;
+
+            var active = activeTabDef.url === item.url;
+
+            if (active) {
+                this.tab.addClass("katana_active")
+            } else {
+                this.tab.removeClass("katana_active")
+            }
+        }
+    })
+</script>

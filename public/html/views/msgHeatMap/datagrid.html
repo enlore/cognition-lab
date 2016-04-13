@@ -1,0 +1,103 @@
+<blueprint>
+    <prop find="displayMode" />
+    <sensor watch="displayMode" distinct="true" run="vis" auto="true" />
+
+    <prop find="viewIssue" />
+    <sensor watch="viewIssue" change="true" transform="chooseColumns" pipe="columns" auto="true" />
+
+    <prop find="zoomedIn" />
+
+    <prop find="heatMapRecords" />
+    <sensor watch="heatMapRecords" pipe="records" auto="true"/>
+
+    <data name="columns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <cog find="grid" url="KATANA_GRID" />
+</blueprint>
+
+<display>
+    <div id="grid" class="small" />
+</display>
+
+<script>
+    $.cog({
+
+        vis: function() {
+            var mode = this.displayMode.read();
+            console.log(mode);
+            this.grid.toggle(mode === 'grid');
+        },
+
+        defineOptions: {
+            headerHeight: 25,
+            rowHeight: 22,
+            paneHeight: 440
+        },
+
+        columnDefs: {
+            messageType:        { field: 'messageType',        title: 'Message Type',                  flex: '3' },
+            facilityCount:      { field: 'facilityCount',      title: 'Facilities',                    flex: '1', type: 'num' },
+
+            facilityName:       { field: 'facilityName',       title: 'Facility Name',                 flex: '2', type: 'num' },
+
+            totalMessages:      { field: 'totalMessages',      title: 'Total Messages',                flex: '1', type: 'num' },
+            unreconMessages:    { field: 'unreconMessages',    title: 'Unreconciled Messages',         flex: '2', type: 'num' },
+            pctUnreconMessages: { field: 'pctUnreconMessages', title: 'Pct Unreconciled Messages',     flex: '2', type: 'pct' },
+
+            naks:               { field: 'naks',               title: 'NAKs',                          flex: '2', type: 'num' },
+            pctNaks:            { field: 'pctNaks',            title: 'Pct NAK Messages',              flex: '2', type: 'pct' },
+
+            moderateLatency:    { field: 'moderateLatency',    title: 'Moderate Latency Messages',     flex: '2', type: 'num' },
+            pctModerateLatency: { field: 'pctModerateLatency', title: 'Pct Moderate Latency Messages', flex: '2', type: 'pct' },
+
+            extremeLatency:     { field: 'extremeLatency',     title: 'Extreme Latency Messages',      flex: '2', type: 'num' },
+            pctExtremeLatency:  { field: 'pctExtremeLatency',  title: 'Pct Extreme Latency Messages',  flex: '2', type: 'pct' },
+
+            severeLatency:      { field: 'severeLatency',      title: 'Severe Latency Messages',       flex: '2', type: 'num' },
+            pctSevereLatency:   { field: 'pctSevereLatency',   title: 'Pct Severe Latency Messages',   flex: '2', type: 'pct' },
+
+            criticalLatency:    { field: 'criticalLatency',    title: 'Critical Latency Messages',     flex: '2', type: 'num' },
+            pctCriticalLatency: { field: 'pctCriticalLatency', title: 'Pct Critical Latency Messages', flex: '2', type: 'pct' }
+        },
+
+        chooseColumns: function(){
+            var issue = this.viewIssue.read();
+            var zoomedIn = this.zoomedIn.read();
+            var fields = (zoomedIn)
+                ? ['facilityName']
+                : ['messageType', 'facilityCount'];
+
+            if(issue === 'tracking')
+                fields = fields.concat(['totalMessages',   'unreconMessages', 'pctUnreconMessages']);
+
+            if(issue === 'naks')
+                fields = fields.concat(['unreconMessages', 'naks',            'pctNaks']);
+
+            if(issue === 'moderate latency')
+                fields = fields.concat(['totalMessages',   'moderateLatency', 'pctModerateLatency']);
+
+            if(issue === 'extreme latency')
+                fields = fields.concat(['totalMessages',   'extremeLatency',  'pctExtremeLatency']);
+
+            if(issue === 'severe latency')
+                fields = fields.concat(['totalMessages',   'severeLatency',   'pctSevereLatency']);
+
+            if(issue === 'critical latency')
+                fields = fields.concat(['totalMessages',   'criticalLatency', 'pctCriticalLatency']);
+
+            var columns = [];
+            var columnDefs = this.columnDefs;
+
+            for(var i = 0; i < fields.length; i++){
+                var f = fields[i];
+                var c = columnDefs[f];
+                columns.push(c);
+            }
+
+            return columns;
+        }
+
+    });
+</script>

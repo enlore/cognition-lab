@@ -1,0 +1,38 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="itemData" />
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%;" >
+        <span id="span" style="text-align: left;"></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+
+        render: function(d){
+
+            var self = this;
+            var div = self.holder;
+
+            var c = this.column.read();
+            var m = moment(d);
+            if (c.tz == 'local') {
+                var offset = (new Date()).getTimezoneOffset();
+                m.add(offset,'m')
+            }
+            var f = c.format || 'ddd, MMM Do YYYY, h:mm:ss A';
+            var t = (f === 'calendar') ? m.calendar() : (f === 'age') ? m.fromNow() : m.format(f);
+            this.span.text(t);
+
+        }
+
+    });
+
+</script>

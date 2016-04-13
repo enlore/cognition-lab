@@ -1,0 +1,68 @@
+<blueprint>
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+
+
+
+    <prop find="volAlertList" />
+    <sensor watch="volAlertList" run="alertListFeed" auto="true" />
+    <cog find="grid" url="KATANA_GRID"  />
+
+
+
+
+</blueprint>
+<display>
+    <div style="padding: 8px" >
+        <div class="katana_panel" style="padding: 6px;">
+            <div id="grid" ></div>
+        </div>
+
+    </div>
+</display>
+<script>
+    $.cog({
+
+        init: function() {
+            this.volAlertList.req();
+        },
+
+        alertListFeed: function (msg) {
+
+            var alerts = msg.data;
+
+//            for (var r in apps) {
+//                if (apps.hasOwnProperty(r)) apps[r].LastReceived = new Date(apps[r].LastReceived);
+//
+//            }
+
+            this.records.write(alerts);
+
+        },
+
+        defineOptions: {
+            headerHeight: 30,
+            rowHeight: 25,
+            paneHeight: 250
+
+        },
+
+        defineColumns: [
+            {field: "alert_type", title: "Type"},
+            {field: "loc", title: "Location"},
+            {field: "app", title: "Application"},
+            {field: "msg_type", title: "Msg Type"},
+            {field: "created", type: 'date', format: 'age', title: "Age"},
+            {field: "created", type: 'date', format: 'calendar', title: "Date"},
+            {field: "rnk", title: "Severity"}
+        ]
+
+
+
+
+
+    });
+</script>

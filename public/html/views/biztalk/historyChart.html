@@ -1,0 +1,172 @@
+<blueprint>
+    <prop find="historyChartData" />
+    <sensor watch="historyChartData" run="updateChart" />
+    <sensor watch="pusherMenuMode" run="resizeChart" auto="true" />
+</blueprint>
+
+<display>
+    <div id="chart" />
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+
+            $(window).on('resize',this.resizeChart.bind(this));
+            var span = this.mapItem.findData('duration').read();
+            this.fit = span < 3601 ? "minutes" : "hours";
+
+            this.createKendoChart();
+            this.updateChart();
+
+        },
+
+        updateChart: function() {
+
+            var span = this.mapItem.findData('duration').read();
+
+            this.fit = span < 3601 ? "minutes" : "hours";
+
+            var Y_AXIS_BUFFERING = 1.2;
+
+            var d = this.historyChartData.read();
+            this.roof = d.max * Y_AXIS_BUFFERING || 1;
+
+            $(this.chart.raw()).data('kendoChart').setOptions({ series: d.data, yAxis: this.getYAxis() });
+            $(this.chart.raw()).data('kendoChart').redraw();
+        },
+
+        createKendoChart: function() {
+
+            var self = this;
+            var d = self.historyChartData.read();
+
+            $(this.chart.raw()).kendoChart({
+                title: {
+                    color: "#bdb58c"
+                    ,text: d.name
+                    ,font: "14px Helvetica Neue, Helvetica, Arial, sans-serif"
+                    ,align: "left"
+                    ,padding: {
+                        left: 60
+                    }
+                    ,margin: {
+                        bottom: -5
+                    }
+                }
+                ,legend: {
+//                    position: "custom"
+//                    ,orientation: "vertical"
+//                    ,height: 100
+                    align: "end"
+                    ,labels: {
+                        color: "#bdb06f"
+                        ,font: "11px Helvetica Neue, Helvetica, Arial, sans-serif"
+                    }
+                    ,padding: {
+                        top: 600
+                    }
+                    ,visible: true
+                }
+                ,chartArea: {
+                    height: 130
+                    ,opacity: 0
+                }
+//                ,seriesColors: ["#00bd00", "#008ebc", "#a300a3", "#ffa500"] /* original colors used for 4 CDM groups */
+//                ,seriesColors: ["#a300a3", "#a65628", "#ffa500", "#ffff33", "#f781bf", "#00bd00", "#008ebc"] /* original 4 colors plus 3 from colorbrewer.org */
+//                ,seriesColors: ["#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#ffff33", "#a65628", "#f781bf"] /* 7 color set from colorbrewer.org */
+                ,seriesColors: [
+                    "#377eb8", /* blue */
+                    "#80c83b", /* lime green */
+                    "#f69b16", /* orange */
+                    "#a42e6f", /* burgundy */
+                    "#ffff33", /* bright yellow */
+                    "#a8def8", /* light blue */
+                    "#10b09f"  /* blue green */
+
+                ] /* new colors */
+                ,seriesDefaults: {
+                    type: "scatterLine"
+                    ,style: "smooth"
+                    ,xField: "dt"
+                    ,yField: "qd"
+                    ,width: 1.75
+                    ,markers: {
+                        visible: true
+                        ,size: 2.5
+                    }
+                }
+                ,series: d.data
+                ,yAxis: self.getYAxis()
+                ,xAxis: {
+                    type: "date"
+                    ,line: {
+                        color: "#bdb06f"
+                    }
+                    ,labels: {
+                        color: "#bdb06f"
+                        ,font: "11px Helvetica Neue, Helvetica, Arial, sans-serif"
+                        ,format: "MM/dd h:mm tt"
+                        ,padding: {
+                            left: 15
+                            ,right: 12
+                            ,bottom: 5
+                        }
+                        ,step: 2
+                    }
+                    ,baseUnit: self.fit
+                }
+                ,tooltip: {
+                    visible: true
+                    ,format: "{0:MM/dd h:mm tt} <br/> Queue Depth: {1:N0}"
+                }
+            });
+            setTimeout(self.resizeChart.bind(self),50);
+        },
+
+        getYAxis: function() {
+
+            var self = this;
+            var d = self.historyChartData.read();
+
+            return {
+                line: {
+                    color: "#bdb06f"
+                }
+                ,labels: {
+                    color: "#bdb06f"
+                    ,font: "11px Helvetica Neue, Helvetica, Arial, sans-serif"
+                    ,format: "{0:N0}"
+                    ,padding: {
+                        right: 3
+                    }
+                    ,step: 3
+                }
+                ,max: self.roof
+                ,plotBands: [
+                    { from: d.t1, to: d.t2, color: "#ffcb32" }
+                    ,{ from: d.t2, to: self.roof, color: "#d20000" }
+                ]
+                ,majorGridLines: {
+                    visible: false
+                }
+                ,majorTicks: {
+                    visible: true,
+                    size: 3
+                }
+            }
+        },
+
+        resizeChart: function() {
+            if(this.chart && $(this.chart.raw()).data('kendoChart'))
+                $(this.chart.raw()).data("kendoChart").resize();
+        },
+
+        destroy: function() {
+            $(window).off('resize');
+        }
+    });
+
+</script>

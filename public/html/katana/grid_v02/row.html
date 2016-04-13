@@ -1,0 +1,92 @@
+<blueprint>
+
+
+    <prop find="rowHeight" />
+    <chain find="holder" source="columns" item="column" url="item.html" />
+    <sensor watch="selRecord,hoverRecord,record" batch="true" run="render" auto="true" />
+    <sensor find="holder" detect="mouseenter" run="hoverOn" />
+    <sensor find="holder" detect="mouseleave" run="hoverOff" />
+    <sensor find="holder" detect="click" run="onClick" />
+    <prop find="selRecord" />
+    <prop find="hoverRecord" />
+    <prop find="record" />
+    <prop find="options" />
+
+</blueprint>
+
+<display>
+    <div id="holder" class="katana_row" ></div>
+</display>
+
+<script>
+    $.cog({
+        init: function(){
+           // this.render();
+        },
+
+        hoverOn: function(){
+            var options = this.options.read();
+            if(!options.hoverTell) return;
+
+            var d = this.mapItem.findData(options.hoverTell);
+            d.write(this.record.read());
+        },
+
+        hoverOff: function(){
+            var options = this.options.read();
+            if(!options.hoverTell) return;
+
+            var d = this.mapItem.findData(options.hoverTell);
+            d.write(null);
+        },
+
+        onClick: function(){
+            var options = this.options.read();
+            if(!options.selTell) return;
+
+            var sd = this.mapItem.findData(options.selTell);
+            var hd = (options.hoverTell) ? this.mapItem.findData(options.hoverTell) : null;
+
+            if(hd)
+                hd.write(null);
+            sd.write(this.record.read());
+        },
+
+        render: function(msg, topic, tag, sensor) {
+            var record = this.record.read();
+            var odd = !(this.mapItem.itemOrder & 1);
+            var sel = this.selRecord && this.selRecord.read();
+            var hover = this.hoverRecord && this.hoverRecord.read();
+
+            if (sel && sel.id === record.id) {
+                this.holder.css({font: 'rgb(239, 230, 206)' ,background: 'linear-gradient(to right, rgb(9, 142, 196) 0%, rgb(11, 164, 210) 61%, rgb(9, 142, 196) 100%)'});
+
+//                this.holder.css({font: 'rgb(239, 230, 206)' ,background: 'linear-gradient(to right, rgb(9, 62, 85) 0%, rgb(11, 75, 100) 61%, rgb(9, 62, 85) 100%)'});
+            }
+            else if (hover === record) {
+                this.holder.css({font: 'rgb(239, 230, 206)' ,background: 'linear-gradient(to right, rgb(9, 122, 186) 0%, rgb(11, 144, 200) 61%, rgb(9, 122, 186) 100%)'});
+
+//                this.holder.css({background: 'linear-gradient(to right, rgb(119, 132, 101) 0%, rgb(152, 180, 132)61%, rgb(119, 132, 101) 100%)'});
+//                this.holder.css({background: 'linear-gradient(to right, rgb(14, 62, 115) 0%, rgb(17, 75, 130) 61%, rgb(14, 62, 115) 100%)'});
+            }
+            else if (odd) {
+                this.holder.css({background: 'linear-gradient(to right, rgb(5, 82, 165) 0%, rgb(7, 115, 178) 61%, rgb(5, 82, 165) 100%)'});
+            }
+            else {
+                this.holder.css({background: 'linear-gradient(to right, rgb(7, 85, 169) 0%, rgb(7, 122, 186) 61%, rgb(7, 85, 169) 100%)'});
+            }
+
+
+            /* apply trackER grid styling */
+
+//            if(sel === record)
+//                this.holder.css({background: 'linear-gradient(to right, rgb(119, 132, 101) 0%, rgb(182, 210, 162)61%, rgb(119, 132, 101) 100%)'});
+//            else if(hover === record)
+//                this.holder.css({background: 'linear-gradient(to right, rgb(83, 137, 131) 0%, rgb(104, 199, 189)61%, rgb(76, 140, 135) 100%)'});
+//            else if(odd)
+//                this.holder.css({background: 'linear-gradient(to right, rgb(7, 125, 169) 0%, rgb(7, 162, 186) 61%, rgb(7, 125, 169) 100%)'});
+//            else
+//                this.holder.css({background: 'linear-gradient(to right, rgb(5, 122, 165) 0%, rgb(7, 155, 178) 61%, rgb(5, 122, 165) 100%'});
+        }
+    });
+</script>

@@ -1,0 +1,234 @@
+<blueprint>
+    <alloy name="collection" url="../lib/collection.html" />
+
+    <prop find="user" />
+    <prop find="uiInputName" />
+
+    <prop find="readRules" />
+    <prop find="createRule" />
+    <prop find="updateRule" />
+    <prop find="deleteRule" />
+    <prop find="commitRule" />
+
+    <sensor watch="cmd_flash" run="flash" auto="true" />
+
+    <data name="cidMe" />
+    <data name="parseMe" />
+
+    <sensor watch="readRules" extract="data" transform="fmOnly" pipe="parseMe" />
+    <sensor watch="parseMe" pipe="cidMe" />
+    <sensor watch="cidMe" transform="cid" pipe="canonical" />
+
+    <sensor watch="createRule,updateRule,deleteRule" group="true" run="freshenUp" />
+
+    <data name="canonical" prop="true" />
+    <data name="working" prop="true" />
+    <data name="viewing" prop="true" />
+    <prop find="selectedRule" />
+
+    <sensor watch="commitRule" filter="validateRule" run="saveRule" auto="true" />
+
+    <data name="addRule" prop="true"/>
+    <sensor node="createNewRule" on="click" run="newRule" />
+
+    <data name="ruleIsDirty" prop="true" value="false" />
+
+    <data name="removeRule" />
+    <sensor watch="removeRule" run="deleteARule" />
+    <sensor watch="removeRule" on="emptyRule" run="removeFromColl" />
+
+    <data name="cmd_validateRule" run="validateRule" />
+
+    <data name="editRule" prop="true" />
+
+    <sensor watch="userRules" transform="cid" pipe="canonical" auto="true" />
+    <sensor watch="canonical" pipe="working" auto="true" />
+    <sensor watch="working" pipe="viewing" auto="true" />
+
+    <sensor watch="addRule" auto="true" run="insertRule" />
+
+    <chain find="ruleList" source="viewing" item="rule" url="rules/rule.html" />
+</blueprint>
+
+<display>
+    <div id="flash-msg" style="visibility: hidden;" >
+        <p id="flash-content" style="height: 20px;" />
+    </div>
+
+    <div style="display: flex;" >
+        <div class="katana_nav_button" id="create-new-rule" style="margin: 0;" >
+            Add Rule
+        </div>
+    </div>
+
+    <div id="rule-list" />
+</display>
+
+<script>
+    $.cog({
+
+        moonchild: function(userid) { // are we dev? that won't work so we use enlore's 3-4
+           return userid  === "dev" ? "hca\\mqi7918" : userid;
+        },
+
+        init: function() {
+            var user = this.user.read();
+            this.readRules.req({
+                method: "get",
+                hcaid: this.moonchild(user.hcaid)
+            })
+        },
+
+        log: function(msg) {
+        },
+
+        validateRule: function validateRule(rule) {
+            if (rule.email === false && rule.sms === false) {
+                this.flash("Be sure to elect to receive alerts via text, email, or both.  No fair opting in for nothing!");
+                return false;
+            }
+
+            return true;
+        },
+
+        freshenUp: function freshenUp(envel) {
+            var user = this.user.read();
+            var config;
+
+            if (envel.createRule) { // TODO bananas
+                config = envel.createRule.config;
+            } else if (envel.updateRule) {
+                config = envel.updateRule.config;
+            } else if (envel.deleteRule) {
+                config = envel.deleteRule.config;
+            } else {
+                throw new Error("I expected one of three props here. I got nothing. Nothing I wanted, anyway.");
+            }
+
+            var method = config.params.method;
+
+            if (method && (method === "post" || method === "put" || method === "delete")) { // Is this enough to assume a successful POST or PUT?
+                this.readRules.req({
+                    hcaid: this.moonchild(user.hcaid),
+                    method: "get"
+                })
+            }
+        }, // This is kina poo
+
+        cid: function cid(rules) {
+            return rules.map(function(rule) {
+                if (!rule.cid)
+                    return this.collection.setCid(rule);
+                else
+                    return rule;
+            }.bind(this))
+        },
+
+        fmOnly: function(rules) {
+            return rules.filter(function(rule) {
+                return rule.system === "fm";
+            })
+        },
+
+        newRule: function newRule() {
+            var rules = this.fmOnly(this.readRules.read().data);
+            var ruleIsDirty = this.ruleIsDirty.read();
+
+            console.log('\n', 'FM rule:', rules[0], '\n\n');
+
+            if (rules.length || ruleIsDirty) {
+
+                if (ruleIsDirty) console.log('\n', 'rule setup in progress', '\n\n');
+
+                this.flash("A single Funds Management alert subscribes to all alert conditions.");
+                return;
+            }
+
+            var rule = {
+                name: "",
+                email: false,
+                sms: false,
+                timebox: "business",
+                system: "fm"
+            };
+
+            this.addRule.write(rule);
+            this.ruleIsDirty.write(true);
+        },
+
+        saveRule: function(rule) {
+            // now network stuff
+
+            var user = this.user.read();
+            var updated = this.collection.updateOne(rule, this.working.read());
+            this.working.write(updated);
+
+            this.flash(null);
+            this.selectedRule.write(null);
+
+            var rulePayload = _.omit(rule, ["cid", "_dirty"]);
+            rulePayload.tags = "[]";
+            rulePayload.hcaid = this.moonchild(user.hcaid);
+            var req;
+
+            if (rulePayload.id) {
+                req = _.extend({}, {method: "put"}, rulePayload);
+                this.updateRule.req(req);
+            }
+            else {
+                req = _.extend({}, {method: "post"}, rulePayload);
+                this.createRule.req(req);
+            }
+            this.ruleIsDirty.write(false);
+        },
+
+        deleteARule: function(rule) {
+            this.flash(null);
+
+            // network stuff here too
+            var filtered = this.collection.remove(rule, this.working.read());
+            this.working.write(filtered);
+
+            if (rule.id) { // is this a rule that was saved?
+                var rulePayload = {
+                    id: rule.id,
+                    method: "delete"
+                };
+                this.deleteRule.req(rulePayload);
+                this.uiInputName.write("");
+            }
+            this.ruleIsDirty.write(false);
+        },
+
+        insertRule: function(rule) {
+            var fresh = this.collection.insert(rule, this.working.read());
+            this.working.write(fresh);
+            this.selectedRule.write(rule);
+        },
+
+        removeFromColl: function removeFromColl(rule) {
+            var updated = this.collection.remove(rule, this.working.read());
+            this.working.write(updated);
+            this.ruleIsDirty.write(false);
+        },
+
+        pickDataAndCid: function pickDataAndCid(envel) {
+            var data = envel.data;
+            var rules = data.map(function(rule) {
+                return rule;
+            });
+            return this.cid(rules);
+        },
+
+        flash: function flash(msg) {
+            if (msg === null) {
+                this.flashContent.empty();
+                this.flashMsg.css("visibility", "hidden");
+            } else {
+                this.flashContent.text(msg);
+                this.flashMsg.css("visibility", "visible");
+            }
+        }
+
+    })
+</script>

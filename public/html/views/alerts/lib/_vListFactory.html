@@ -1,0 +1,36 @@
+<blueprint>
+    <data name="listRecords" prop="true" />
+    <data name="listConfig" prop="true" />
+    <sensor needs="listConfig,listRecords" retain="true" run="generate" auto="true" />
+</blueprint>
+
+<script>
+    $.cog({
+        generate: function (config) {
+            var records         = config.records
+            var config          = config
+            var templateName    = config.templateName || "default"
+
+            var vList = new window.VirtualList({
+                items: records,
+                totalRows: records.length,
+
+                itemHeight: config.itemHeight,
+                w: config.w,
+                h: config.h,
+
+                container: config.container,
+                generatorFn: config.templates[templateName]
+            })
+
+            var res = {
+                count: records.length,
+                items: records,
+                vList: vList
+            }
+
+            this.listRecords.write(res, "vlist:ready")
+            return res
+        },
+    })
+</script>

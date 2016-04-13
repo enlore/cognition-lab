@@ -1,0 +1,33 @@
+<blueprint>
+    <alloy name="searchLib" url="SEARCH_SERVICE" />
+
+    <prop find="searchControl"  />
+    <sensor watch="searchControl" on="search" run="search" />
+
+    <prop find="corpusControl" />
+    <sensor watch="corpusControl" on="create" run="createCorpus" />
+</blueprint>
+
+<display><div id="null-display"></div></display>
+
+<script>
+    $.cog({
+        init: function init () {
+        },
+
+        search: function (queryConfig) {
+            var res = this.searchLib.search(queryConfig)
+
+            this.searchControl.write(res, "results:" + queryConfig.name)
+        },
+
+        createCorpus: function (corpusConfig) {
+            var state = this.searchLib.createCorpus(corpusConfig)
+
+            if (state === "ready")
+                this.corpusControl.write(true, "ready:" + corpusConfig.name)
+
+        }
+    })
+</script>
+

@@ -1,0 +1,134 @@
+<blueprint>
+    <prop find="selectedHIGroup" />
+    <sensor watch="selectedHIGroup" run="requestData" batch="true" auto="true" />
+
+    <sensor watch="refreshTimeFilters" run="requestData" />
+
+    <prop find="eisHostInstMatrix" />
+    <sensor watch="eisHostInstMatrix" run="receiveChartData" auto="true" />
+
+    <data name="displayMode" value="chart" />
+    <cog find="displayModeMenu" url="displayModeMenu.html" />
+
+    <data name="hostInstMatrixData" prop="true" />
+    <cog find="chart" and="append" source="hostInstMatrixData" item="hostInstHeatMapData" url="hostInstHeatMap.html" />
+
+    <data name="gridData" prop="true" />
+    <cog find="grid" and="append" source="gridData" item="hostInstGridData" url="hostInstDatagrid.html" />
+</blueprint>
+
+
+<display>
+    <div class="katana_panel_night" >
+        <div id="groupLabel" style="float: left; color: #b5a96c; font-size: 16px; padding-left: 6px;" />
+        <div id="displayModeMenu" style="float: right;" />
+        <div style="clear: both; padding-top: 6px;">
+            <div id="chart" />
+            <div id="grid" />
+        </div>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        requestData: function(){
+            var selectedHIGroup = this.selectedHIGroup.read();
+            var options = this.mapItem.createParams({ span:"duration", end:"endDateTime" });
+            options.group = selectedHIGroup;
+            this.eisHostInstMatrix.request(options);
+        },
+
+        receiveChartData: function() {
+            function filterData(group) {
+                var filteredGroup = {};
+                if (!group.children.length) return;
+                for (var i = 0; i < group.children.length; i++) {
+                    var server = group.children[i];
+                    server.selectedInstances = [];
+                    for (var j = 0; j < server.children.length; j++) {
+                        var instance = server.children[j];
+//                        /* <START> when debugging, change a few HIs to "Warning" */
+//                        if (instance.name == "BATCH_ORCHESTRATION") {
+//                            instance.category = "Warning";
+//                            instance.state = "Stop pending";
+//                        }
+//                        /* <END> when debugging, change a few HIs to "Warning" */
+//                        /* <START> when debugging, change a few HIs to "Stopped" */
+//                        if (instance.name[0] == "M") {
+//                            instance.category = "Stopped";
+//                            instance.state = "Stopped";
+//                        }
+//                        /* <END> when debugging, change a few HIs to "Stopped" */
+                        if (instance.category != "Running") {
+                            server.selectedInstances.push(instance);
+                        }
+                    }
+                }
+                group.selectedServers = [];
+                for (var k = 0; k < group.children.length; k++) {
+                    var server = group.children[k];
+                    if (server.selectedInstances.length) {
+                        server.children = server.selectedInstances;
+                        delete server.selectedInstances;
+                        group.selectedServers.push(server);
+                    }
+                }
+                filteredGroup.name = group.name;
+                filteredGroup.children = group.selectedServers;
+                delete group.selectedServers;
+                return filteredGroup;
+            }
+            function getGroupMsg(group) {
+                if (group.children) return group.name + " host instances";
+            }
+            function getGridData(group) {
+                var treemap = d3.layout.treemap()
+                        .value(function () {
+                            return 1;
+                        });
+                var nodes = (group) ? treemap.nodes(group) : [];
+                var instanceNodes = nodes.filter(function (f) {
+                    return f.depth == 2;
+                });
+                var instances = [];
+                for (var i = 0; i < instanceNodes.length; i++) {
+                    var n = instanceNodes[i];
+                    var g = instances[i] = {};
+
+                    g.group = n.parent.parent.name;
+                    g.server = n.parent.name;
+                    g.instance = n.name;
+                    g.dt = n.dt;
+                    /* remove the trailing Z to use local time when fed to Moment.js */
+                    g.localDT = (n.dt) ? n.dt.slice(0, -1) : null;
+                    g.timestamp = moment(g.localDT).format("MM/DD/YY h:mm A");
+                    g.state = n.state;
+                }
+                return instances;
+            }
+
+            var self = this;
+
+            var hIMatrixData = self.eisHostInstMatrix.read();
+            var group = hIMatrixData.data[0] || { };
+
+            /* switch to filtered data */
+//            group = filterData(group);
+//            console.log("group:", group);
+
+            self.hostInstMatrixData.write(group);
+
+            /* display label with group name above heat map, or message if no heat map */
+            self.groupLabel.text(getGroupMsg(group));
+
+            var gridData = getGridData(group);
+            self.gridData.write(gridData);
+        }
+    });
+
+</script>

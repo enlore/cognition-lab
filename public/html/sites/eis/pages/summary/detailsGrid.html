@@ -1,0 +1,278 @@
+<blueprint>
+    <data name="gridOptions" prop="true" />
+
+    <prop find="uiSelCell" />
+    <sensor watch="uiSelCell" run="clearGrid" auto="true" />
+
+    <data name="downloadMenuUrl" prop="true" />
+    <data name="records" prop="true" />
+    <sensor watch="records" transform="toDownloadMenuUrl" pipe="downloadMenuUrl" />
+
+    <data name="service" prop="true" />
+    <sensor watch="service" run="requestData" />
+
+    <prop find="assembledGridOptions" />
+    <sensor watch="assembledGridOptions" run="updateGrid" />
+
+    <prop find="fieldData" />
+
+    <prop find="machine" />
+
+    <prop find="configData" />
+
+    <prop find="clHealthSite" />
+    <prop find="clHealthProcess" />
+    <prop find="clHealthThread" />
+    <prop find="clHealthMachine" />
+    <sensor watch="clHealthSite,clHealthProcess,clHealthThread,clHealthMachine" run="receiveDetailsData" />
+
+    <!-- todo: note that this should be doable with one sensor, but i need to add some attributes to get away from defaults -->
+    <sensor watch="clHealthSite" on="condition" change="true" filter="nameMatchesService" pipe="latestRequestCondition" />
+    <sensor watch="clHealthProcess" on="condition" change="true" filter="nameMatchesService"  pipe="latestRequestCondition" />
+    <sensor watch="clHealthThread" on="condition" change="true" filter="nameMatchesService" pipe="latestRequestCondition" />
+    <sensor watch="clHealthMachine" on="condition" change="true" filter="nameMatchesService"  pipe="latestRequestCondition" />
+
+    <data name="latestRequestCondition" />
+
+
+
+    <cog find="grid" url="KATANA_GRID_V2" source="gridOptions" item="data options" />
+
+    <cog find="downloadMenu" url="data downloadMenuUrl" />
+    <cog find="holder" url="KATANA_LOADER_OVERLAY" source="prop configLoader" />
+</blueprint>
+
+<display>
+    <div id="holder" style="position: relative;" >
+        <div style="display: flex; margin-bottom: -27px;" >
+            <div id="title" style="font: 12px sans-serif; margin: 10px 8px 0 8px; color: #cdf;" />
+            <div id="downloadMenu" style="padding-top: 5px;" />
+        </div>
+        <div id="grid" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        configLoader: { show: 'latestRequestCondition' },
+
+        init: function() {
+        },
+
+        nameMatchesService: function(msg, topic, source){
+            var service = this.service.read();
+            return (source === service);
+        },
+
+        clearGrid: function() {
+            this.records.write([]);
+            this.getService();
+        },
+
+        getService: function() {
+            var uiSelCell = this.uiSelCell.read();
+            var field = uiSelCell.field;
+            var fieldData = this.fieldData.read();
+            this.service.write(fieldData[field].service);
+        },
+
+        toDownloadMenuUrl: function(){
+            return 'downloadMenu.html';
+        },
+
+        getMachineIdFromAbbr: function(abbr) {
+            var machinesConfig = this.configData.read().data.machines;
+            var result = machinesConfig.filter(function(obj) {
+                return obj.abbr == abbr;
+            });
+            return (result[0]) ? result[0].id : null;
+        },
+
+        requestData: function(service) {
+            var uiSelCell = this.uiSelCell.read();
+            var machineSel = uiSelCell.machine;
+            var machineFilter = this.machine.read();
+            var options = this.mapItem.createParams({
+                site: 'site',
+                vendor: 'vendor',
+                thread: 'thread',
+                datatype: 'dataType',
+                test: 'test',
+                division: 'division'
+            });
+
+            options.machine = (machineSel === 'All' && machineFilter)
+                /* if summary row is clicked and a machine filter is selected, use machine filter */
+                ? machineFilter
+                : (machineSel === 'All')
+                    /* if summary row is clicked, use 'All' */
+                    ? machineSel
+                    /* else look up ID from machine name of row clicked on */
+                    : this.getMachineIdFromAbbr(machineSel);
+
+//            console.log('!!︎!    options:', options);
+
+            this[service].request(options);
+        },
+
+        receiveDetailsData: function(response) {
+
+            console.log('▶︎    response:', response);
+
+            var uiSelCell = this.uiSelCell.read();
+            var field = uiSelCell && uiSelCell.field;
+            var service = this.service.read();
+            var responseData = (response[service]) ? response[service].data : [];
+
+            var detailsData,
+                i,
+                j,
+                obj;
+
+            if (service === 'clHealthSite') {
+                detailsData = responseData.map(function(obj) {
+                    obj.rdb_size = obj.rdb_size.value;
+                    obj.rdb_q    = obj.rdb_q.value;
+                    obj.edb_size = obj.edb_size.value;
+                    obj.edb_q    = obj.edb_q.value;
+                    return obj;
+                });
+            } else if (service === 'clHealthProcess') {
+
+//                console.log('▶︎    responseData:', responseData);
+
+                var processes = [];
+
+                var count = (responseData) ? responseData.length : 0;
+
+                for (i = 0; i < count; i++) {
+                    obj = responseData[i];
+
+//                    if (i === 0) console.log('▶︎    obj:', obj);
+
+                    for (j = 0; j < obj.hung.length; j++) {
+                        var hungProc = {};
+                        hungProc.division = obj.division;
+                        hungProc.dt       = obj.dt;
+                        hungProc.facility = obj.facility;
+                        hungProc.machine  = obj.machine;
+                        hungProc.process  = '0_' + obj.hung[j];
+                        hungProc.status   = 'Hung';
+                        hungProc.procName = obj.hung[j];
+                        hungProc.site     = obj.site;
+
+                        processes.push(hungProc);
+                    }
+
+                    for (var k = 0; k < obj.running.length; k++) {
+                        var runningProc = {};
+                        runningProc.division = obj.division;
+                        runningProc.dt       = obj.dt;
+                        runningProc.facility = obj.facility;
+                        runningProc.machine  = obj.machine;
+                        runningProc.process  = '1_' + obj.running[k];
+                        runningProc.status   = 'Running';
+                        runningProc.procName = obj.running[k];
+                        runningProc.site     = obj.site;
+
+                        processes.push(runningProc);
+                    }
+                }
+                detailsData = processes;
+
+//                console.log('▶︎    detailsData:', detailsData);
+
+            } else if (service === 'clHealthThread') {
+                detailsData = [];
+
+                for (i = 0; i < responseData.length; i++) {
+                    obj = responseData[i];
+
+                    for (j = 0; j < obj.dead.length; j++) {
+                        var deadThread = {};
+                        deadThread.division = obj.division;
+                        deadThread.dt       = obj.dt;
+                        deadThread.facility = obj.facility;
+                        deadThread.machine  = obj.machine;
+                        deadThread.process  = obj.process_name;
+                        deadThread.status   = 'Dead';
+                        deadThread.thread   = obj.dead[j];
+                        deadThread.site     = obj.site;
+
+                        detailsData.push(deadThread);
+                    }
+                }
+            } else if (field === 'cpu_util_pct') {
+                detailsData = responseData.map(function(obj) {
+                    var result = {};
+                    result.cpu_util_pct = (obj.cpu.cpu_util_pct === null)
+                        ? null
+                        : Math.round(obj.cpu.cpu_util_pct * 1000) / 10;
+                    result.machine = obj.machine;
+                    result.dt = obj.dt;
+                    return result;
+                });
+            } else if (field === 'mem_util_pct') {
+                detailsData = responseData.map(function(obj) {
+                    var result = {};
+                    result.mem_util_pct = (obj.memory.mem_util_pct === null)
+                            ? null
+                            : Math.round(obj.memory.mem_util_pct * 1000) / 10;
+                    result.machine = obj.machine;
+                    result.dt = obj.dt;
+                    return result;
+                });
+            } else if (field === 'disk_util_pct') {
+                detailsData = responseData.map(function(obj) {
+                    var result = {};
+                    result.disk_util_pct = (obj.disk.disk_util_pct === null)
+                            ? null
+                            : Math.round(obj.disk.disk_util_pct * 1000) / 10;
+                    result.machine = obj.machine;
+                    result.dt = obj.dt;
+                    return result;
+                });
+            }
+
+            this.records.write(detailsData);
+            this.renderTitle();
+
+//            console.log('▶︎    response[service].data[0]:', response[service].data[0]);
+//            console.log('▶︎    detailsData[0]:', detailsData[0]);
+        },
+
+        updateGrid: function(assembledGridOptions) {
+            var options = assembledGridOptions || this.assembledGridOptions.read();
+            this.gridOptions.write(options);
+        },
+
+        renderTitle: function() {
+            var fieldData = this.fieldData.read();
+            var uiSelCell = this.uiSelCell.read();
+            var records = this.records.read();
+            var rowCount = records.length;
+            var field = uiSelCell.field;
+            var machineSel = uiSelCell.machine;
+            var detailsTipTitle = fieldData[field].detailsTipTitle;
+            var service = this.service.read();
+
+            /* comma format item count */
+            var formattedCount = d3.format('0,000')(rowCount);
+
+            /* dynamically set grid title */
+            var noun;
+            if (service === 'clHealthSite')    noun = (rowCount == 1) ? ' Site'         : ' Sites';
+            if (service === 'clHealthProcess') noun = (rowCount == 1) ? ' Process'      : ' Processes';
+            if (service === 'clHealthThread')  noun = (rowCount == 1) ? ' Dead Thread'  : ' Dead Threads';
+            if (service === 'clHealthMachine') noun = (rowCount == 1) ? ' Machine'      : ' Machines';
+
+            var intro = detailsTipTitle + ' Details for ';
+            var context = (machineSel === 'All') ? 'All Machines' : machineSel;
+            var outro = ': ' + formattedCount + noun;
+            this.title.text(intro + context + outro);
+        }
+
+    });
+</script>

@@ -1,0 +1,40 @@
+<blueprint>
+
+    <alias name="DETAILS_TEXT_RENDERER" url="detailsTextRenderer.html" />
+    <alias name="SUMMARY_TEXT_RENDERER" url="summaryTextRenderer.html" />
+    <alias name="COLOR_BOX_RENDERER" url="colorBoxRenderer.html" />
+    <alias name="ICON_BUTTON_RENDERER" url="../iconButtonRenderer.html" />
+
+
+    <prop find="activeSiteDomain" />
+    <prop find="activePageDef" />
+
+    <cog find="holder" url="summary.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+
+    $.cog({
+
+        pageDef: function(){
+
+            return {
+                title: 'Cloverleaf Health Summary',
+                domain: 'cloverleaf',
+                time: 'none'
+            };
+        },
+
+        init: function() {
+            var def = this.pageDef();
+
+            this.activePageDef.write(def); // todo use declarative write once powerful enough
+        }
+
+    });
+
+</script>

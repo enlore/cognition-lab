@@ -1,0 +1,388 @@
+<blueprint>
+
+    <require url="d3-context-menu.js" path="JS_LIB" />
+    <prop find="activePageDef" />
+    <data name="puppy" value="meow" />
+    <data name="tiger" value="grr" />
+    <valve allow="puppy" />
+    <sensor watch="tiger" run="logger" auto="true" />
+    <cog node="kitty" url="kitty.html" />
+</blueprint>
+
+<display>
+    <div id="holder" style="padding: 6px;">
+
+        <div id="kitty"></div>
+        <style>
+            .d3-context-menu {
+                position: absolute;
+                display: none;
+                background-color: #f2f2f2;
+                border-radius: 4px;
+
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                min-width: 150px;
+                border: 1px solid #d4d4d4;
+
+                z-index:1200;
+            }
+
+            .d3-context-menu ul {
+                list-style-type: none;
+                margin: 4px 0px;
+                padding: 0px;
+                cursor: default;
+            }
+
+            .d3-context-menu ul li {
+                padding: 4px 16px;
+            }
+
+            .d3-context-menu ul li:hover {
+                background-color: #4677f8;
+                color: #fefefe;
+            }
+        </style>
+
+        <svg id="svg" style="width: 100%; height: 1000px; background-color: white;">
+
+            <defs>
+                <marker id="triangleMid"
+                        viewBox="0 0 10 10"
+                        refX="5" refY="5"
+                        markerWidth="3"
+                        markerHeight="3"
+                        fill="#5c5"
+                        stroke="white"
+                        orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" />
+                </marker>
+            </defs>
+
+        </svg>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        triangleData: [
+            {x: 0, y: 0},
+            {x:.8, y:.5},
+            {x: 0, y: 1}
+        ],
+
+        statusColors: {
+
+            nominal: d3.rgb(0, 150, 0),
+            warning: d3.rgb(177, 161, 59),
+            serious: d3.rgb(180, 0, 0)
+
+        },
+
+        getThreadStatusColor: function(name){
+            var status = name === 'up' ? 'nominal' : 'serious';
+            return this.statusColors[status] || d3.rgb(0, 0, 0); // black is a data issue and should not occur
+        },
+
+        getProcessStatusColor: function(name){
+            var status = name === 'up' ? 'nominal' : 'serious';
+            return this.statusColors[status] || d3.rgb(0, 0, 0); // black is a data issue and should not occur
+        },
+
+        getPendingStatusColor: function(count){
+            var status = count === 0 ? 'nominal' :
+                    (count < 4 ? 'warning' : 'serious');
+            return this.statusColors[status] || d3.rgb(0, 0, 0); // black is a data issue and should not occur
+        },
+
+        getThreadTip: function(threadData){
+
+            if(!threadData)
+                return null;
+
+            var tipData = {
+                title: threadData.name,
+                items: [
+                    {title: 'DataType', value: threadData.dataType},
+                    {title: 'Vendor', value: threadData.vendor},
+                    {title: 'Direction', value: threadData.direction},
+                    {title: 'Qualifier', value: threadData.qualifier}
+                ]
+            };
+
+            return tipData;
+
+        },
+
+        logger: function(msg){
+          console.log('loggy:'+msg);
+        },
+        init: function(){
+
+            var self = this;
+
+            var menu = [
+                {
+                    title: 'Item #1',
+                    action: function(elm, d, i) {
+                        console.log('Item #1 clicked!');
+                        console.log('The data for this circle is: ' + d);
+                    }
+                },
+                {
+                    title: 'Item #2',
+                    action: function(elm, d, i) {
+                        console.log('You have clicked the second item!');
+                        console.log('The data for this circle is: ' + d);
+                    }
+                }
+            ];
+
+
+            this.activePageDef.write(this.pageDef);
+
+            var lineFunction = d3.svg.line()
+                    .x(function(d) { return d.x; })
+                    .y(function(d) { return d.y; })
+                    .interpolate('linear-closed');
+
+
+            var data = this.testLayout;
+
+            var threadsByName = _.indexBy(data.threads, 'name');
+
+            data.links.forEach(function(d){
+                d.sourceThread = threadsByName[d.source];
+                d.destThread = threadsByName[d.dest];
+
+            });
+
+            var svg = d3.select(this.svg[0]);
+
+            var holderLayer = svg.append('g').attr('transform','translate(10,10)');
+            var processLayer = holderLayer.append('g');
+            var linkLayer = holderLayer.append('g').attr('transform','translate(250,0)');
+            var threadLayer = holderLayer.append('g').attr('transform','translate(250,0)');
+
+            var triangleMid = 'url(#' + this.triangleMid.attr('id') + ')';
+
+            linkLayer.selectAll('[name=link]').data(data.links)
+                    .enter()
+                    .append('g')
+                    .attr('name','link')
+                    .append('path')
+                    .attr('d', function(d){
+
+                        var nodeOffsetX = 75; // half width
+                        var nodeOffsetY = 25; // half height
+
+                        var sx = d.sourceThread.x + nodeOffsetX; // - 3;
+                        var sy = d.sourceThread.y + nodeOffsetY;
+
+                        var dx = d.destThread.x + nodeOffsetX ; // - nodeOffsetX;
+                        var dy = d.destThread.y + nodeOffsetY;
+
+                        var c1x = sx + (dx - sx) * .3;
+                        var c1y = sy + (dy - sy) * .5;
+
+                        var c2x = sx + (dx - sx) * .7;
+                        var c2y = sy + (dy - sy) * .5;
+
+                        var points = [[sx,sy],[c1x,c1y],[c2x,c2y],[dx,dy]];
+
+
+                        var lineFunction = d3.svg.line().interpolate('basis');
+                        return lineFunction(points);
+
+                    })
+                    .style('stroke','#5c5')
+                    .style('stroke-width', '3px')
+                    .style('fill', 'none')
+                    .attr('marker-mid', triangleMid)
+
+
+            ;
+
+            processLayer.selectAll('[name=process]').data(data.processes)
+                    .enter()
+                    .append('g')
+                    .attr('name','process')
+                    .attr('transform', function(d, i) { return 'translate(0, '+ (i * 36) + ')';})
+                    .each(function(d){
+
+                        var p = d3.select(this);
+
+                        p.append('rect')
+                                .attr('width', 150)
+                                .attr('height', 30)
+                                .attr('y', 3)
+                                .attr('rx', 3)
+                                .attr('ry', 3)
+                                .style('fill', function(d){
+                                    return self.getProcessStatusColor(d.status).darker(.25).toString();
+                                });
+
+                        p.append('rect')
+                                .attr('width', 150)
+                                .attr('height', 30)
+                                .attr('rx', 3)
+                                .attr('ry', 3)
+                                .style('stroke-width', '1px')
+                                .style('fill', function(d){
+                                    return self.getProcessStatusColor(d.status).toString();})
+
+
+
+                        p.append('text')
+                                .attr('text-anchor', 'middle')
+                                .attr('width', 200)
+                                .attr('x', 75)
+                                .attr('y', 20)
+                                .style('fill', 'white')
+                                .text(function(d){ return d.name; });
+
+
+                    });
+
+
+            threadLayer
+                    .selectAll('[name=thread]').data(data.threads)
+                    .enter()
+                    .append('g')
+                    .attr('name','thread')
+                    .attr('transform', function(d, i) {
+                        return 'translate(' + (d.x) + ', ' + (d.y) + ')';
+                    })
+                    .each(function(d){
+
+                        var p = d3.select(this);
+
+                        p.append('rect')
+                                .attr('width', 150)
+                                .attr('height', 50)
+                                .attr('y', 3)
+                                .attr('rx', 3)
+                                .attr('ry', 3)
+                                .style('fill', function(d){
+                                    return self.getPendingStatusColor(d.pending).darker(.25).toString();
+                                });
+
+
+                        p.append('rect')
+                                .attr('width', 150)
+                                .attr('height', 50)
+                                .attr('rx', 3)
+                                .attr('ry', 3)
+                                .style('fill', function(d){
+                                    return self.getPendingStatusColor(d.pending).toString();})
+                                .on('contextmenu',
+                                d3.contextMenu(menu)
+                        )
+                                .call(d3.kodama.tooltip().format(self.getThreadTip));
+
+
+
+
+
+                        p.append('text')
+                                .attr('text-anchor', 'middle')
+                                .attr('width', 190)
+                                .attr('x', 75)
+                                .attr('y', 70)
+                                .style('fill', 'rgb(106, 101, 90)')
+                                .style('pointer-events', 'none')
+                                .text(function(d){ return d.name; });
+
+                        p.append('text')
+                                .attr('text-anchor', 'middle')
+                                .attr('width', 50)
+                                .attr('x', 100)
+                                .attr('y', 30)
+                                .style('fill', function(d) {
+                                    return 'white';
+                                })
+                                .style('pointer-events', 'none')
+                                .text(function(d){ return d.status; });
+
+
+                        var triangle = p.append('g')
+                                .attr('name','triangle')
+                                .attr('transform','translate(10,10) scale(30,30)')
+                                .style('pointer-events', 'none')
+                                .style('stroke-width', 2)
+                                .style('stroke', function(d){
+                                    return self.getThreadStatusColor(d.status).darker(.5).toString();})
+                                .style('fill-opacity', 1)
+                                .style('fill', function(d){
+                                    return self.getThreadStatusColor(d.status).brighter(.2).toString();})
+                                .append('path')
+                                .attr('vector-effect','non-scaling-stroke')
+                                .attr('d', lineFunction(self.triangleData));
+
+
+
+                    });
+
+
+
+
+
+        },
+
+        testLayout: {
+
+
+
+
+            cmds: {
+              'restart': {url: 'blah'}
+            },
+
+            processes: [
+                {name: 'live_adt', status: 'up'},
+                {name: 'live_pha', status: 'down'},
+                {name: 'live_hmr', status: 'up'},
+                {name: 'live_rad', status: 'up'},
+                {name: 'live_sup', status: 'up'},
+                {name: 'live_cmi', status: 'up'},
+                {name: 'live_mu', status: 'up'}
+            ],
+
+            threads: [
+
+                {name: 'abs_mtsc_in', status: 'up', pending: 0, x: 0, y: 0, vendor: 'moo', direction: 'in'},
+                {name: 'adt_mids_in_div_cap', status: 'up', pending: 0, x: 0, y: 100},
+                {name: 'abs_cat_in', status: 'down', pending:1020, x: 0, y: 200},
+                {name: 'abs_bunny_in', status: 'opening', pending: 2, x: 0, y: 300},
+                {name: 'rad_meow_out', status: 'up', pending: 0, x: 400, y: 0},
+                {name: 'fluffy_out', status: 'up', pending: 0, x: 400, y: 100},
+                {name: 'kitten_out', status: 'up', pending: 0, x: 400, y: 200}
+
+            ],
+
+            links: [
+
+                {source: 'abs_mtsc_in', dest: 'rad_meow_out'},
+                {source: 'adt_mids_in_div_cap', dest: 'rad_meow_out'},
+                {source: 'abs_cat_in', dest: 'kitten_out'},
+                {source: 'abs_cat_in', dest: 'fluffy_out'},
+                {source: 'fluffy_out', dest: 'abs_bunny_in'},
+                {source: 'abs_bunny_in', dest: 'rad_meow_out'}
+
+            ]
+        },
+
+        pageDef: {
+
+            title: 'Scooter',
+            domain: 'none',
+            time: 'none'
+
+        }
+
+    });
+
+</script>

@@ -1,0 +1,20 @@
+<blueprint>
+    <sensor node="searchBarInput" on="keyup" transform="getQuery" pipe="searchQuery" />
+</blueprint>
+
+<script>
+    $.cog({
+        getQuery: function getQuery (ev) {
+            var query = this.searchBarInput.val()
+            return query
+        }
+    })
+</script>
+
+<display>
+    <div id="search-bar-wrap">
+        <input class="katana_invisible_input" type="search" id="search-bar-input" name="taglist-search" style="
+        height: 32px;
+    margin-bottom: 6px; width: 100%; border-bottom: 1px solid rgb(9, 86, 153);" placeholder="Type to search..." />
+    </div>
+</display>

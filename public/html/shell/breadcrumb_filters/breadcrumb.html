@@ -1,0 +1,94 @@
+<blueprint>
+
+    <prop find="filterDefs" />
+    <prop find="breadcrumb" />
+    <prop find="uiFilterClear" />
+    <prop find="activeSiteCog" />
+
+    <sensor watch="breadcrumb" run="render" auto="true" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="display: block; max-width: 160px; margin-top: 20px; margin-right: 20px;">
+
+            <div class="katana_breadcrumb_category" >
+                <span id="categoryText"></span>
+                <span id="categoryX" class="fa fa-remove" style="color: white; position: relative; top: -3px; font-size: 10px;"></span>
+            </div>
+            <div class="katana_breadcrumb_option" >
+                <span id="optionText"></span>
+            </div>
+
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+
+            var self = this;
+            this.holder.on('click',function(){
+
+                var breadcrumb = self.breadcrumb.read();
+                self.uiFilterClear.write(breadcrumb);
+
+            });
+
+            this.categoryX.vis(false);
+            this.holder.on('mouseenter',function(){
+                self.categoryX.vis(true);
+            });
+
+            this.holder.on('mouseleave',function(){
+                self.categoryX.vis(false);
+            });
+        },
+
+        render: function(breadcrumb){
+
+            var activeSiteCogId = this.activeSiteCog.read();
+            if (!activeSiteCogId) return;
+
+            var appCog = this.mapItem.findCogById(activeSiteCogId);
+            if(!appCog) return;
+
+            var category = breadcrumb.name;
+            var id = breadcrumb.optionId;
+
+            if(category === 'all' && !id){
+                this.categoryText.text('new filter');
+                this.optionText.text('...');
+                return;
+            }
+
+            var filterDefs = this.filterDefs.read();
+
+            // todo check this out for logic
+            if(!filterDefs)
+                return;
+
+            var title = '[no def]';
+            for(var i = 0; i < filterDefs.length; i++){
+                var def = filterDefs[i];
+                if(def.name === category){
+                    title = def.title;
+                    break;
+                }
+            }
+
+            var options = appCog.findData(category + 'Options');
+            var itemsById = options.read() || {};
+            var item = itemsById[id] || {};
+
+            this.categoryText.text(title);
+            this.optionText.text(item.name);
+
+        }
+
+
+    });
+
+</script>

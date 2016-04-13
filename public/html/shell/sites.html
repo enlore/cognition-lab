@@ -1,0 +1,85 @@
+<blueprint>
+
+    <!--<require url="kitten.html" />-->
+
+    <data name="shellPage" />
+    <data name="sitesById" prop="true" />
+    <data name="navSiteOptions" prop="true" />
+    <data name="gotoSite" />
+
+    <net name="sites" path="SERVICE_ROOT" url="sites" req="true" />
+    <sensor watch="sites" transform="byId" pipe="sitesById" once="true" />
+    <sensor watch="sites" transform="canAccess" pipe="navSiteOptions" once="true" />
+
+    <sensor watch="sitesById" transform="getDefaultSite" pipe="gotoSite" once="true" />
+    <sensor watch="gotoSite" transform="toUrl" pipe="shellPage" />
+
+    <prop find="user" />
+
+    <cog find="shell" url="data shellPage" />
+
+</blueprint>
+
+<display>
+   <div id="shell" style="height: 100%;">
+
+   </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            console.log('sites!');
+
+        },
+
+        byId: function(sites){
+            var siteHash = {};
+            for(var i=0; i<sites.length; i++){
+                var site = sites[i];
+                siteHash[site.id] = site;
+            }
+            return siteHash;
+        },
+
+        canAccess: function(sites){
+
+            var user = this.user.read();
+            var options = [];
+            for(var i=0; i<sites.length; i++){
+                var site = sites[i];
+                if(user.sites.indexOf(site.id)!==-1)
+                    options.push({
+                        label: site.sitename,
+                        value: site.id
+                    });
+            }
+            return options;
+
+
+        },
+
+        getDefaultSite: function(){
+            var user = this.user.read();
+
+            user.isSupport = (user.sites.indexOf('admin') >= 0);
+            return user.default_site || user.sites[0];
+        },
+
+        toUrl: function(id) {
+
+            var url = '/html/sites/' + id + '/index.html';
+
+            //return '/html/sites/pa/index.html';
+
+//            if (id == 'cdm')
+//                return '/html/common/core/index.html';
+            return url;
+
+        }
+
+    });
+</script>

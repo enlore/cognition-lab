@@ -1,0 +1,29 @@
+<blueprint>
+    <data name="showCreateCaseDialog" value="false" />
+    <data name="selGroupBy" value="none" />
+    <data name="selAspect" value="latency" />
+
+    <data name="volumeSlicePage" value="volumeSlice.html" prop="true" />
+
+    <sensor watch="refreshAllFilters" batch="true" run="refreshPage" auto="true"/>
+
+    <cog find="sliceHolder" url="data volumeSlicePage" />
+</blueprint>
+
+<display>
+    <div id="dialogHolder" />
+    <div style="padding: 4px;">
+        <div id="sliceHolder" style="padding: 4px;" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        refreshPage: function() {
+            this.volumeSlicePage.write(null);
+            this.volumeSlicePage.write('volumeSlice.html');
+        }
+
+    });
+</script>

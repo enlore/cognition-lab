@@ -1,0 +1,45 @@
+
+<blueprint>
+
+    <data name="buttons" />
+    <sensor watch="options" transform="prepButtons" pipe="buttons" auto="true" />
+    <chain find="holder" source="data buttons" item="data button" url="button.html" />
+
+</blueprint>
+
+
+<display>
+    <div id="holder" style="display: flex; flex-direction: row;" ></div>
+</display>
+
+
+<script>
+    $.cog({
+
+
+        prepButtons: function(options){
+
+           
+            var relativePath = this.mapItem.parent.path;
+
+            var buttons = (options && options.items) || [];
+
+            for(var i = 0; i < buttons.length; i++){
+                var b = buttons[i];
+
+                b.enable = b.enable || options.enable;
+                b.show = b.show || options.show;
+                b.tell = b.tell || options.tell || b.show;
+                b.title = b.title || b.name || b.value;
+                b.value = b.value || b.name || b.title;
+                b.match = b.match || b.value;
+                b.url = b.url || options.url;
+                b.path = b.path || options.path || relativePath;
+                b.style = b.style || options.style;
+            }
+
+            return buttons;
+
+        }
+    });
+</script>

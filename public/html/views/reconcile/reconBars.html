@@ -1,0 +1,24 @@
+
+<blueprint>
+
+    <preload url="bars/entiretyBar.html" />
+    <preload url="bars/errorsBar.html"  />
+    <preload url="bars/latencyBar.html" />
+    <preload url="bars/trackedBar.html" />
+
+    <chain find="reconBarsHolder" source="reconRecords" item="rowData" url="reconBar.html" />
+    <cog find="reconBarsHolder" url="KATANA_LOADER_OVERLAY" source="prop configNetCondition" />
+
+</blueprint>
+
+<display>
+    <div id="reconBarsHolder" style="min-height: 40px; position: relative; display: flex; flex-direction: column;">
+
+    </div>
+</display>
+
+<script>
+    $.cog({
+        configNetCondition: {show: 'reconNetCondition'}
+    })
+</script>

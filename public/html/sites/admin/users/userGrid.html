@@ -1,0 +1,142 @@
+<blueprint>
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <data name="fullRecords" prop="true" />
+
+    <alias name="EDIT_BTN" url="editBtn.html" />
+    <alias name="DELETE_BTN" url="deleteBtn.html" />
+
+    <prop find="uiClickClearSearch" />
+    <sensor watch="uiClickClearSearch" transform="clearFilters" pipe="records" />
+
+    <sensor watch="userUpdate" on="done" run="refreshRecords" />
+
+    <prop find="userList" />
+    <sensor watch="userList" transform="processUserData" pipe="records" auto="true" />
+
+    <prop find="uiSearchInput" />
+    <sensor watch="uiSearchInput" transform="filterUserData" pipe="records" />
+
+    <prop find="justCreatedUser" />
+    <sensor watch="justCreatedUser" run="userWasCreated" />
+
+    <sensor watch="records" run="updateGrid" auto="true" />
+
+    <cog find="grid" url="KATANA_GRID_V2" source="prop gridOptions" item="data options" />
+</blueprint>
+
+<display>
+    <div style="display: flex;" >
+        <div style="flex: 1; color: #cdf;" >
+            <div >
+                <div id="title" style="font: 12px sans-serif; margin: 15px 0 -24px 8px;" />
+                <div id="grid" style="text-overflow: clip;" />
+            </div>
+        </div>
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        init: function(){
+            this.requestUserData();
+        },
+
+        refreshRecords: function() {
+            this.records.refresh();
+        },
+
+        userWasCreated: function() {
+            var newUser = this.justCreatedUser.read();
+            var userList = this.records.read();
+            userList.unshift(newUser);
+            this.records.write(userList);
+        },
+
+        requestUserData: function() {
+            var options = {};
+            options.method = "get";
+            this.userList.request(options);
+        },
+
+        processUserData: function(msg) {
+            var records = msg.data;
+
+//            /* test performance with dummy records added */
+//            records = this.addDummies(records);
+
+            this.fullRecords.write(records);
+            return records;
+        },
+
+        addDummies: function(records) {
+            var count = 5000;
+
+            for (var i = 0; i < count; i++) {
+                var id = 1000 + i;
+
+                var dummyRecord = {
+                    "id": id,
+                    "hcaid": "hca\\abc" + id,
+                    "email": String(id) + "@gmail.com",
+                    "username": "test_" + id,
+                    "authorized": true,
+                    "isAdmin": false,
+                    "create_date": "2014-08-15T12:37:48.323Z",
+                    "last_access": "2014-08-15T12:37:48.323Z",
+                    "isPHI": false,
+                    "sites_array": "admin,cdm,eis",
+                    "default_site": "cdm"
+                };
+                records.push(dummyRecord);
+            }
+
+            return records;
+        },
+
+        clearFilters: function() {
+            return this.fullRecords.read();
+        },
+
+        filterUserData: function(input) {
+
+//            /* log input after each key press */
+//            console.log('\n', 'input:', input, '\n\n');
+
+            var fullRecords = this.fullRecords.read();
+
+            return fullRecords.filter(function(record) {
+                var lcName = record.username.toLowerCase();
+                var lcEmail = record.email.toLowerCase();
+                var lcInput = input.toLowerCase();
+                return lcName.indexOf(lcInput) !== -1 || lcEmail.indexOf(lcInput) !== -1;
+            });
+        },
+
+        gridOptions: {
+            headerHeight: 30,
+            rowHeight: 25,
+            paneHeight: 500,
+            perPage: 20,
+            sort: { field: 'username', dir: 'asc' },
+            columns: [
+                { field: "username", title: "Name",   flex: 2 },
+                {                    title: "Edit",   flex: '0 1 60px', renderer: 'EDIT_BTN',   clickable: true, noSort: true },
+                { field: "email",    title: "Email",  flex: 2 },
+                { field: "hcaid",    title: "3-4 ID", flex: 1 },
+                {                    title: "Delete", flex: '0 1 60px', renderer: 'DELETE_BTN', clickable: true, noSort: true }
+            ]
+        },
+
+        updateGrid: function(records) {
+            /* comma format item count */
+            var count = d3.format('0,000')(records.length);
+            /* write grid title */
+            this.title.text('Users: ' + count + ' Entries');
+        }
+
+    });
+</script>

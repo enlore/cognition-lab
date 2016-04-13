@@ -1,0 +1,88 @@
+<blueprint>
+    <prop find="column" />
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%; height: 100%; padding: 2px 0 0 0;" >
+         <svg id="graph" height="100%" width="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+             <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="fadeFill">
+                 <stop offset="10%" stop-color="#aef" stop-opacity="0.8"></stop>
+                 <stop offset="90%" stop-color="#aef" stop-opacity="0.5"></stop>
+             </linearGradient>
+         </svg>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        init: function(){
+
+            var svg = d3.select(this.graph.get(0));
+
+            this.areaLayer = svg.append("g");
+            this.lineLayer = svg.append("g");
+
+        },
+
+        render: function(data){
+
+
+            if(typeof data === 'string'){
+                data = data.split(',');
+                for(var i = 0; i < data.length; i++){
+                    data[i] = Number(data[i]);
+                }
+            }
+
+            var fillStr = 'url(#' + this.fadeFill.attr('id') + ')';
+
+            var x = d3.scale.linear().domain([0, data.length-1]).range([0, 100]);
+            var y = d3.scale.linear().domain([0, d3.max(data)]).range([100, 0]);
+
+            var area = d3.svg.area()
+                    .x(function(d,i) { return x(i);})
+                    .y0(100)
+                    .y1(function(d) { return y(d);});
+
+            var line = d3.svg.area()
+                    .x(function(d,i) { return x(i);})
+                    .y(function(d) { return y(d);});
+
+            this.areaLayer
+                    .selectAll('path')
+                    .data([data])
+                    .enter()
+                    .append("path")
+                    .attr("fill",fillStr)
+                    .attr("stroke-width", 0);
+
+            this.areaLayer
+                    .selectAll('path')
+                    .data([data])
+                    .attr("d", area);
+
+            this.lineLayer
+                    .selectAll('path')
+                    .data([data])
+                    .enter()
+                    .append("path")
+                    .attr('vector-effect','non-scaling-stroke')
+                    .attr("stroke", "#cef")
+                    .attr("stroke-width", 1)
+                    .attr("stroke-opacity",1);
+
+            this.lineLayer
+                    .selectAll('path')
+                    .data([data])
+                    .attr("d", line);
+
+        }
+
+
+    });
+
+</script>

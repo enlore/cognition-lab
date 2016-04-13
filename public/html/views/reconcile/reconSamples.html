@@ -1,0 +1,105 @@
+<blueprint>
+
+    <data name="downloadClick" />
+    <data name="pathBucketClick" value="0" />
+    <data name="latencyBucketClick" value="0" />
+    <data name="errorBucketClick" value="0" />
+    <data name="ignoresBucketClick" value="0" />
+
+    <data name="pathBucket" value="0" prop="true" />
+    <data name="latencyBucket" value="0" prop="true" />
+    <data name="errorBucket" value="0" prop="true" />
+    <data name="ignoresBucket" value="0" prop="true" />
+
+    <data name="records" prop="true" />
+
+    <prop find="selAspect" />
+
+    <net name="msgSample" url="MSG_SAMPLE_SVC" prop="true" />
+    <sensor watch="msgSample" transform="processSample" pipe="records"/>
+
+    <sensor watch="pathBucketClick" transform="togglePath" pipe="pathBucket" />
+    <sensor watch="latencyBucketClick" transform="toggleLatency" pipe="latencyBucket" />
+    <sensor watch="errorBucketClick" transform="toggleError" pipe="errorBucket" />
+    <sensor watch="ignoresBucketClick" transform="toggleIgnores" pipe="ignoresBucket" />
+
+    <sensor watch="downloadClick" run="downloadSamples" />
+    <sensor watch="selAspect,pathBucket,latencyBucket,errorBucket,ignoresBucket" run="msgRequest" auto="true" />
+
+    <cog find="samplesMenu" url="samplesMenu.html" />
+    <cog find="downloadMenu" url="downloadMenu.html" />
+    <cog find="grid" url="MSG_SAMPLES_GRID" />
+
+    <prop find="MSG_ALL_SVC" is="alias" />
+
+</blueprint>
+
+<display>
+    <div>
+        <div style="display: flex; width: 100%; height: 20px;">
+            <div id="samplesMenu" style="display: flex; flex: 1 1; justify-content: flex-start;"></div>
+            <div id="downloadMenu" style="display: flex; flex: 1 1; justify-content: flex-end; "></div>
+        </div>
+        <div id="menu" ></div>
+        <div id="grid" style="padding-top: 12px;"></div>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        togglePath: function(choice){
+            var current = this.pathBucket.read();
+            if(current === choice)
+                choice = 0;
+            return choice;
+        },
+
+        toggleLatency: function(choice){
+            var current = this.latencyBucket.read();
+            if(current === choice)
+                choice = 0;
+            return choice;
+        },
+
+        toggleError: function(choice){
+            var current = this.errorBucket.read();
+            if(current === choice)
+                choice = 0;
+            return choice;
+        },
+
+        toggleIgnores: function(choice){
+            var current = this.ignoresBucket.read();
+            if(current === choice)
+                choice = 0;
+            return choice;
+        },
+
+
+
+                msgRequest: function() {
+                    this.records.write([]);
+                    var mi = this.mapItem;
+                    var options = mi.createParams({mis: "pathBucket", bucket: "latencyBucket",nak: "errorBucket",ignore: "ignoresBucket", span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility",msg_type:"messageType"});
+                    this.msgSample.request(options);
+                },
+
+                processSample: function (sample) {
+
+                    return sample.data;
+
+                },
+
+                downloadSamples: function(){
+                    var mi = this.mapItem;
+                    var options = mi.createParams({mis: "pathBucket", bucket: "latencyBucket",nak: "errorBucket",ignore: "ignoresBucket", span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility",msg_type:"messageType"});
+                    var paramStr = $.param(options);
+                    var svc = this.MSG_ALL_SVC;
+                    var downloadLink = svc + '?' + paramStr;
+                    window.open(downloadLink);
+                }
+            });
+
+</script>

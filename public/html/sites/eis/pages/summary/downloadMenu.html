@@ -1,0 +1,186 @@
+<blueprint>
+    <data name="downloadClick" />
+    <data name="downloadingRecords" prop="true" />
+
+    <prop find="filterList" />
+    <prop find="service" />
+
+    <prop find="uiSelCell" />
+
+    <prop find="test" />
+
+    <prop find="fieldData" />
+
+    <prop find="records" />
+    <prop find="SERVICE_ROOT" is="alias" />
+
+    <sensor watch="records" pipe="downloadingRecords" />
+
+    <sensor watch="downloadClick" run="downloadRecords" />
+
+    <data name="options" value="prop defineButtons" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder" />
+</display>
+
+<script>
+
+    $.cog({
+
+        defineButtons: {
+            items: [
+                { value: 'download', tell: 'downloadClick', style: 'fa fa-download', url: 'ICON_BUTTON_RENDERER' }
+            ]
+        },
+
+        downloadRecords: function(){
+            var mi = this.mapItem;
+            var self = this;
+            var fileName = 'TLM-export_EIS-Cloverleaf-Health-Summary-' + moment().unix() + '.csv';
+            var filterList = self.filterList.read();
+            var fieldData = this.fieldData.read();
+            var service = this.service.read();
+            var uiSelCell = this.uiSelCell.read();
+            var field = uiSelCell.field;
+
+            console.log('▶︎    service:', service);
+            console.log('▶︎    field:', field);
+
+            var filters = filterList.map(function(d) {
+                var filterName   = d.name;
+                var filterOption = d.optionId;
+
+                if (d.name === 'test') {
+                    filterName = 'tier';
+                    switch(d.optionId) {
+                        case '1':
+                            filterOption = 'Test';
+                            break;
+                        case 'All':
+                            filterOption = 'ProdandTest';
+                            break;
+                    }
+                }
+
+                return filterName + ':' + filterOption;
+            });
+
+            /* add default filter of Prod tier */
+            if (this.test.read() === '0') filters.unshift('tier:Prod');
+
+            var sourceRecords = self.downloadingRecords.read();
+
+            for (var i = 0; i < sourceRecords.length; i++) {
+                var d = sourceRecords[i];
+                d.tier = (d.machine.charAt(2) === 'P')
+                    ? 'Prod'
+                    : 'Test';
+            }
+
+            var columnDefs = {};
+
+            if (service === 'clHealthSite') {
+
+                var firstDefs = {
+                    filters:  { field: 'filters',  title: 'Filters Applied' },
+                    machine:  { field: 'machine',  title: 'Machine' },
+                    division: { field: 'division', title: 'Division' },
+                    site:     { field: 'site',     title: 'Site' },
+                    facility: { field: 'facility', title: 'Facility' }
+                };
+
+                var fieldDefs = {};
+
+                for (var fieldName in fieldData) {
+                    if (fieldData.hasOwnProperty(fieldName)) {
+                        fieldDefs[fieldName] = { field: fieldName,  title: fieldData[fieldName].detailsTipTitle };
+                    }
+                }
+
+                var lastDefs = {
+                    tier: { field: 'tier', title: 'Tier' },
+                    dt:   { field: 'dt',   title: 'Updated' }
+                };
+
+                columnDefs = _.extend(firstDefs, fieldDefs, lastDefs);
+            } else if (service === 'clHealthProcess') {
+                columnDefs = {
+                    filters:  { field: 'filters',  title: 'Filters Applied' },
+                    machine:  { field: 'machine',  title: 'Machine' },
+                    division: { field: 'division', title: 'Division' },
+                    site:     { field: 'site',     title: 'Site' },
+                    facility: { field: 'facility', title: 'Facility' },
+                    procName: { field: 'procName', title: 'Process' },
+                    status:   { field: 'status',   title: 'Process Status' },
+                    tier:     { field: 'tier',     title: 'Tier' },
+                    dt:       { field: 'dt',       title: 'Updated' }
+                };
+            } else if (service === 'clHealthThread') {
+                columnDefs = {
+                    filters:  { field: 'filters',  title: 'Filters Applied' },
+                    machine:  { field: 'machine',  title: 'Machine' },
+                    division: { field: 'division', title: 'Division' },
+                    site:     { field: 'site',     title: 'Site' },
+                    facility: { field: 'facility', title: 'Facility' },
+                    process:  { field: 'process',  title: 'Process' },
+                    thread:   { field: 'thread',   title: 'Thread' },
+                    status:   { field: 'status',   title: 'Thread Status' },
+                    tier:     { field: 'tier',     title: 'Tier' },
+                    dt:       { field: 'dt',       title: 'Updated' }
+                };
+            } else if (field === 'cpu_util_pct') {
+                columnDefs = {
+                    filters:      { field: 'filters',      title: 'Filters Applied' },
+                    machine:      { field: 'machine',      title: 'Machine' },
+                    cpu_util_pct: { field: 'cpu_util_pct', title: 'CPU % Used' },
+                    tier:         { field: 'tier',         title: 'Tier' },
+                    dt:           { field: 'dt',           title: 'Updated' }
+                };
+            } else if (field === 'mem_util_pct') {
+                columnDefs = {
+                    filters:      { field: 'filters',      title: 'Filters Applied' },
+                    machine:      { field: 'machine',      title: 'Machine' },
+                    mem_util_pct: { field: 'mem_util_pct', title: 'Memory % Used' },
+                    tier:         { field: 'tier',         title: 'Tier' },
+                    dt:           { field: 'dt',           title: 'Updated' }
+                };
+            } else if (field === 'disk_util_pct') {
+                columnDefs = {
+                    filters:       { field: 'filters',       title: 'Filters Applied' },
+                    machine:       { field: 'machine',       title: 'Machine' },
+                    disk_util_pct: { field: 'disk_util_pct', title: 'Disk % Used' },
+                    tier:          { field: 'tier',          title: 'Tier' },
+                    dt:            { field: 'dt',            title: 'Updated' }
+                };
+            }
+
+//            console.log('▶︎    sourceRecords:', sourceRecords);
+            console.log('▶︎    columnDefs:', columnDefs);
+
+            var exportRecords = [];
+            for (var j = 0; j < sourceRecords.length; j++) {
+                var r = sourceRecords[j];
+                var e = {};
+
+                r.filters = filters;
+
+                for (var p in columnDefs) {
+                    if(columnDefs.hasOwnProperty(p)) {
+                        var def = columnDefs[p];
+                        e[def.title] = r[p];
+                    }
+                }
+
+                exportRecords.push(e);
+            }
+
+            var options = {filename: fileName, data: JSON.stringify(exportRecords)};
+            var serviceStr = this.SERVICE_ROOT;
+            this.mapItem.postToBlankWindow(serviceStr + 'echoFile', options);
+        }
+    });
+
+</script>

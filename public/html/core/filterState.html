@@ -1,0 +1,356 @@
+<blueprint>
+
+    <data name="filterList" prop="true" route="true" /> <!-- array of {name,optionId} filters in applied order -->
+    <data name="filterDomain" prop="true" route="true" /> <!-- set of filters in use, messages, cloverleaf, etc. -->
+    <data name="filterOptions" prop="true" note="options for current domain by filter name then optionId" />
+    <data name="filterDefs" prop="true" />
+    <data name="filterListResolved" prop="true" note="list of filters resolved to their data items" />
+    <data name="filterPath" prop="true" note="filter path -- the entire exact path" />
+    <data name="filterPathPartial" prop="true" note="filter path minus last applied filter -- actively filtering menu options" />
+    <data name="filterPathActive" prop="true" note="filter path lacking default 'add new filter' -- actively filtering data" />
+    <data name="filterLastActive" prop="true" note="last real filter, i.e. not default with undefined optionId" />
+    <data name="filterOptionsActive" prop="true" note="options by filter name then optionId, restricted by filter list" />
+    <data name="filterOptionsAvail" prop="true" note="options by filter name then optionId, restricted by filter list except last filter" />
+
+    <!-- cmds -->
+    <data name="filterAdd" /> <!-- add empty filter -->
+    <data name="filterSet" /> <!-- set matching filter selection in the list, follow rules -->
+    <data name="filterToggle" /> <!-- toggle matching filter selection in the list, follow rules -->
+    <data name="filterClear" /> <!-- trigger request to remove just this filter, follow rules -->
+
+    <sensor watch="filterDomain" change="true" run="loadDomainFromCache" auto="true" />
+    <sensor watch="filterOptionsCache,filterDomain" batch="true" run="determineOptions" />
+    <sensor watch="filterList" run="saveFilterListToCache" />
+    <sensor watch="filterList" transform="toResolvedFilterList" pipe="filterListResolved" auto="true" />
+    <sensor watch="filterList" transform="toLastActiveFilter" pipe="filterLastActive" auto="true" />
+    <sensor watch="filterList,filterOptions" group="true" batch="true" keep="all" run="determineOptionsAvail" auto="true" />
+
+    <sensor watch="filterList,filterDomain" batch="true" run="generatePaths" auto="true" />
+
+    <sensor watch="filterAdd" transform="toAdd" pipe="filterList" />
+    <sensor watch="filterSet" transform="toSet" pipe="filterList" />
+    <sensor watch="filterToggle" transform="toToggle" pipe="filterList" />
+    <sensor watch="filterClear" transform="toClear" pipe="filterList" />
+
+    <sensor watch="filterPathActive" change="true" pipe="refreshDomainFilters" />
+
+    <prop find="filterCache" is="method" />
+
+</blueprint>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+            this.generatePaths();
+        },
+
+
+        toResolvedFilterList: function(filterList){
+            var cache = this.filterCache();
+            var domain = this.filterDomain.read();
+            var resolved = cache.resolveFilterList(domain, filterList);
+            return resolved;
+        },
+
+
+        toLastActiveFilter: function(filterList){
+
+            var list = [].concat(filterList);
+            while(list.length){
+                var f = list.pop();
+                if(f && f.optionId !== undefined)
+                    return f;
+            }
+
+            return null;
+
+        },
+
+        determineOptions: function(){
+
+            var cache = this.filterCache();
+            var domain = this.filterDomain.read();
+            this.filterOptions.write(cache.getDomainOptions(domain));
+
+        },
+
+        determineOptionsActive: function(msg, topic, tag, packet){
+
+            var list = [].concat(this.filterList.read());
+            var options = this.filterOptions.read() || {};
+            var filterDefs = this.filterDefs.read() || [];
+
+            if(list.length > 0 && list[list.length - 1].optionId === undefined)
+                list.pop(); // remove final filter if not set
+
+            var defsByName = _.indexBy(filterDefs, 'name');
+
+            //var crossFilterValuesByName = this.mapItem.was_hash(list, 'name', 'optionId');
+            var crossFilterValuesByName = _.chain(list).indexBy('name').mapValues('optionId').value();
+
+            var defNames = _.pluck(filterDefs, 'name');
+            var filterNames = _.pluck(list, 'name');
+
+            var unusedDefNames = _.difference(defNames, filterNames);
+
+            var optionsActive = {};
+
+            for(var i = 0; i < unusedDefNames.length; i++){
+
+                var defName = unusedDefNames[i];
+                var active = optionsActive[defName] = [];
+
+                var def = defsByName[defName];
+
+                var sieve = def.sieve;
+                var defOptions = options[defName] || {};
+
+                var items = _.values(defOptions);
+
+                for(var j = 0; j < items.length; j++) {
+                    var item = items[j];
+                    if(sieve && !sieve(item, crossFilterValuesByName))
+                        continue;
+                    item.optgroup = defName;
+                    active.push(item);
+                }
+
+            }
+
+            this.filterOptionsActive.write(optionsActive);
+
+        },
+
+
+        determineOptionsAvail: function(msg, topic, tag, packet){
+
+            var list = [].concat(this.filterList.read());
+            var options = this.filterOptions.read() || {};
+            var filterDefs = this.filterDefs.read() || [];
+
+            if(list.length > 0 && list[list.length - 1].optionId === undefined)
+                list.pop(); // remove final filter if not set
+
+            if(list.length > 0)
+                list.pop();
+
+            var defsByName = _.indexBy(filterDefs, 'name');
+
+            var crossFilterValuesByName = _.chain(list).indexBy('name').mapValues('optionId').value();
+
+            var defNames = _.pluck(filterDefs, 'name');
+            var filterNames = _.pluck(list, 'name');
+
+            var unusedDefNames = _.difference(defNames, filterNames);
+
+            var optionsAvail = {};
+
+            for(var i = 0; i < unusedDefNames.length; i++){
+
+                var defName = unusedDefNames[i];
+                var active = optionsAvail[defName] = [];
+
+                var def = defsByName[defName];
+
+                var sieve = def.sieve;
+                var defOptions = options[defName] || {};
+
+                var items = _.values(defOptions);
+
+                for(var j = 0; j < items.length; j++) {
+                    var item = items[j];
+                    if(sieve && !sieve(item, crossFilterValuesByName))
+                        continue;
+                    item.optgroup = defName;
+                    active.push(item);
+                }
+
+            }
+
+            this.filterOptionsAvail.write(optionsAvail);
+
+        },
+
+
+        generatePaths: function() {
+
+            var filterList = this.filterList.read() || [];
+            var lastFilter = filterList && filterList[filterList.length - 1];
+
+            var list = [];
+            for(var i = 0; i < filterList.length; i++){
+                var filter = filterList[i];
+                list.push(filter.name);
+                list.push(filter.optionId);
+            }
+
+            var path = list.join('|');
+
+            list.pop();
+            list.pop();
+
+            var pathPartial = list.join('|');
+
+            var pathActive = (this.isDefaultFilter(lastFilter)) ? pathPartial : path;
+
+            this.filterPathPartial.write(pathPartial);
+            this.filterPath.write(path);
+            this.filterPathActive.write(pathActive);
+
+        },
+
+        loadDomainFromCache: function(){
+
+            var cache = this.filterCache();
+            var domain = this.filterDomain.read();
+            var defList = cache.getDefList(domain);
+            var filterList = cache.getFilterList(domain);
+            this.filterDefs.write(defList);
+            this.filterList.write(filterList);
+
+        },
+
+        saveFilterListToCache: function(){
+
+            var cache = this.filterCache();
+            var domain = this.filterDomain.read();
+            var filterList = this.filterList.read();
+            cache.cacheFilterList(domain, filterList);
+
+        },
+
+        toAdd: function(){
+
+            var empty = this.getDefaultFilter();
+            var filterList = this.filterList.read();
+            var i = _.findIndex(filterList, {name: empty.name});
+
+            if(i === -1)
+                filterList.push(empty);
+
+            return filterList;
+
+        },
+
+        toToggle: function(filter){
+            var filterList = this.filterList.read() || [];
+            var already = _.find(filterList, {name: filter.name, optionId: filter.optionId});
+            if(already)
+                return this.toClear(filter);
+            else
+                return this.toSet(filter);
+        },
+
+        toClear: function(filter){
+
+            var cache = this.filterCache();
+            var domain = this.filterDomain.read();
+            var filterList = this.filterList.read() || [];
+            var def = cache.getDef(domain, filter.name);
+            var i, j;
+
+            var child;
+            var children = [].concat(def.children || []);
+            children.push(filter.name);
+
+            // remove any children of the filter we're clearing -- and the filter too
+            for(i = 0; i < children.length; i++){
+                child = children[i];
+                j = _.findIndex(filterList, {name: child});
+                if(j >= 0)
+                    filterList.splice(j, 1);
+            }
+
+            return filterList;
+
+        },
+
+
+        toSet: function(filter){
+
+            var cache = this.filterCache();
+            var domain = this.filterDomain.read();
+            var filterList = this.filterList.read() || [];
+            var def = cache.getDef(domain, filter.name);
+            var parents = this.getParents(filter);
+            var i, j, k, p;
+
+            var child;
+            var children = def.children || [];
+
+            // already there earlier, at end, or not there
+            j = _.findIndex(filterList, {name: filter.name});
+            if(j === -1 || j === (filterList.length - 1)){
+                filterList.pop();
+                filterList.push(filter);
+            } else {
+                filterList.splice(j, 1, filter);
+            }
+
+
+            // remove any children of the filter we're setting
+            for(i = 0; i < children.length; i++){
+                child = children[i];
+                j = _.findIndex(filterList, {name: child});
+                if(j >= 0)
+                    filterList.splice(j, 1);
+            }
+
+            // prepend or update parents
+            for(i = 0; i < parents.length; i++){
+                p = parents[i];
+                j = _.findIndex(filterList, {name: p.name});
+                if(j >= 0)
+                    filterList.splice(j, 1);
+                k = _.findIndex(filterList, {name: filter.name}); // index of newly set filter
+                filterList.splice(k, 0, p); // replace filter in case it's different
+            }
+
+            return filterList;
+
+        },
+
+
+
+        getParents: function(filter){
+
+            var parents = [];
+            var cache = this.filterCache();
+            var domain = this.filterDomain.read();
+            var defList = cache.getDefList(domain);
+            var defsByName = _.indexBy(defList, 'name');
+
+            var option;
+            var def;
+
+            do {
+                def = defsByName[filter.name];
+                if(!def || !def.parent)
+                    break;
+                option = cache.resolveFilter(domain, filter);
+                if(!option)
+                    break; // this might imply data consistency issue
+                filter = def.parent(option);
+                if(filter)
+                    parents.unshift(filter);
+            } while (filter);
+
+            return parents;
+
+        },
+
+
+        getDefaultFilter: function() {
+            return {name: 'all', optionId: undefined};
+        },
+
+        isDefaultFilter: function(filter) {
+            return (typeof filter === 'object' && filter.optionId === undefined);
+        }
+
+
+
+    });
+</script>

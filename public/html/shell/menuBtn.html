@@ -1,0 +1,38 @@
+<blueprint>
+    <sensor find="button" detect="click" run="toggleMenu" />
+    <sensor watch="pusherMenuMode" run="render" auto="true" />
+    <prop find="uiPusherMenuMode" />
+</blueprint>
+
+
+<display>
+
+    <div id="button" style="display: flex; flex-direction: row; justify-content: center; transition: all 150ms ease;
+            padding: 8px; border-radius: 4px; margin-top: 4px;
+            border: 1px solid rgba(255,255,255,.25);
+            background-color: rgba(255,255,255,.15);
+            ">
+        <span class="fa fa-bars" style="font-size: 24px; color: rgb(196, 232, 252);"></span>
+</div>
+
+</display>
+
+
+<script>
+
+    $.cog({
+
+        toggleMenu: function(){
+            this.uiPusherMenuMode.write(true);
+        },
+
+        render: function(mode){
+            this.button.css({
+                'background-color': mode ? 'rgba(1, 36, 66, 0.15)' : 'rgba(255,255,255,.15)',
+                'border-color': mode ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.25)'
+            });
+        }
+
+    });
+
+</script>

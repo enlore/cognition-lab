@@ -1,0 +1,36 @@
+<blueprint>
+
+    <prop find="showValue" />
+    <prop find="button" />
+    <sensor watch="button,showValue" run="render" autorun="true" />
+
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; ">
+        <i id="icon"></i>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        render: function(){
+
+            var b = this.button.read();
+            var value = this.showValue.read();
+
+            var style = b.style;
+            if(typeof style === 'function')
+                style = style.call(this, value);
+
+            this.icon.removeClass();
+            this.icon.addClass(style);
+
+        }
+
+
+    });
+
+</script>

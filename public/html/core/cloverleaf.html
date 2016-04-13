@@ -1,0 +1,306 @@
+<blueprint>
+
+    <!-- depends on times and gui -->
+
+    <data name="machineOptions" />
+    <data name="facilityOptions" />
+    <data name="siteOptions"   />
+    <data name="threadOptions" />
+    <data name="dataTypeOptions"  />
+    <data name="vendorOptions" />
+    <data name="divisionOptions" />
+    <data name="buildOptions"  />
+    <data name="testOptions" prop="true" />
+    <data name="directionOptions" prop="true" />
+
+    <!-- cloverleaf message filters -->
+    <data name="division" value="All" prop="true" />
+    <data name="machine" value="All" prop="true"  />
+    <data name="site" value="All" prop="true"  />
+    <data name="thread" value="All" prop="true"  />
+    <data name="dataType" value="All" prop="true"  />
+    <data name="vendor" value="All" prop="true" />
+    <data name="build" value="All" prop="true" />
+    <data name="test" value="0" prop="true"  />
+    <data name="direction" value="All" prop="true" />
+
+    <!-- get configuration data -->
+    <sensor watch="refreshTimeFilters" run="requestData" />
+    <prop find="configData" />
+    <sensor watch="configData" run="configDataChange" />
+
+    <prop find="filterList" />
+    <prop find="filterDomain" />
+    <prop find="filterDefs" />
+
+    <!--<prop find="addDomainToCache" is="method" />-->
+    <prop find="filterDomainToCache" />
+    <prop find="threadsBySite" />
+    <sensor watch="threadsBySite" transform="toThreadOptions" pipe="threadOptions" />
+    <sensor watch="threadOptions" pipe="filterRegenOptions" />
+    <sensor watch="site" change="true" run="requestThreadsForSite" auto="false" />
+
+    <sensor watch="filterPath" run="writeCurrentFiltersToData" />
+
+    <prop find="getDemoDefs" is="method" />
+    <prop find="makeDemoData" is="method" />
+
+</blueprint>
+
+<script>
+
+
+
+$.cog({
+// todo- method tag inherit = true uses local this context
+
+    init: function(){
+
+        this.filterDomainToCache.write({domain: 'cloverleaf', defs: this.getFilterDefs()});
+//console.log("LOAD CLOVERLEAF FILTERS");
+
+//        this.addDomainToCache.call(this.addDomainToCache.originalContext,'cloverleaf', this.getFilterDefs());
+    },
+
+    requestData: function(msg) {
+        var dateFormat = d3.time.format('%-I:%M %p %a %b %e');
+        if (String(msg) == 'true') console.log('∆  auto refresh           ', dateFormat(new Date()));
+
+        this.configData.request();
+    },
+
+    toThreadOptions: function(msg) {
+
+        var threads = msg.data || [];
+        var threadsById = _.chain(threads).indexBy('id').value();
+
+
+//        console.log("TBID",threadsById);
+
+        return threadsById;
+
+    },
+
+    writeConfigData: function(arr, name){
+        var optionsById = {};
+        for(var i = 0; i < arr.length; i++){
+            var d = arr[i];
+            optionsById[d.id] = d;
+
+            /* if there's an abbr property and it's not contained in name, save short and long version of name */
+            if (d.abbr !== undefined && d.name.indexOf(d.abbr) === -1) {
+                d.simpleName = d.name;
+                d.name = d.name + ' (' + d.abbr + ')';
+            }
+        }
+
+        var place = this.mapItem.findData(name);
+        place.write(optionsById);
+
+//        if (name == 'buildOptions') console.log('optionsById:', optionsById);
+
+    },
+
+    configDataChange: function (msg) {
+        if (!msg.data) return;
+
+        var d = msg.data;
+
+        var demo = false;
+        if(demo){
+
+            var defs = this.getDemoDefs();
+
+            this.makeDemoData(d.vendors, defs.owners, defs.prefixes, defs.animals, defs.suffixes);
+            this.makeDemoData(d.datatypes, defs.owners, defs.prefixes, defs.spices, defs.suffixes);
+
+        }
+
+//        var offset = (new Date()).getTimezoneOffset();
+
+        d.builds.forEach(function(b){
+            var ts = b.updated;
+            ts = ts.substring(0, ts.indexOf('.'));
+            b.updated = moment(ts).toDate();
+            /* add a property that identifies the build's tier */
+            b.tier = (b.is_test) ? "TEST" : "Prod";
+            //console.log(b.id + ":" + b.updated);
+        });
+
+        //d.builds = d.builds.reverse();
+
+        //this.writeConfigData(d.vendors, 'vendorOptions');
+        this.writeConfigData(d.vendors, 'vendorOptions');
+        this.writeConfigData(d.machines, 'machineOptions');
+        this.writeConfigData(d.facilities, 'facilityOptions');
+        this.writeConfigData(d.builds, 'buildOptions');
+        this.writeConfigData(d.datatypes, 'dataTypeOptions');
+        this.writeConfigData([{id:'in',name:'In'},{id:'out',name:'Out'}], 'directionOptions');
+        this.writeConfigData([{id:'All',name:'Prod and Test'},{id:'1',name:'Test'}], 'testOptions');
+
+        // add list of builds to every site
+        // note that builds are by name not id, and can have dupes currently
+
+        var sitesByName = _.groupBy(d.sites,'name');
+
+        for(var n = 0; n < d.sites.length; n++){
+            var s = d.sites[n];
+            s.builds = {};
+        }
+
+        var builds = this.mapItem.findData('buildOptions').read();
+
+        for(var b in builds){
+            var build = builds[b];
+            var build_sites = build.sites_array.split(',');
+            for(var i = 0; i < build_sites.length; i++){
+                var site_name = build_sites[i];
+                var sites = sitesByName[site_name];
+                if(sites) { // sometimes related site is missing
+                    for (var j = 0; j < sites.length; j++) {
+                        var site = sites[j];
+                        site.builds[b] = build;
+                    }
+                }
+            }
+        }
+
+        this.writeConfigData(d.sites, 'siteOptions');
+        this.writeConfigData(d.divisions, 'divisionOptions');
+
+    },
+
+
+        requestThreadsForSite: function () {
+
+            var options = this.mapItem.createParams({site: "site"});
+            this.threadsBySite.request(options);
+
+
+        },
+
+
+
+        getFilterDefs: function() {
+
+            var defs = [
+                {name: 'machine', default: 'All', before: ['site','build']},
+                {name: 'division', default: 'All', before: ['site','build']},
+                {name: 'site', default: 'All',
+                    sieve:
+                        function(site, cf){
+                            /* save short and long version of site name */
+                            if (!site.simpleName) {
+                                site.simpleName = site.name;
+                                site.name += (site.is_test === 1) ? ' (TEST)' : ' (Prod)';
+                            }
+
+                            var division = cf.division;
+                            if(division && site.divisionId != division)
+                                return false;
+
+                            var machine = cf.machine;
+                            if(machine && site.machine_id != machine)
+                                return false;
+                            var build = cf.build;
+                            if(build && !site.builds[build])
+                                return false;
+
+                            var is_test = cf.test;
+                            if (
+                                    /* there's a test cross filter of 'Test' or 'Prod and Test' */
+                                    is_test !== undefined
+                                    /* and the test cross filter isn't 'Prod and Test' */
+                                    && is_test !== 'All'
+                                    /* and the site's is_test property and the test cross filter don't match */
+                                        /* (typeof site.is_test === 'number') */
+                                        /* (typeof is_test === 'string') */
+                                    && site.is_test != is_test
+                            )
+                                return false;
+                            else if (
+                                    /* there's no test cross filter, meaning tier filter is by default 'Prod' */
+                                    is_test === undefined
+                                    /* and the site's is_test property is 1, meaning true */
+                                    && site.is_test === 1
+                            )
+                                return false;
+                            else
+                                return true;
+                        }
+                },
+                {name: 'thread', default: 'All', after: ['site']},
+                {name: 'dataType', title: 'data type', default: 'All', before: ['machine','build','site','thread']},
+                {name: 'vendor', default: 'All', before: ['machine','build','site','thread']},
+                {name: 'build', default: 'All', before: ['site','machine'],
+                    sieve:
+                            function(build, cf) {
+                                /* save short and long version of build name */
+                                if (!build.simpleName) {
+                                    build.simpleName = build.name;
+                                    build.name += (build.is_test === true) ? ' (TEST)' : ' (Prod)';
+                                }
+
+                                var is_test = cf.test;
+                                var buildTier = (build.is_test === true) ? '1' : '0';
+
+                                if (
+                                        /* there's a test cross filter of 'Test' or 'Prod and Test' */
+                                        is_test !== undefined
+                                        /* and the test cross filter isn't 'Prod and Test' */
+                                        && is_test !== 'All'
+                                        /* and the build's tier and the test cross filter don't match */
+                                        && buildTier !== is_test
+                                )
+                                    return false;
+                                else if (
+                                        /* there's no test cross filter, meaning tier filter is by default 'Prod' */
+                                        is_test === undefined
+                                        /* and the build's tier is '1', meaning true */
+                                        && buildTier === '1'
+                                )
+                                    return false;
+                                else
+                                    return true;
+                            }
+                },
+                {name: 'test', title: 'tier', default: '0', before: ['thread']}
+            ];
+
+            for(var i = 0; i < defs.length; i++){
+
+                var def = defs[i];
+                def.title = def.title || def.name;
+
+            }
+
+            return defs;
+
+        },
+
+
+        writeCurrentFiltersToData: function(){
+
+            var domain = this.filterDomain.read();
+            if(domain !== 'cloverleaf')
+                return;
+
+            var mi = this.mapItem;
+            var filterDefs = this.getFilterDefs();
+            var filterList = this.filterList.read() || [];
+
+            var filterValuesByName = _.chain(filterList).indexBy('name').mapValues('optionId').value();
+
+
+            for(var i = 0; i < filterDefs.length; i++) {
+                var def = filterDefs[i];
+                var val = filterValuesByName[def.name] || def.default;
+                var d = mi.findData(def.name, 'local');
+                d.write(val);
+            }
+        }
+
+});
+
+
+</script>

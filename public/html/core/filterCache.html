@@ -1,0 +1,112 @@
+<blueprint>
+
+    <data name="filterOptionsCache" prop="true" />
+    <data name="filterDefsCache" prop="true" />
+    <data name="filterListCache" prop="true" />
+
+    <method name="filterCache" bound="true" prop="true" />
+
+</blueprint>
+
+<script>
+
+    $.cog({
+
+        filterCache: function(){
+
+            var filterOptionsCache = this.filterOptionsCache;
+            var filterDefsCache = this.filterDefsCache;
+            var filterListCache = this.filterListCache;
+
+            var self = {
+
+                getDefaultFilter: function() {
+                    return {name: 'all', optionId: undefined};
+                },
+
+                getFilterList: function(domain){
+                    var allLists = filterListCache.read() || {};
+                    return allLists[domain] || [];
+                },
+
+                getDefList: function(domain){
+                    var allDefs = filterDefsCache.read() || {};
+                    return allDefs[domain] || [];
+                },
+
+                getDef: function(domain, name){
+                    var domainDefs = self.getDefList(domain);
+                    var def = _.find(domainDefs, {name: name});
+                    return def || {};
+                },
+
+                getOptions: function(domain, name){
+
+                    var allOptions = filterOptionsCache.read() || {};
+                    var domainOptions = allOptions[domain] || {};
+                    return domainOptions[name] || {};
+
+                },
+
+                getDomainOptions: function(domain){
+
+                    var allOptions = filterOptionsCache.read() || {};
+                    return allOptions[domain] || {};
+
+                },
+
+                resolveFilter: function(domain, filter){
+
+                    if(!filter) return null;
+                    var filterOptions = self.getOptions(domain, filter.name);
+                    return filterOptions[filter.optionId];
+
+                },
+
+                resolveFilterList: function(domain, filterList) {
+
+                    var options = [];
+                    for(var i = 0; i < filterList.length; i++) {
+                        var filter = filterList[i];
+                        var option = self.resolveFilter(domain, filter);
+                        options.push(option);
+                    }
+                    return options;
+
+                },
+
+                cacheFilterOptions: function(domain, name, options){
+
+                    var allOptions = filterOptionsCache.read() || {};
+                    var domainOptions = allOptions[domain] = allOptions[domain] || {};
+                    domainOptions[name] = options || {};
+                    filterOptionsCache.write(allOptions);
+
+                },
+
+                cacheFilterDefs: function(domain, defList){
+
+                    var allDefs = filterDefsCache.read() || {};
+                    allDefs[domain] = defList || [];
+                    filterDefsCache.write(allDefs);
+
+                },
+
+
+                cacheFilterList: function(domain, filterList){
+
+                    var allLists = filterListCache.read() || {};
+                    allLists[domain] = filterList || [];
+                    filterListCache.write(allLists);
+
+                }
+
+            };
+
+            return self;
+        }
+
+
+    });
+
+</script>

@@ -1,0 +1,71 @@
+<blueprint>
+
+    <adapter name="show" optional="true" />
+    <!--<adapter name="tell" control="true" />-->
+    <adapter name="enable" optional="true" />
+
+    <data name="renderer" value="textButtonRenderer.html" prop="true"/>
+
+    <prop find="button" />
+    <sensor watch="button" run="determineRenderer" />
+    <sensor watch="enable" run="determineEnabled" optional="true"  />
+
+    <sensor find="holder" on="click" run="click" />
+
+    <cog find="holder" url="data renderer" />
+
+</blueprint>
+
+<display>
+    <div id="holder" class="katana_button_menu_item"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        determineRenderer: function(){
+
+//            var mi = this.mapItem;
+            var b = this.button.read();
+            if(b.url) {
+                this.renderer.write(b.url);
+            }
+//            if(b.url) {
+//                mi.path = b.path || mi.parent.path;
+//                var resolvedUrl = mi._resolveUrl(b.url, mi.path);
+//                this.renderer.write(resolvedUrl);
+//
+//            }
+
+
+        },
+
+        determineEnabled: function(isEnabled){
+                isDisabled = !isEnabled;
+                this.holder.toggleClass('katana_disabled', isDisabled);
+        },
+
+
+        click: function(){
+
+            var b = this.button.read();
+            var cmd = this.mapItem.findData(b.tell);
+            if(!cmd){
+                this.throwError('button tell not found!');
+                return;
+            }
+
+            var value = b.value;
+            if(typeof value === 'function')
+                value = value();
+
+            cmd.write(value);
+
+        }
+
+
+    });
+
+</script>

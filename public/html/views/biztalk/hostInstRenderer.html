@@ -1,0 +1,123 @@
+<blueprint>
+    <prop find="uiSelectHIGroup" />
+
+    <prop find="record" />
+    <sensor watch="record" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%; height: 100%; padding: 5px 30px;" >
+        <svg id="svg" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+            var self = this;
+            this.holder.on("click", function(e){
+                e.preventDefault();
+                self.uiSelectHIGroup.write(self.record.read().location);
+            });
+        },
+
+        render: function(record) {
+            var self = this;
+            var d = record.hostInstData;
+
+            if (!d) return;
+
+            var data = [
+                { label: "running", value: d.running || 1 },
+                { label: "warning", value: d.warning || 0 },
+                { label: "stopped", value: d.stopped || 0 },
+                { label: "other"  , value: d.other   || 0 }
+            ];
+
+            var w = 30;
+            var h = 30;
+            var r = h/2;
+
+            /* blue used is less green than blue used for totalRLs, to adjust for grid's background gradient */
+            var dataColors   = d3.scale.ordinal().range(["#08a6d2", "#fff79d", "#e00025", "#484e5d"]);
+            var mockColors = d3.scale.ordinal().range(["#15507d"]);
+            var color = (d.total && !d.mock) ? dataColors : mockColors;
+
+            var vis = d3.select(this.svg.get(0))
+                    .append("svg:svg")
+                    .data([data])
+                    .attr("width", w)
+                    .attr("height", h)
+                    .append("svg:g")
+                    .attr("transform", "translate(" + r + "," + r + ")");
+            var pie = d3
+                    .layout
+                    .pie()
+                    .value(function(d){return d.value;});
+
+            // declare an arc generator function
+            var arc = d3
+                    .svg
+                    .arc()
+                    .outerRadius(r);
+
+            // select paths & use arc generator to draw
+            var arcs = vis.selectAll("g.slice")
+                    .data(pie)
+                    .enter()
+                    .append("svg:g")
+                    .attr("class", "slice");
+
+            arcs.append("svg:path")
+                    .attr("fill", function(d, i){
+                        return color(i);
+                    })
+                    .attr("d", function (d) {
+                        return arc(d);
+                    });
+
+            function getTipData() {
+                var timestamp     = moment(d.localDT).format("MM/DD h:mm A");
+
+                /* concatenate value and percentage; ignore tenths if percentage is 100 */
+                var otherAmount   = (d.otherPct   < 1) ? numeral(d.otherPct  ).format("0.0%") : "100%";
+                var stoppedAmount = (d.stoppedPct < 1) ? numeral(d.stoppedPct).format("0.0%") : "100%";
+                var warningAmount = (d.warningPct < 1) ? numeral(d.warningPct).format("0.0%") : "100%";
+                var runningAmount = (d.runningPct < 1) ? numeral(d.runningPct).format("0.0%") : "100%";
+
+                /* formulate tooltip display; ignore percentage if value is zero */
+                var otherStr      = (d.other)   ? d.other   + " (" + otherAmount   + ")" : d.other  ;
+                var stoppedStr    = (d.stopped) ? d.stopped + " (" + stoppedAmount + ")" : d.stopped;
+                var warningStr    = (d.warning) ? d.warning + " (" + warningAmount + ")" : d.warning;
+                var runningStr    = (d.running) ? d.running + " (" + runningAmount + ")" : d.running;
+                var totalStr      = (d.total)   ? d.total   + " (100%)"                  : d.total  ;
+
+                /* set tooltip message; indicate when no data is reported */
+                var otherMsg      = (d.total && !d.mock) ? otherStr   : "Not Reported";
+                var stoppedMsg    = (d.total && !d.mock) ? stoppedStr : "Not Reported";
+                var warningMsg    = (d.total && !d.mock) ? warningStr : "Not Reported";
+                var runningMsg    = (d.total && !d.mock) ? runningStr : "Not Reported";
+                var totalMsg      = (d.total && !d.mock) ? totalStr   : "Not Reported";
+
+                return {
+                    id: self.mapItem.uid,
+                    title: d.location,
+                    items: [
+                         { title:"Running Host Instances", value:runningMsg }
+                        ,{ title:"Warning Host Instances", value:warningMsg }
+                        ,{ title:"Stopped Host Instances", value:stoppedMsg }
+                        ,{ title:"Other Host Instances",   value:otherMsg   }
+                        ,{ title:"Total Host Instances",   value:totalMsg   }
+                        ,{ title:"Updated",                value:timestamp  }
+                    ]
+                };
+            }
+
+            self.holder.kodama(getTipData());
+        }
+
+    });
+
+</script>

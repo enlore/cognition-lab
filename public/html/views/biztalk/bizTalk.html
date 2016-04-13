@@ -1,0 +1,552 @@
+<blueprint>
+    <sensor watch="refreshTimeFilters" batch="true" run="requestData" auto="true" />
+
+    <prop find="healthHist" />
+    <data name="healthHistData" prop="true" />
+    <sensor watch="healthHist" transform="receiveHealthHistData" pipe="healthHistData" />
+
+    <prop find="eisHostInstStatus" />
+    <data name="hostInstData" prop="true" />
+    <sensor need="healthHist,eisHostInstStatus" transform="receiveHostInstanceData" pipe="hostInstData" />
+
+    <prop find="eisTotalRL" />
+    <data name="totalRLData" prop="true" />
+    <sensor need="healthHist,eisTotalRL" transform="receiveTotalRLData" pipe="totalRLData" />
+
+    <data name="statusData" prop="true" />
+    <sensor need="healthHistData,hostInstData,totalRLData" transform="processStatusData" pipe="statusData" />
+
+
+    <prop find="eisUptimeHist" />
+    <prop find="eisCPUHist" />
+    <prop find="eisDiskSpaceHist" />
+    <prop find="eisMemHist" />
+    <sensor need="eisUptimeHist,eisCPUHist,eisDiskSpaceHist,eisMemHist" run="receiveServerData" />
+
+
+    <data name="uiSelectHIGroup" prop="true" />
+    <sensor watch="uiSelectHIGroup" batch="true" run="processHIClick" />
+
+    <data name="selectedHIGroup" prop="true" />
+
+    <data name="uiSelectRLGroup" prop="true" />
+    <sensor watch="uiSelectRLGroup" batch="true" run="processRLClick" />
+
+    <data name="selectedRLGroup" prop="true" />
+
+    <data name="uiSelectStatusGroup" prop="true" />
+    <sensor watch="uiSelectStatusGroup" batch="true" run="processStatusClick" />
+
+    <data name="historyData" prop="true" />
+
+
+    <cog find="statusChart" and="append" source="statusData" item="statusChartData" url="statusChart.html" />
+
+    <data name="serverData" prop="true" />
+    <cog find="serverChart" and="append" source="serverData" item="serverChartData" url="serverChart.html" />
+
+    <data name="viewPaneUrl" prop="true" value="historyPane.html" />
+    <cog find="viewPane" url="data viewPaneUrl" />
+</blueprint>
+
+<display>
+    <!-- min-width: 0 added to flex items as bug workaround for http://crbug.com/546034 - flex issues on Chrome 48 -->
+    <div style="display: flex; flex-wrap: wrap; min-width: 0; padding: 4px;" >
+
+        <div style="display: flex; flex: 2 0 714px; min-width: 0; flex-wrap: wrap;" >
+            <div style="display: flex; flex: 2 0 714px; min-width: 0;" >
+                <div id="statusChart" class="small" style="flex: 1 0 714px; min-width: 0; padding: 4px 0 4px 4px; margin-right: 4px;" />
+            </div>
+            <div style="display: flex; flex: 2 0 714px; min-width: 0;" >
+                <div id="serverChart" class="small" style="flex: 1 0 610px; min-width: 0; padding: 4px;" />
+            </div>
+        </div>
+
+        <div style="flex: 5 0 550px; min-width: 0; padding: 4px;" >
+            <div id="viewPane" />
+        </div>
+
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        processHIClick: function(group) {
+            console.log("click event on group " + group + " host instance pie chart");
+            this.viewPaneUrl.write("hostInstPane.html");
+            this.selectedHIGroup.write(group);
+        },
+
+        processRLClick: function(group) {
+            console.log("click event on group " + group + " receive location pie chart");
+            this.viewPaneUrl.write("totalRLPane.html");
+            this.selectedRLGroup.write(group);
+        },
+
+        processStatusClick: function(group) {
+            console.log("click event on group " + group + " row in status chart");
+            this.viewPaneUrl.write("historyPane.html");
+            this.requestData();
+        },
+
+        requestData: function() {
+            var options = this.mapItem.createParams({ span:"duration", end:"endDateTime" });
+            this.healthHist.request(options);
+            this.eisDiskSpaceHist.request(options);
+            this.eisUptimeHist.request(options);
+            this.eisMemHist.request(options);
+            this.eisCPUHist.request(options);
+            this.eisTotalRL.request(options);
+            this.eisHostInstStatus.request(options);
+        },
+
+        receiveServerData: function(msg) {
+            var uptimeHistData    = msg.eisUptimeHist.data    || this.eisUptimeHist.read().data    || [];
+            var diskSpaceHistData = msg.eisDiskSpaceHist.data || this.eisDiskSpaceHist.read().data || [];
+            var memHistData       = msg.eisMemHist.data       || this.eisMemHist.read().data       || [];
+            var cpuHistData       = msg.eisCPUHist.data       || this.eisCPUHist.read().data       || [];
+
+            var diskData = [];
+            for (var i = 0; i < diskSpaceHistData.length; i++) {
+                var d = diskSpaceHistData[i];
+                var w = diskData[i] = {};
+                var driveLetter = d.location.charAt(d.location.length - 2);
+                var drive = {};
+                var lastDiskIndex = d.dt.length - 1;
+
+                /* use most recent -- the last element in the array */
+                drive.dt = d.dt[lastDiskIndex];
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                drive.localDT = (drive.dt) ? drive.dt.slice(0, -1) : null;
+
+                /* convert bytes to gigabytes */
+                drive.freeGB  = Number((d.free [lastDiskIndex] / 1000000000).toFixed(2));
+                drive.totalGB = Number((d.total[lastDiskIndex] / 1000000000).toFixed(2));
+                drive.t1 = d.t1;
+                drive.t2 = d.t2;
+
+                w.location = d.location;
+                if (driveLetter == "C") { w.cDrive = drive; }
+                else                    { w.eDrive = drive; }
+            }
+
+            var memData = [];
+            for (var j = 0; j < memHistData.length; j++) {
+                var m = memHistData[j];
+                var x = memData[j] = {};
+                var memory = {};
+                var lastMemIndex = m.dt.length - 1;
+
+                /* use most recent -- the last element in the array */
+                memory.dt = m.dt[lastMemIndex];
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                memory.localDT = (memory.dt) ? memory.dt.slice(0, -1) : null;
+
+                /* convert kilobytes to gigabytes */
+                memory.freeGB  = Number((m.mem_free[lastMemIndex] / 1000000).toFixed(2));
+                memory.totalGB = Number((m.mem_total[lastMemIndex] / 1000000).toFixed(2));
+                /* round to 2 decimal places */
+                memory.usedGB = Math.round((memory.totalGB - memory.freeGB) * 100) / 100;
+                /* convert to fraction */
+                memory.usedPct = m.mem_util[lastMemIndex] / 100;
+                /* round to 4 decimal places */
+                memory.freePct = Math.round((1 - memory.usedPct) * 10000) / 10000;
+                /* convert to fraction */
+                memory.t1 = m.t1 / 100;
+                memory.t2 = m.t2 / 100;
+
+                x.location = m.location;
+                x.memory = memory;
+            }
+
+            var cpuData = [];
+            for (var k = 0; k < cpuHistData.length; k++) {
+                var c = cpuHistData[k];
+                var y = cpuData[k] = {};
+                var cpu = {};
+                var lastCPUIndex = c.dt.length - 1;
+
+                /* use most recent -- the last element in the array */
+                cpu.dt = c.dt[lastCPUIndex];
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                cpu.localDT = (cpu.dt) ? cpu.dt.slice(0, -1) : null;
+
+                /* convert to fraction */
+                cpu.usedPct = c.cpu_util[lastCPUIndex] / 100;
+                /* round to 4 decimal places */
+                cpu.freePct = Math.round((1 - cpu.usedPct) * 10000) / 10000;
+                /* convert to fraction */
+                cpu.t1 = c.t1 / 100;
+                cpu.t2 = c.t2 / 100;
+
+                y.location = c.location;
+                y.cpu = cpu;
+            }
+
+            var diskIndex   = _.indexBy(diskData, "location");
+            var memoryIndex = _.indexBy(memData,  "location");
+            var cpuIndex    = _.indexBy(cpuData,  "location");
+
+            var serverData = [];
+            var count = uptimeHistData.length
+                     || memHistData.length
+                     || cpuHistData.length
+                     || diskSpaceHistData.length
+                     || 0;
+            for (var l = 0; l < count; l++) {
+                var z = uptimeHistData[l]
+                     || memHistData[l]
+                     || cpuHistData[l]
+                     || diskSpaceHistData[l];
+                var f = serverData[l] = {};
+
+                f.hours = z.hours ? z.hours[z.hours.length - 1] : null;
+                f.server = (z.name == "DiskUsage") ? z.location.slice(0, -3) : z.location;
+
+                var cLocation = f.server + " C:";
+                var eLocation = f.server + " E:";
+
+                f.cDrive = diskIndex[cLocation]  ? diskIndex[cLocation].cDrive  : null;
+                f.eDrive = diskIndex[eLocation]  ? diskIndex[eLocation].eDrive  : null;
+                f.memory = memoryIndex[f.server] ? memoryIndex[f.server].memory : null;
+                f.cpu    = cpuIndex[f.server]    ? cpuIndex[f.server].cpu       : null;
+            }
+            serverData = _.uniq(serverData, function(n) {
+                return n.server;
+            });
+            this.serverData.write(serverData);
+        },
+
+        receiveHealthHistData: function(msg) {
+            function getMaxOfArray(numArray) {
+                return Math.max.apply(null, numArray);
+            }
+
+            var healthHistData = msg.data || this.healthHist.read().data || [];
+
+            var MILLISECONDS_IN_SECOND = 1000;
+            var MILLISECONDS_IN_MINUTE = 60000;
+
+            var result = {};
+            for (var i = 0; i < healthHistData.length; i++) {
+                var e = healthHistData[i];
+                var topic = e.name;
+                var t1 = Number(e.t1);
+                var t2 = Number(e.t2);
+                var topicObj = result[topic] = result[topic] || {
+                    name: topic,
+                    t1: t1,
+                    t2: t2,
+                    maxDepth: 0,
+                    data: [],
+                    groups: {}
+                };
+
+                var group = e.location;
+                var groupObj = topicObj.groups[group] = topicObj.groups[group] || { name:group, data:[] };
+
+                var depths = [];
+                for (var j = 0; j < e.dt.length; j++) {
+                    /* account for time zone offset */
+                    var localDate = new Date(MILLISECONDS_IN_SECOND
+                    * moment(new Date(e.dt[j])).unix()
+                    + (new Date(e.dt[j]).getTimezoneOffset()
+                    * MILLISECONDS_IN_MINUTE));
+                    var data = { dt: localDate, qd: Number(e.qd[j]) };
+                    groupObj.data.push(data);
+                    depths.push(data.qd);
+                }
+                topicObj.maxDepth = getMaxOfArray(depths);
+            }
+
+            var topicList = _.map(result, function(topicData, name) {
+
+                var groupData = _.filter(topicData.groups, function(d) {
+                    return d;
+                });
+
+                var max = 0;
+                for (var i = 0; i < groupData.length; i++) {
+                    var arr = groupData[i].data;
+                    for (var j = 0; j < arr.length; j++) {
+                        var v = Number(arr[j].qd);
+                        if(v > max)
+                            max = v;
+                    }
+                }
+
+                return { name:name, data:groupData, t1:topicData.t1, t2:topicData.t2, max:max };
+            });
+
+            topicList = _.sortBy(topicList, "name");
+
+            this.historyData.write(topicList);
+
+//            console.log('▶︎    healthHistData:', healthHistData);
+
+            return healthHistData;
+        },
+
+        processStatusData: function(msg) {
+            var healthHistData = msg.healthHistData || this.healthHistData.read() || [];
+            var hostInstData   = msg.hostInstData   || this.hostInstData.read()   || [];
+            var totalRLData    = msg.totalRLData    || this.totalRLData.read()    || [];
+
+            var statusData = [];
+            for (var k = 0; k < healthHistData.length; k++) {
+                var d = healthHistData[k];
+                var s = statusData[k] = {};
+                var lastIndex = d.dt.length - 1;
+
+                s.location = d.location;
+                /* use most recent -- the last element in the array */
+                s.dt = d.dt[lastIndex];
+
+                if (d.name == "Active")         s.activeQD     = Number(d.qd[lastIndex]);
+                if (d.name == "Dehydrated")     s.dehydratedQD = Number(d.qd[lastIndex]);
+                if (d.name == "ReadyToRun")     s.readyToRunQD = Number(d.qd[lastIndex]);
+                if (d.name == "TotalMsmqDepth") s.msmqQD       = Number(d.qd[lastIndex]);
+                if (d.name == "Suspended")      s.suspended    = Number(d.qd[lastIndex]);
+            }
+
+            var unique = {};
+            var locations = [];
+            for (var h = 0; h < healthHistData.length; h++) {
+                if (typeof(unique[healthHistData[h].location]) == "undefined"){
+                    locations.push(healthHistData[h].location);
+                }
+                unique[healthHistData[h].location] = 0;
+            }
+
+            function splitByGroup(group) {
+                return _.where(statusData, { location: group });
+            }
+
+            function collect(arr) {
+                var ret = {};
+                for (var i = 0; i < arr.length; i++) {
+                    for (var p in arr[i]) {
+                        if (arr[i].hasOwnProperty(p)) { ret[p] = arr[i][p]; }
+                    }
+                }
+                return ret;
+            }
+
+            statusData = locations.map(function(location) {
+                var g = splitByGroup(location);
+                return collect(g);
+            });
+
+            for (var l = 0; l < statusData.length; l++) {
+                statusData[l].hostInstData = hostInstData[l] || {};
+                statusData[l].totalRLData  = totalRLData[l]  || {};
+            }
+
+//            console.log('▶︎    statusData:', statusData);
+
+            return statusData;
+        },
+
+        getGroups: function(arg) {
+            /* use healthHistData by default */
+            var arr = arg || this.healthHist.read().data;
+            var groups = [];
+
+            for (var i = 0; i < arr.length; i++) {
+                var obj = arr[i];
+                groups.push(obj.location)
+            }
+
+            return _.uniq(groups, true);
+        },
+
+        getGroupObject: function(groupName, arr) {
+            var result  = arr.filter(function(obj){
+                return obj.location === groupName;
+            } );
+            return (result) ? result[0] : null;
+        },
+
+        logMismatches: function(source, arr1, arr2) {
+            /* log elements appearing in arr1 but not arr2 */
+            console.log('-︎    ' + source + ' awols' + ':', _.difference(arr1, arr2));
+
+            /* log elements appearing in arr2 but not arr1 */
+            console.log('+︎    ' + source + ' extras' + ':', _.difference(arr2, arr1));
+        },
+
+        receiveHostInstanceData: function(msg) {
+            var hostInstData = msg.eisHostInstStatus.data || this.eisHostInstStatus.read().data || [];
+
+//            /* use mock data (with arrays) to test display of the host instance pie chart */
+//            var hostInstData = [{
+//                comp: "BZT",
+//                dt: ["2016-01-14T22:11:59.846Z"],
+//                location: "2013_TLM",
+//                name: "HIStatus",
+//                other: [0],
+//                running: [98],
+//                stopped: [0],
+//                total: [98],
+//                warning: [0]
+//            }];
+
+//            /* test display of pie chart and tooltip when no data is reported */
+//            var hostInstData = [];
+
+            /* receiveHostInstanceData only fires if healthHistData is found, so no need to pass it here */
+            var healthHistGroups = this.getGroups();
+            var hostInstGroups = this.getGroups(hostInstData);
+
+            console.log('▶︎    groups from healthHist API:', healthHistGroups);
+
+            this.logMismatches("host instance", healthHistGroups, hostInstGroups);
+
+            if (!hostInstData.length) return [];
+
+            for (var i = 0; i < hostInstData.length; i++) {
+                var d = hostInstData[i];
+
+                if (Array.isArray(d.dt)) {
+                    console.log('▶︎    d.dt is an array');
+
+                    var lastIndex = d.dt.length - 1;
+
+                    /* use most recent -- the last element in the array */
+                    d.dt = d.dt[lastIndex];
+
+                    d.stopped = d.stopped[lastIndex];
+                    d.warning = d.warning[lastIndex];
+                    d.running = d.running[lastIndex];
+                    d.other   = d.other  [lastIndex];
+                    d.total   = d.total  [lastIndex];
+                }
+
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                d.localDT = (d.dt) ? d.dt.slice(0, -1) : null;
+
+                /* round to 4 decimal places */
+                d.stoppedPct = Math.round((d.stopped / d.total) * 10000) / 10000;
+                d.warningPct = Math.round((d.warning / d.total) * 10000) / 10000;
+                d.runningPct = Math.round((d.running / d.total) * 10000) / 10000;
+                d.otherPct   = Math.round((d.other / d.total)   * 10000) / 10000;
+
+//                /* test display of pie chart and tooltip when no data is reported for d.total */
+//                if (d.location == "2013R2_Inbound") d.total = null;
+            }
+
+            var lastItem = hostInstData[hostInstData.length - 1];
+            var localDT = (lastItem.dt) ? lastItem.dt.slice(0, -1) : null;
+            var arr = [];
+
+            for (var j = 0; j < healthHistGroups.length; j++) {
+                var g = {};
+                g.location = healthHistGroups[j];
+                var obj = this.getGroupObject(g.location, hostInstData);
+
+                if (obj) {
+                    g = obj;
+                } else {
+                    g.localDT = localDT;
+                    /* set a flag to display a mock visualization for this group in hostInstChart */
+                    g.mock    = true;
+                }
+
+                arr.push(g);
+            }
+
+            return arr;
+        },
+
+        receiveTotalRLData: function(msg) {
+            var totalRLData = msg.eisTotalRL.data || this.eisTotalRL.read().data || [];
+
+//            /* use mock data (with arrays) to test display of the receive locations pie chart */
+//            var totalRLData = [{
+//                "comp": "BZT",
+//                "location": "2013R2_ePHEX",
+//                "name": "TotalRL",
+//                "dt": ["2016-01-06T10:38:02.943Z"],
+//                "down": [2],
+//                "total": ["721"],
+//                "t1": 20,
+//                "t2": 5
+//            }];
+
+//            /* use mock data (without arrays) to test display of the receive locations pie chart */
+//            var totalRLData = [{
+//                "comp": "BZT",
+//                "location": "2013R2_ePHEX",
+//                "name": "TotalRL",
+//                "dt": "2016-01-06T10:38:02.943Z",
+//                "down": 2,
+//                "total": "721",
+//                "t1": 20,
+//                "t2": 5
+//            }];
+
+            var healthHistGroups = this.getGroups();
+            var totalRLGroups = this.getGroups(totalRLData);
+
+            this.logMismatches("receive location", healthHistGroups, totalRLGroups);
+
+            if (!totalRLData.length) return [];
+
+            for (var i = 0; i < totalRLData.length; i++) {
+                var d = totalRLData[i];
+
+                if (Array.isArray(d.dt)) {
+                    console.log('▶︎    d.dt is an array');
+
+                    var lastIndex = d.dt.length - 1;
+
+                    /* use most recent -- the last element in the array */
+                    d.down = d.down[lastIndex];
+                    d.total = d.total[lastIndex];
+
+                    d.dt = d.dt[lastIndex];
+                }
+
+                d.total = parseInt(d.total, 10);
+
+                /* remove the trailing Z to use local time when fed to Moment.js */
+                d.localDT = (d.dt) ? d.dt.slice(0, -1) : null;
+
+                d.up = d.total - d.down;
+                d.downPct = d.total ? d.down / d.total : 0;
+                d.upPct = d.total ? 1 - d.downPct : 0;
+
+//                /* test display of pie chart and tooltip when no data is reported for d.total */
+//                if (d.location == "2013R2_ePHEX") d.total = null;
+            }
+
+            var lastItem = totalRLData[totalRLData.length - 1];
+            var localDT = (lastItem.dt) ? lastItem.dt.slice(0, -1) : null;
+            var arr = [];
+
+            for (var j = 0; j < healthHistGroups.length; j++) {
+                var g = {};
+                g.location = healthHistGroups[j];
+                var obj = this.getGroupObject(g.location, totalRLData);
+
+                if (obj) {
+                    g = obj;
+                } else {
+                    g.localDT = localDT;
+                    /* set a flag to display a mock visualization for this group in totalRLChart */
+                    g.mock    = true;
+                }
+
+                arr.push(g);
+            }
+
+            return arr;
+        }
+    });
+
+</script>

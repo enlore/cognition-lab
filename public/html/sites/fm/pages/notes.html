@@ -1,0 +1,107 @@
+<blueprint>
+
+
+
+
+
+    <data name="annotationState" prop="true" />
+    <data name="annotationText" />
+    <data name="annotationModified" />
+
+    <data name="cmd_updateAnnotation" />
+    <data name="cmd_revertAnnotation" />
+
+    <prop find="annotations" />
+    <prop find="annotationsEdit" />
+    <prop find="viewFileTransferDetails" />
+
+    <sensor watch="viewFileTransferDetails" transform="toAnnotationState" pipe="annotationState" auto="true" />
+    <sensor watch="viewFileTransferDetails" transform="toAnnotationText" pipe="annotationText" auto="true"  />
+
+    <sensor watch="annotationText" run="render" />
+    <sensor watch="annotationsEdit" run="refresh" />
+
+    <sensor watch="cmd_updateAnnotation" run="updateAnnotation" />
+    <sensor watch="cmd_revertAnnotation" run="revertAnnotation" />
+
+
+
+
+    <cog find="stateMenu" url="annoStateMenu.html" />
+    <cog find="actionMenu" url="annoActionMenu.html" />
+
+</blueprint>
+
+<display>
+    <div class="katana_panel" style="flex: 1 1 auto; margin-top: 6px; margin-bottom: 6px;">
+        <div style="color: rgb(211, 232, 255);">
+
+            <div style="padding: 4px; color: rgb(245, 240, 220);  font-size: 12px;">
+               <textarea id="note" placeholder="notes..." rows="5" style="width: 100%;
+                         background-color: #015C8E;
+                         border: 1px solid #4D69B3; resize: vertical;" />
+            </div>
+
+            </div>
+
+        <div id="menu" style="display: flex; justify-content: space-between;">
+            <div id="stateMenu" style="flex: 1 1 auto;"></div>
+            <div id="actionMenu" style="fleX: 1 1 auto; align-content: flex-end; "></div>
+        </div>
+    </div>
+</display>
+
+
+<script>
+    $.cog({
+
+
+        updateAnnotation: function(){
+
+            var details = this.viewFileTransferDetails.read();
+            if(!details) return;
+
+            var params = {method: 'put'};
+            params.fileid = details.fileInfo.fileId;
+            params.note = this.annotationState.read() + '|' + this.note.val();
+            params.dt = details.logDateShort;
+
+            this.annotationsEdit.request(params);
+
+        },
+
+        revertAnnotation: function(){
+
+            this.annotations.request();
+
+        },
+
+
+        toAnnotationState: function(msg){
+            return (msg.annotation && msg.annotation.note.split('|')[0]) || 'N';
+        },
+
+        toAnnotationText: function(msg){
+            return (msg.annotation && msg.annotation.note.split('|')[1]) || '';
+        },
+
+
+        debug: function(msg){
+          console.log('view filetransfer det:',msg);
+        },
+        init: function(){
+
+        },
+
+        refresh: function(){
+          this.annotations.request();
+        },
+        render: function(msg){
+            if(this.note[0] !== document.activeElement){
+                this.note.val(msg);
+            }
+        }
+
+
+    });
+</script>

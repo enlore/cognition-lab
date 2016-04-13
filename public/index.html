@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <link href="css/font-awesome.min.css" rel="stylesheet" >
+    <link href="css/kendo.common-bootstrap.min.css" rel="stylesheet">
+    <link href="css/kendo.bootstrap.min.css" rel="stylesheet">
+    <link href="css/kendo.dataviz.min.css" rel="stylesheet">
+    <link href="css/ndash.css" rel="stylesheet">
+
+    <link href="css/selectize.css" rel="stylesheet">
+
+    <link href="css/tlm-forms.css" rel="stylesheet">
+
+    <title>TLM</title>
+
+    <script src="js/lib/jquery-2.1.1.js"></script>
+    <script src="js/lib/selectize.js"></script>
+
+    <script src="js/lib/moment.min.js"></script>
+    <script src="js/lib/twix.min.js"></script>
+    <script src="js/lib/vlist.js"></script>
+
+
+    <script src="js/seele.js"></script> <!-- plugins -->
+    <script src="js/cognition-ajax.js"></script> <!-- net io -->
+    <script src="js/catbus.js"></script> <!-- data flow -->
+    <script src="js/rei.js"></script>  <!-- dom control -->
+    <script src="js/vash.js"></script>  <!-- parsing -->
+    <script src="js/ohmu.js"></script>  <!-- batch file loader -->
+    <script src="js/kakashi.js"></script>  <!-- alias/file resolver -->
+
+
+    <script src="js/lib/base64-string.js"></script>
+    <script src="js/lib/lz-string.js"></script>
+    <script src="js/cognition.js"></script>
+
+    <script>
+
+        $(function(){
+            var node = $("#cognition")[0];
+            $.cognition.buildNum('VERNUM');
+            $.cognition.init(node, "/html/shell/index.html", "/grue/grue.html");
+        });
+
+    </script>
+
+</head>
+
+
+<body style="height: 100%; margin: 0; padding: 0;">
+
+<div id="cognition" style="height: 100%; width: 100%; position: absolute; top: 0; left: 0;"></div>
+
+</body>
+</html>

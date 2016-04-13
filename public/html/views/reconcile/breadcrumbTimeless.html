@@ -1,0 +1,31 @@
+<blueprint>
+    <prop find="getBreadcrumbText" is="method"/>
+    <prop find="getOptionItem" is="method"/>
+    <prop find="getResolvedFilters" is="method"/>
+    <!--<prop find="breadcrumbTextTimeless" is="method" />-->
+</blueprint>
+
+
+<display>
+        <div>
+            <span id="bc" style="padding-left: 5px; text-align: right;font-size: .9em; color: #A8A167;text-shadow: 1px 1px 0px rgba(0,0,0,.75);"></span>
+        </div>
+</display>
+
+<script>
+
+    $.cog({
+        init: function () {
+
+            var t = this.getBreadcrumbText();
+            console.log("items:");
+            console.log(t);
+
+            this.bc.text(t);
+          // this.bc.text(this.breadcrumbTextTimeless(this.mapItem));
+        }
+    });
+
+</script>
+
+

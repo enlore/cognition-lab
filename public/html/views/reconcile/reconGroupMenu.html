@@ -1,0 +1,47 @@
+<blueprint>
+    <alias name="ICON_BUTTON_RENDERER" url="iconButtonRenderer.html" />
+    <alias name="TEXT_BUTTON_RENDERER" url="textButtonRenderer.html" />
+    <data name="options" prop="true" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            var fields = ['messageType','sourceApp','dataCenter','network','facility'];
+            var titles = ['msg type','source','data center','network','facility'];
+            var values = this.mapItem.createValues(fields);
+
+            var self = this;
+            var buttonOptions =  {
+                show: 'selGroupBy',
+                tell: 'selGroupByFromGui',
+                url: 'TEXT_BUTTON_RENDERER',
+                items: [
+                    {tell: 'selSortFromGui', value: 'sort_name',
+                        style: 'fa fa-sort-alpha-asc',
+                        url: 'ICON_BUTTON_RENDERER'}
+                ]
+            };
+
+            for(var i = 0; i < fields.length; i++){
+                var field = fields[i];
+                var title = titles[i];
+                if(values[field] === 'All'){
+                    buttonOptions.items.push({value: field, title: title});
+                }
+            }
+
+            this.options.write(buttonOptions);
+
+        }
+
+    });
+</script>

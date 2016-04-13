@@ -1,0 +1,285 @@
+<blueprint>
+    <prop find="column" />
+    <prop find="record" />
+    <prop find="itemData" />
+    <prop find="selFile" />
+    <prop find="selDayIndex" />
+
+    <sensor watch="itemData,record,selFile,selDayIndex" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%; height: 100%; padding: 0;" >
+         <svg id="graph" style="background-color: #061227; " height="100%" width="100%" vector-effect="non-scaling-stroke" viewBox="0 0 100 100"  preserveAspectRatio="none">
+            <defs>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="not_fresh_fill">
+                    <stop offset="10%" stop-color="#aab" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#889" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="no_record_fill">
+                    <stop offset="10%" stop-color="#d21" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#a00" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="yellow_fill">
+                    <stop offset="10%" stop-color="#db2" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#a81" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="success_fill">
+                    <stop offset="10%" stop-color="#1c1" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#080" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="pending_fill">
+                    <stop offset="10%" stop-color="#cc1" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#990" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="failed_fill">
+                    <stop offset="10%" stop-color="#e1d" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#a09" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="quiet_fill">
+                    <stop offset="10%" stop-color="#012" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#012" stop-opacity="1"></stop>
+                </linearGradient>
+                <linearGradient y1="0%" y2="100%" x1="0" x2="45%" id="anomaly_fill">
+                    <stop offset="10%" stop-color="#1cf" stop-opacity="1"></stop>
+                    <stop offset="90%" stop-color="#08c" stop-opacity="1"></stop>
+                </linearGradient>
+            </defs>
+             <g id="barLayer" ></g>
+             <g id="selLayer" ></g>
+
+         </svg>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        init: function(){
+
+
+         //   console.log('file labels', this.ftpFileLabels);
+
+            var self = this;
+            var xScale = self.xScale = d3.scale.ordinal().rangeBands([0, 100],.05,.05);
+            var yScale = self.yScale = d3.scale.linear().range([100, 0]).domain([0, 100]);
+
+
+        },
+
+        getTipData: function(d){
+
+            var tip;
+
+
+            if(d.needed && d.overdue) {
+                if (!d.ftpStart && !d.completed) {
+                    tip = {
+                        gravity: 'northeast',
+                        title: 'No FTP Record',
+                        items: [
+                            {title: 'File', value: d.fileInfo.ftpFile},
+                            {title: 'From', value: d.fileInfo.frmLabel},
+                            {title: 'To', value: d.fileInfo.toLabel},
+                            {title: 'Date', value: d.dateText}
+                        ]
+                    }
+                }
+                else if (!d.completed) {
+                    tip = {
+                        gravity: 'northeast',
+                        title: 'FTP Failure',
+                        items: [
+                            {title: 'File', value: d.fileInfo.ftpFile},
+                            {title: 'From', value: d.fileInfo.frmLabel},
+                            {title: 'To', value: d.fileInfo.toLabel},
+                            {title: 'Date', value: d.dateText},
+                            {title: 'Start', value: d.startText}
+                        ]
+                    }
+                }
+            }
+            else if(d.needed && !d.overdue){
+                tip = {
+                    gravity: 'northeast',
+                    title: 'FTP Pending',
+                    items: [
+                        {title: 'File', value: d.fileInfo.ftpFile},
+                        {title: 'From', value: d.fileInfo.frmLabel},
+                        {title: 'To', value: d.fileInfo.toLabel},
+                        {title: 'Date', value: d.dateText},
+                        {title: 'Start', value: d.startText}
+                    ]
+                }
+            }
+
+
+
+            if(d.completed) {
+                tip = {
+                    gravity: 'northeast',
+                    title: 'FTP Success',
+                    items: [
+                        {title: 'File', value: d.fileInfo.ftpFile},
+                        {title: 'From', value: d.fileInfo.frmLabel },
+                        {title: 'To', value: d.fileInfo.toLabel},
+                        {title: 'Date', value: d.dateText},
+                        {title: 'Start', value: d.startText},
+                        {title: 'Complete', value: d.completeText},
+                        {title: 'Duration', value: d.durationText}
+
+                    ]
+                }
+            } else if(!d.needed) {
+                tip = {
+                    gravity: 'northeast',
+                    title: 'Nothing Expected',
+                    items: [
+                        {title: 'File', value: d.fileInfo.ftpFile},
+                        {title: 'From', value: d.fileInfo.frmLabel},
+                        {title: 'To', value: d.fileInfo.toLabel},
+                        {title: 'Date', value: d.dateText}
+                    ]
+                }
+            }
+
+
+            if (!d.completed && d.ftpStart) { // failed, possibly unexpected
+                tip = {
+                    gravity: 'northeast',
+                    title: 'FTP Failure',
+                    items: [
+                        {title: 'File', value: d.fileInfo.ftpFile},
+                        {title: 'From', value: d.fileInfo.frmLabel},
+                        {title: 'To', value: d.fileInfo.toLabel},
+                        {title: 'Date', value: d.dateText},
+                        {title: 'Start', value: d.startText}
+                    ]
+                }
+            }
+
+            if(d.dayIndex === 0)
+                tip.items.push({title: 'Last Checked', value: d.fileInfo.ageOfLastCheckText + ' ago'});
+
+            return tip;
+
+        },
+
+        render: function(){
+
+
+            var self = this;
+
+            var arr = this.itemData.read();
+
+            var barLayer = d3.select(this.barLayer.get(0));
+            var selLayer = d3.select(this.selLayer.get(0));
+
+            var width = 100;
+            var height = 100;
+
+            var rec = this.record.read();
+
+            var x = self.xScale;
+            var y = self.yScale;
+
+            self.xScale.domain(d3.range(rec.dailyStats.length));
+
+            var selDayIndex = this.selDayIndex.read() || 0;
+            var selFile = this.selFile.read();
+
+            var highlight = selLayer.selectAll('rect').data([rec]);
+            highlight.enter().append('rect');
+
+            highlight
+                    .attr("transform", function(d, i) { return "translate(" +(x(selDayIndex)) + ",0)"; })
+                    .style("fill","rgba(255,255,255,.4")
+                    .style("visibility", function(d){ return d === selFile ? 'visible' : 'hidden'; })
+                    .style("pointer-events", "none")
+                    .attr("x",1).attr("width", (x.rangeBand() +.1-2)).attr('height', 65).attr('y', 20);
+
+
+            var barSel = barLayer.selectAll('g').data(rec.dailyStats);
+
+
+                barSel
+                        .enter()
+                        .append('g')
+                        .attr("transform", function(d, i) { return "translate(" +(x(i)) + ",0)"; })
+                        .style("fill", 'rgb(200,220,230)')
+                        .style('fill-opacity', function(d, i) { return i === 0 ? .8 : .8; })
+                        .attr("x", 1)
+                        .each(function(d, i){
+
+                            var g = d3.select(this);
+                            g.append('rect').attr("width", (x.rangeBand() +.1)).attr('height', 100).attr('y', 5);
+                            g.select('rect')
+                                    .on('click', function(){
+                                        console.log('click:',i, d);
+
+                                        self.selDayIndex.write(i);
+                                    })
+                            .on('mouseenter', function(){
+                                d3.select(this).style('fill-opacity',1);
+                            })
+                            .on('mouseleave', function(){
+                                d3.select(this).style('fill-opacity', function() { return i === 0 ? .8 : .8; })
+                            });
+
+//                            <text x="0" y="0" dy="0" transform="scale(.5,5) translate(2.5,15)">6</text>
+
+                            g.append('text').style('font-size','13px').style('fill','rgba(255,255,255,.6)')
+                                    .style('pointer-events','none')
+                                    .attr("transform", "scale(.4,5) translate(3.5,15)" );
+
+                        })
+
+                        .call(d3.kodama.tooltip()
+                            //    .holdDuration(1000)
+                            //    .fadeInDuration(500)
+                            //    .fadeOutDuration(500)
+                        .attr({class: 'katana_tooltip_small'})
+                        .format(self.getTipData.bind(self)))
+                ;
+
+                barSel
+                        .style("fill", function(d, i){
+
+                            if(!d.completed && rec.minutesSinceLastCheck > 75 && i === 0)
+                                return 'url(#' + self.not_fresh_fill.attr('id') + ')';
+
+                            if(d.needed && d.overdue && !d.ftpStart && !d.completed)
+                                return 'url(#' + self.no_record_fill.attr('id') + ')';
+
+                            if(d.needed && d.overdue && !d.completed)
+                                return 'url(#' + self.failed_fill.attr('id') + ')';
+
+                            if(d.ftpStart && !d.completed)
+                                return 'url(#' + self.failed_fill.attr('id') + ')'; // and was unexpected, new color?
+
+                            if(d.needed && !d.overdue && !d.completed)
+                                return 'url(#' + self.pending_fill.attr('id') + ')';
+
+                            if(d.completed && !d.needed)
+                                return 'url(#' + self.anomaly_fill.attr('id') + ')';
+
+                            if(d.completed)
+                                return 'url(#' + self.success_fill.attr('id') + ')';
+
+                            return 'url(#' + self.quiet_fill.attr('id') + ')';
+
+                        }).select('text')
+
+                        .text(function(d, i){ if(d.annotation && d.annotation.status !== 'N') return d.annotation.status; return '';});
+
+
+
+
+        }
+
+
+    });
+
+</script>

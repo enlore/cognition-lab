@@ -1,0 +1,306 @@
+<blueprint>
+
+    <!-- depends on times and gui -->
+
+
+    <data name="msgFilters" />
+
+    <!-- message filter options -->
+     <data name="dataCenterOptions" />
+    <data name="networkOptions" />
+    <data name="facilityOptions" />
+    <data name="messageTypeOptions" />
+    <data name="sourceAppOptions" />
+
+    <!-- message filters -->
+    <data name="sourceApp" value="All"></data>
+    <data name="comp" value="All"></data>
+    <data name="dataCenter" value="All"></data>
+    <data name="network" value="All"></data>
+    <data name="facility" value="All"></data>
+    <data name="messageType" value="All"></data>
+
+    <data name="umidSearch" ></data>
+
+    <!-- cascading filter sensors -->
+
+    <sensor pipe="msgFilters" watch="forceRefresh,dataCenter,comp,sourceApp,network,facility,messageType,endDateTime,duration" change="true" batch="true" auto="true" />
+    <sensor pipe="resetAutoRefreshTimer" watch="msgFilters" />
+
+    <sensor watch="dataCenter" run="dataCenterChange" auto="true"></sensor>
+    <sensor watch="network" run="networkChange" auto="true"></sensor>
+    <sensor watch="facility" run="facilityChange" auto="true"></sensor>
+
+    <!-- message info methods -->
+    <method name="getFacility" ></method>
+    <method name="getNetwork" ></method>
+    <method name="getDataCenter" ></method>
+    <method name="getSourceApp" ></method>
+    <method name="getMessageType" ></method>
+    <method name="getComponent" ></method>
+
+    <method name="breadcrumbText" ></method>
+    <method name="breadcrumbTextFromValues" ></method>
+    <method name="breadcrumbTextTimeless" ></method>
+    <method name="breadcrumbTextTime" ></method>
+
+    <method name="itemDisplayText" ></method>
+
+    <method name="resetNonTimeFilters" ></method>
+
+    <!-- get configuration data -->
+    <data name="configData" url="CONFIG_MESSAGES" req="true" />
+    <sensor watch="configData" run="configDataChange" once="true" auto="true"></sensor>
+
+
+</blueprint>
+
+<script>
+
+
+
+$.cog({
+
+                configDataChange: function (msg) {
+
+                    var self = this;
+
+                    self.configData = msg;
+                    self.facilitiesByID = {};
+                    self.networksByID = {};
+                    self.dataCentersByID = {};
+                    self.sourceAppsByID = {};
+                    self.messageTypesByID = {};
+                    self.componentsByID = {};
+
+                    var sourceApps = msg.data.apps;
+                    var dcs = msg.data.dcs;
+                    var facilities = msg.data.facilities;
+                    var networks = msg.data.networks;
+                    var messageTypes = msg.data.messageTypes;
+                    var comps = msg.data.comps;
+
+                    _.forEach(comps, function (val) {
+                        val.id = val.id;
+                        self.componentsByID[val.id] = val;
+                        val.orig_name = val.name;
+                        if (!val.name && !val.abbr) val.name = "???";
+                    });
+
+                    _.forEach(sourceApps, function (val) {
+                        val.id = val.id;
+                        self.sourceAppsByID[val.id] = val;
+                        val.orig_name = val.name;
+                        if (!val.name && !val.abbr) val.name = "???";
+                    });
+
+                    _.forEach(messageTypes, function (val) {
+                        self.messageTypesByID[val.id] = val;
+                        val.orig_name = val.name;
+                        if (!val.name && !val.abbr) val.name = "???";
+                    });
+
+                    _.forEach(dcs, function (val) {
+                        self.dataCentersByID[val.id] = val;
+                        val.orig_name = val.name;
+                        if (!val.name && !val.abbr) val.name = "???";
+                    });
+                    _.forEach(networks, function (val) {
+                        self.networksByID[val.id] = val;
+                        val.orig_name = val.name;
+                        if (!val.name && !val.abbr) val.name = "???";
+                    });
+                    _.forEach(facilities, function (val) {
+                        self.facilitiesByID[val.id] = val;
+                        val.orig_name = val.name;
+                        if (!val.name && !val.abbr) val.name = "???";
+                    });
+
+                    self.facilitiesByDataCenter = _.reduce(facilities, function (acc, val) {
+                        var list = acc[val.dc_id] = acc[val.dc_id] || [];
+                        list.push(val);
+                        acc["All"].push(val);
+                        return acc;
+                    }, {"All":[]});
+
+                    self.facilitiesByNetwork = _.reduce(facilities, function (acc, val) {
+                        var list = acc[val.network_id] = acc[val.network_id] || [];
+                        list.push(val);
+                        acc["All"].push(val);
+                        return acc;
+                    }, {"All":[]});
+
+                    self.networksByDC = _.reduce(this.facilitiesByNetwork, function (acc, val, key) {
+                        var dc = val[0].dc_id;
+                        var list = acc[dc] = acc[dc] || [];
+                        var n = self.networksByID[key];
+                        if(n) {
+                            list.push(n);
+                            acc["All"].push(n);
+                        }
+                        return acc;
+                    }, {"All":[]});
+
+
+
+                    this.dataCentersAll = [].concat(_.sortBy(dcs, "name"));
+                    this.networksAll = [].concat(_.sortBy(networks, "name"));
+                    this.facilitiesAll = [].concat(_.sortBy(facilities, "name"));
+                    this.messageTypesAll = [].concat(_.sortBy(messageTypes, "name"));
+                    this.sourceAppsAll = [].concat(_.sortBy(sourceApps, "name"));
+
+                    this.mapItem.findData("dataCenterOptions").tell(this.dataCentersAll);
+                    this.mapItem.findData("networkOptions").tell(this.networksAll);
+                    this.mapItem.findData("facilityOptions").tell(this.facilitiesAll);
+                    this.mapItem.findData("messageTypeOptions").tell(this.messageTypesAll);
+                    this.mapItem.findData("sourceAppOptions").tell(this.sourceAppsAll);
+
+
+                },
+
+                dataCenterChange: function (dataCenter) {
+                    this.dataCenter = dataCenter;
+                    this.mapItem.findData("networkOptions").tell((this.dataCenter == "All") ? this.networksAll : this.networksByDC[this.dataCenter]);
+                    this.mapItem.findData("network").tell("All");
+
+
+                }
+                ,
+
+                networkChange: function (network) {
+                    this.network = network;
+                    this.mapItem.findData("facilityOptions").tell( (this.network == "All") ? this.facilitiesAll : this.facilitiesByNetwork[this.network]);
+                    this.mapItem.findData("facility").tell("All");
+                }
+                ,
+
+                facilityChange: function (facility) {
+                    this.facility = facility;
+                }
+                ,
+
+                endDateTimeChange: function (endDateTime) {
+                    this.endDateTime = endDateTime;
+                }
+                ,
+                getFacility: function(id){
+                    return this.facilitiesByID[id] || {};
+                },
+                getDataCenter: function(id){
+                    return this.dataCentersByID[id] || {};
+                },
+                getNetwork: function(id){
+                    return this.networksByID[id] || {};
+                },
+                getSourceApp: function(id){
+                    return this.sourceAppsByID[id] || {};
+                },
+                getMessageType: function(id){
+                    return this.messageTypesByID[id] || {};
+                },
+                getComponent: function(id){
+                    return this.componentsByID[id] || this.getSourceApp(id);
+                },
+
+                itemDisplayText: function (item, abbrFirst) {
+
+                    var first = (abbrFirst) ? item.abbr : item.name;
+                    var second = (abbrFirst) ? item.name : item.abbr;
+
+                    if(!first) return second || item.id; // id last resort
+                    if(!second) return first;
+
+                    return first + " (" + second + ")";
+
+                },
+
+                breadcrumbTextTimeless: function (fromMapItem) {
+
+                    var vals = fromMapItem.mapValues(["network", "sourceApp", "dataCenter", "facility", "messageType"]);
+                    var display = [];
+
+                    if (vals.dataCenter == "") display.push("???"); else if (vals.dataCenter != "All") display.push(vals.dataCenter);
+                    if (vals.network == "") display.push("???"); else if (vals.network != "All") display.push(vals.network);
+                    if (vals.facility == "") display.push("???"); else if (vals.facility != "All") display.push(vals.facility);
+                    if (vals.sourceApp != "All") display.push(vals.sourceApp);
+                    if (vals.messageType != "All") display.push(this.getMessageType(vals.messageType).abbr);
+
+                    return display.join(" / ");
+                },
+
+
+
+                breadcrumbText: function (fromMapItem) {
+
+                    var vals = fromMapItem.mapValues(["snapToFullDays","durationText", "durationSelection", "duration", "endDateTime", "network", "sourceApp", "dataCenter", "facility", "messageType"]);
+                    var display = [];
+
+                    if (vals.dataCenter == "") display.push("???"); else if (vals.dataCenter != "All") display.push(vals.dataCenter);
+                    if (vals.network == "") display.push("???"); else if (vals.network != "All") display.push(vals.network);
+                    if (vals.facility == "") display.push("???"); else if (vals.facility != "All") display.push(vals.facility);
+                    if (vals.sourceApp != "All") display.push(vals.sourceApp);
+                    if (vals.messageType != "All") display.push(this.getMessageType(vals.messageType).abbr);
+
+                    var m = moment(vals.endDateTime);
+                    var sum = m.seconds() + m.minutes() + m.hours();
+                    if((vals.snapToFullDays || sum === 0) && ((vals.durationSelection === 86400) || vals.duration === 86400)) {
+                        var thusfar = sum !== 0 ? " (thus far)" : "";
+                        var sub = sum === 0 ? 1 : 0;
+                        display.push("All of " + moment(vals.endDateTime).subtract("days",sub).format("MMMM Do") + thusfar);
+                    } else {
+                        display.push(vals.durationText + " before " + moment(vals.endDateTime).format("MMMM Do, h:mm a"));
+                    }
+
+                    console.log("breadcrumb:"+display.join(' : '));
+                    return display.join(" / ");
+                },
+
+                breadcrumbTextTime: function (fromMapItem) {
+
+                    var vals = fromMapItem.mapValues(["snapToFullDays","durationText", "durationSelection", "endDateTime"]);
+                    var display = [];
+
+                    var m = moment(vals.endDateTime);
+                    var sum = m.seconds() + m.minutes() + m.hours();
+                    if((vals.snapToFullDays || sum === 0) && (vals.durationSelection === 86400 || vals.duration === 86400)) {
+                        var thusfar = sum !== 0 ? " (thus far)" : "";
+                        var sub = sum === 0 ? 1 : 0;
+                        display.push("All of " + moment(vals.endDateTime).subtract("days",sub).format("MMMM Do") + thusfar);
+                    } else {
+                        display.push(vals.durationText + " before " + moment(vals.endDateTime).format("MMMM Do, h:mm a"));
+                    }
+
+                    return display.join(" / ");
+                },
+
+                // hack function to work with caseData params
+                breadcrumbTextFromValues: function (vals) {
+
+                    var display = [];
+
+                    if (vals.dc == "") display.push("???"); else if (vals.dc != "All") display.push(vals.dc);
+                    if (vals.network == "") display.push("???"); else if (vals.network != "All") display.push(vals.network);
+                    if (vals.facility == "") display.push("???"); else if (vals.facility != "All") display.push(vals.facility);
+                    if (vals.app != "All") display.push(vals.app);
+                    if (vals.msg_type != "All") display.push(this.getMessageType(vals.msg_type).abbr);
+
+                    display.push(moment(vals.end).format("MMMM Do, h:mm a"));
+
+                    console.log("breadcrumb vals:"+display.join(' : '));
+                    return display.join(" / ");
+                },
+
+
+                resetNonTimeFilters: function() {
+                    var mi = this.mapItem;
+                    mi.findData("facility").tell("All");
+                    mi.findData("network").tell("All");
+                    mi.findData("dataCenter").tell("All");
+                    mi.findData("sourceApp").tell("All");
+                    mi.findData("messageType").tell("All");
+                }
+
+            });
+
+
+</script>

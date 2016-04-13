@@ -1,0 +1,31 @@
+<blueprint>
+    <!-- todo this needs to be a single mixin -->
+    <prop find="getBreadcrumbText" is="method"/>
+    <prop find="getTimeText" is="method"/>
+    <prop find="getOptionItem" is="method"/>
+    <prop find="getResolvedFilters" is="method"/>
+    <prop find="getBreadcrumbAndTimeText" is="method"/>
+    <sensor watch="refreshAllFilters" run="render" auto="true" />
+</blueprint>
+
+
+<display>
+
+        <div id="bc" style="width: 100%;padding-right: 12px; padding-top: 6px; text-align: right;font-size: 1.1em; color: #bdba98;text-shadow: 1px 1px 0px rgba(0,0,0,.75);"></div>
+
+</display>
+
+<script>
+
+    $.cog({
+        render: function () {
+
+            var text = this.getBreadcrumbAndTimeText();
+            this.bc.text(text);
+
+        }
+    });
+
+</script>
+
+

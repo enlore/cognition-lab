@@ -1,0 +1,11 @@
+<blueprint>
+    <preload url="bars/errorsBar.html"  />
+    <preload url="bars/latencyBar.html" />
+    <preload url="bars/trackedBar.html" />
+
+    <chain find="holder" source="aspectData" item="rowData" url="qualityDetailsBar.html" />
+</blueprint>
+
+<display>
+    <div id="holder" style="display: flex; flex-direction: column;" />
+</display>

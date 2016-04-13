@@ -1,0 +1,53 @@
+<blueprint>
+    <prop find="displayMode" />
+    <sensor watch="displayMode" distinct="true" run="vis" auto="true" />
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <data name="records" prop="true" />
+    <sensor watch="hostInstGridData" run="updateChart" />
+
+    <cog find="grid" url="KATANA_GRID"  />
+</blueprint>
+
+<display>
+    <div id="holder" style="padding: 2px;" >
+        <div id="grid" class="small" />
+    </div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        vis: function() {
+            var mode = this.displayMode.read();
+            this.holder.toggle(mode === 'datagrid');
+        },
+
+        defineOptions: {
+            headerHeight: 28,
+            rowHeight: 25,
+            paneHeight: 586
+        },
+
+        defineColumns: [
+             { field:"instance",  title:"Host Instance", flex:"6 1 210px" }
+            ,{ field:"server",    title:"Server",        flex:"1 1 170px" }
+            ,{ field:"state",     title:"State",         flex:"3 0 70px"  }
+            ,{ field:"timestamp", title:"Updated",       flex:"0 0 125px" }
+        ],
+
+        updateChart: function(hostInstGridData) {
+            hostInstGridData = _.sortBy(hostInstGridData, "server");
+            this.records.write(hostInstGridData);
+        }
+
+    });
+
+</script>

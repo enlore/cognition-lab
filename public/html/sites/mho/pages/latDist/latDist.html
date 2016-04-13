@@ -1,0 +1,51 @@
+<blueprint>
+    <data name="uiSelectBucket" prop="true" />
+
+    <prop find="latDist" />
+    <sensor watch="latDist" run="receiveData" />
+
+    <data name="latencyData" prop="true" />
+    <cog find="latencyChart" and="append" source="latencyData" item="latencyChartData" url="latencyChart.html" />
+
+    <cog find="volumeChart" url="volume/_volume.html" />
+    <cog find="holder" url="KATANA_LOADER_OVERLAY" source="prop configLoader" />
+</blueprint>
+
+<display>
+
+    <style type="text/css">
+        text {
+            font: 10px sans-serif;
+            fill: #ace;
+        }
+    </style>
+
+    <div style="display: flex; flex-flow: row wrap; margin: 4px;" >
+        <div id="holder" class="katana_panel_abyss" style="flex: 0 1 1000px; margin: 4px; position: relative;" >
+            <div id="latencyChart" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;" />
+            <div id="volumeChart" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;" />
+        </div>
+    </div>
+
+</display>
+
+<script>
+    $.cog({
+
+        configLoader: { show: 'latDist' },
+
+        init: function() {
+            this.requestData();
+        },
+
+        requestData: function() {
+            this.latDist.request();
+        },
+
+        receiveData: function(latDist) {
+            var d = latDist.data || [];
+            this.latencyData.write(d);
+        }
+
+    })
+</script>

@@ -1,0 +1,43 @@
+<blueprint>
+
+    <alias name="LEGEND_BOX_RENDERER" url="legendBoxRenderer.html" />
+
+    <data name="records" />
+    <sensor watch="legendRecords" pipe="records" auto="true" />
+    <cog find="grid" url="KATANA_GRID_V2" source="prop gridOptions" item="data options" />
+
+
+</blueprint>
+
+<display>
+    <div class="katana_panel" style="flex: 1 1 auto; margin-top: 6px; margin-bottom: 6px;">
+        <div id="grid"></div>
+    </div>
+</display>
+
+
+<script>
+    $.cog({
+
+        init: function(){
+
+
+        },
+
+        gridOptions: {
+
+            headerHeight: 22,
+            rowHeight: 24,
+            showAll: true,
+            sort: {field: 'title', dir: 'desc'},
+            columns: [
+                { field: "title", title: "Status", flex: '1 1 70px' },
+                { field: "status", title: "", flex: '0 0 25px', renderer: 'LEGEND_BOX_RENDERER' },
+                { field: "count_today", type: 'num', title: "Today", flex: '1 1 40px' },
+                { field: "count_total", type: 'num', title: "Total", flex: '1 1 40px' }
+            ]
+
+        }
+
+    });
+</script>

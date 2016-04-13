@@ -1,0 +1,71 @@
+<blueprint>
+    <data name="uiSelectBar" prop="true" />
+
+    <net name="notesData" url="SLA_ANNOTATION_SVC" prop="true" />
+
+    <net name="trackedData" url="DATA_QUALITY_SVC" prop="true" />
+    <sensor watch="trackedData" run="receiveData" />
+
+    <net name="errorsData" url="DATA_QUALITY_SVC" prop="true" />
+    <sensor watch="errorsData" run="receiveData" />
+
+    <net name="latencyData" url="DATA_QUALITY_SVC" prop="true" />
+    <sensor watch="latencyData" run="receiveData" />
+
+    <data name="qualityData" prop="true" />
+    <chain find="listOfCharts" and="append" source="qualityData" item="qualityChartData" url="qualityChart.html" />
+
+    <cog find="details" url="qualityDetails.html" />
+</blueprint>
+
+<display>
+
+    <style type="text/css">
+        text {
+            font: 10px sans-serif;
+            fill: #ace;
+        }
+    </style>
+
+    <div style="display: flex; flex-flow: row wrap; margin: 4px;" >
+        <div class="katana_panel_abyss" style="flex: 1 1 650px; margin: 4px;" >
+            <div id="listOfCharts" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;" />
+        </div>
+        <div class="katana_panel_gloom" style="flex: 1 1 400px; margin: 4px;" >
+            <div id="details" style="width: 100%; padding: 4px;" />
+        </div>
+    </div>
+
+</display>
+
+<script>
+    $.cog({
+
+        init: function() {
+            this.requestData();
+            this.requestNoteData();
+        },
+
+        requestNoteData: function() {
+            this.notesData.request({ method:"get", aspect:"tracked", date:"all" });
+        },
+
+        requestData: function() {
+            this.trackedData.request({ aspect:"tracked" });
+            this.errorsData.request( { aspect:"errors"  });
+            this.latencyData.request({ aspect:"latency" });
+        },
+
+        receiveData: function() {
+            if (!this.trackedData.read() || !this.errorsData.read() || !this.latencyData.read()) return;
+
+            this.qualityData.write([
+                this.trackedData.read().data,
+                this.errorsData.read().data,
+                this.latencyData.read().data
+            ]);
+        }
+
+    })
+
+</script>

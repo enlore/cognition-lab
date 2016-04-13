@@ -1,0 +1,56 @@
+<blueprint>
+    <!-- auto-refresh functionality -->
+
+    <!-- three main triggers for filters for listeners -->
+    <data name="refreshTimeFilters" />
+    <data name="refreshDomainFilters" />
+    <data name="refreshAllFilters" />
+
+
+    <data name="autoRefreshMode" value="true" prop="true" /> <!-- whether auto-refresh mode is active -->
+    <data name="autoRefreshTrigger" prop="true"/> <!-- listeners will request new data on this trigger -->
+    <data name="resetAutoRefreshTimer" /> <!-- other filter changes pipe here to reset refresh timer -->
+
+    <!-- just changed to no longer reset when filter interactions take place -->
+    <sensor watch="resetAutoRefreshTimer,autoRefreshMode" batch="true" run="resetAutoRefreshTimer" auto="true" />
+
+    <!--<sensor watch="resetAutoRefreshTimer,autoRefreshMode,refreshAllFilters" batch="true" run="resetAutoRefreshTimer" />-->
+    <sensor watch="autoRefreshTrigger" pipe="refreshTimeFilters" />
+    <sensor watch="autoRefreshTrigger" pipe="refreshDomainFilters" />
+
+    <sensor watch="refreshTimeFilters" pipe="refreshAllFilters" />
+    <sensor watch="refreshDomainFilters" pipe="refreshAllFilters" />
+
+</blueprint>
+
+
+<script>
+
+    $.cog({
+
+        init: function(){
+          console.log('init: refresh.html');
+        },
+
+        timerId: null,
+        resetAutoRefreshTimer: function(){
+
+            var REFRESH_DELAY = 300000; // 5 minutes in milliseconds
+            var refreshOn = this.autoRefreshMode.read();
+            if(this.timerId)
+                clearTimeout(this.timerId);
+            if(refreshOn)
+                this.timerId = setTimeout(this.doAutoRefresh.bind(this), REFRESH_DELAY);
+
+        },
+
+        doAutoRefresh: function(){
+
+            this.autoRefreshTrigger.write(true);
+            this.resetAutoRefreshTimer();
+
+        }
+
+    });
+</script>
+

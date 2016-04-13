@@ -1,0 +1,1444 @@
+<blueprint>
+
+    <data name="detailPoint" prop="true" />
+    <data name="legendPoint" prop="true" />
+    <data name="hoverPoint" prop="true" />
+    <data name="lastPoint" prop="true" />
+    <data name="lineLock" prop="true" />
+    <data name="zoomed" prop="true" value=false />
+    <data name="zoomEndPoint" prop="true" />
+
+    <data name="displayMode" value="matrix" prop="true" />
+    <!--<data name="displayMode" value="builds" prop="true" />-->
+    <!--<data name="displayMode" value="tickets" prop="true" />-->
+
+    <data name="downloadMenuUrl" value="downloadMenu.html" prop="true" />
+    <sensor watch="displayMode" run="determineDownloadMenuUrl" auto="true" />
+
+    <sensor watch="legendPoint" change="true" run="renderLegend" auto="true" />
+    <sensor watch="hoverPoint" change="true" run="toLegendIfNoLock" />
+    <sensor watch="lineLock" change="true" run="lineLockChanged" />
+
+    <data name="associatedBuildOptions" prop="true"/>
+
+    <data name="sortedRecords" prop="true"/>
+
+    <sensor watch="threadHistory" run="receiveData" auto="true" />
+    <sensor watch="refreshAllFilters" batch="true" run="requestData" auto="true" />
+
+    <prop find="threadOptions" />
+    <prop find="siteOptions" />
+    <prop find="buildOptions" />
+    <prop find="filterList" /> <!-- todo possibly change to uiFilterList? -->
+    <prop find="associatedBuilds" />
+
+    <prop find="activePageDef" />
+
+    <sensor watch="associatedBuilds" transform="toBuildDefs" pipe="associatedBuildOptions" auto="true"/>
+    <sensor watch="associatedBuildOptions" run="updateBuildChevrons" />
+
+    <cog find="displayModeMenu" url="displayModeMenu.html" />
+
+    <cog find="downloadMenu" url="data downloadMenuUrl" />
+
+    <cog find="matrix" url="matrix.html" />
+    <cog find="builds" url="buildsGrid.html" />
+    <cog find="tickets" url="ticketsGrid.html" />
+
+    <prop find="threadHistory" />
+    <prop find="clAlertList" />
+    <sensor watch="clAlertList" run="alertListFeed" auto="true" />
+
+    <data name="dataList" prop="true" />
+    <data name="KAITEN_TITLE" value="Site Warnings" />
+    <cog find="alerts" url="KAITEN"  />
+    <cog find="holder" url="KATANA_LOADER_OVERLAY" source="prop configThreadLoader" />
+    <!--<cog find="alerts" url="KATANA_LOADER_OVERLAY" source="prop configAlertsLoader"  />-->
+    <!--<sensor watch="threadHistory" on="*" run="debug" />-->
+</blueprint>
+
+<display>
+
+    <div id="alerts" style="position: relative;"></div>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; font-size: 1.1em; color: #cdf; padding: 1px 4px 4px 4px;">
+
+        <div style="display: flex; flex: 2 3 680px; flex-direction: column; padding: 4px;">
+            <div id="holder" class="katana_panel_abyss" style="position: relative; display: inline-block;">
+                <svg id="svg" width="100%" height="100%" viewBox="0 0 836 572" preserveAspectRatio="xMidYMin meet">
+                    <defs>
+
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="nt_fill">
+                        <!-- build chevron gold -->
+                        <stop offset="10%" stop-color="rgb(212,183,61)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(238,156,29)" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="ot_fill">
+                        <!-- build chevron brown -->
+                        <stop offset="10%" stop-color="rgb(132,74,9)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(105,52,7)" stop-opacity="1"></stop>
+                    </linearGradient>
+
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="wm_fill">
+                        <stop offset="10%" stop-color="rgb(136,85,213)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(107,70,178)" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="rm_fill">
+                        <stop offset="10%" stop-color="rgb(81,138,213)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(61,118,193)" stop-opacity="1"></stop>
+                    </linearGradient>
+
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="em_fill">
+                        <stop offset="10%" stop-color="#d21" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="#a00" stop-opacity="1"></stop>
+                    </linearGradient>
+
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="rt_fill">
+                        <stop offset="10%" stop-color="#d21" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="#a00" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="yt_fill">
+                        <stop offset="10%" stop-color="#db2" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="#a81" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="gt_fill">
+                        <stop offset="10%" stop-color="#1c1" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="#080" stop-opacity="1"></stop>
+                    </linearGradient>
+
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="ie_fill">
+                        <stop offset="10%" stop-color="rgb(102,170,255)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(82,150,235)" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="io_fill">
+                        <stop offset="10%" stop-color="rgb(68,153,204)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(48,133,184)" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="oe_fill">
+                        <stop offset="10%" stop-color="rgb(34,119,170)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(14,99,150)" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="oo_fill">
+                        <stop offset="10%" stop-color="rgb(17,85,136)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(7,65,116)" stop-opacity="1"></stop>
+                    </linearGradient>
+
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="il_fill">
+                        <stop offset="10%" stop-color="rgb(81,138,213)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(61,118,193)" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="el_fill">
+                        <stop offset="10%" stop-color="#99f" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="#88e" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="ol_fill">
+                        <stop offset="10%" stop-color="rgb(136,85,213)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(107,70,178)" stop-opacity="1"></stop>
+                    </linearGradient>
+
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="wb_fill">
+                        <stop offset="10%" stop-color="rgb(136,85,213)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(107,70,178)" stop-opacity="1"></stop>
+                    </linearGradient>
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="rb_fill">
+                        <stop offset="10%" stop-color="rgb(81,138,213)" stop-opacity="1"></stop>
+                        <stop offset="90%" stop-color="rgb(61,118,193)" stop-opacity="1"></stop>
+                    </linearGradient>
+
+                    <linearGradient y1="0%" y2="100%" x1="0" x2="0" id="brush_fill">
+                        <stop offset="0%" stop-color="#025" stop-opacity="0.65"></stop>
+                        <stop offset="10%" stop-color="#cdf" stop-opacity="0.75"></stop>
+                        <stop offset="30%" stop-color="#cdf" stop-opacity="0.05"></stop>
+                        <stop offset="80%" stop-color="#cdf" stop-opacity="0.03"></stop>
+                        <stop offset="100%" stop-color="#025" stop-opacity="0.5"></stop>
+                    </linearGradient>
+
+                    <clipPath id="chart_clipper">
+                        <rect x="0" y="0" width="665" height="60" />
+                    </clipPath>
+
+                    <clipPath id="annotation_clipper">
+                        <!--<rect x="0" y="0" width="665" height="460" />-->
+                        <rect x="0" y="0" width="665" height="487" />
+                    </clipPath>
+
+                    </defs>
+
+                </svg>
+            </div>
+        </div>
+
+        <div style="display: flex; flex: 1 3 400px; min-width: 0; flex-direction: column; padding: 4px;">
+            <div class="katana_panel_gloom" style="display: inline-block;" >
+                <div id="displayModeMenu" style="display: flex; justify-content: flex-end; padding: 4px 8px 10px 0;" />
+                <div style="display: flex; justify-content: flex-end;" >
+                    <div id="downloadMenu" style="margin-top: -5px;" />
+                    <div style="font-size: 11px; color: rgb(65, 137, 200); padding: 0 8px 5px 8px;">
+                        Note: Data is available with a 10 minute delay and is updated every 15 minutes.
+                    </div>
+                </div>
+                <div id="matrix" height="100%" width="100%" />
+                <div id="builds" class="small" />
+                <div id="tickets" class="small" />
+            </div>
+        </div>
+
+    </div>
+
+</display>
+
+
+<script>
+    $.cog({
+
+//        debug: function(msg, topic, tag){
+//            console.log('DE:',msg,topic,tag);
+//        },
+
+        configThreadLoader: {show: 'threadHistory'},
+
+        init: function(){
+            var dateFormat = d3.time.format('%-I:%M %p %a %b %e');
+            console.log('∆  page load             ◌', dateFormat(new Date()));
+
+            var self = this;
+
+            self.initConfig();
+            self.initLayout();
+//            self.requestData();
+
+            self.clAlertList.req();
+
+            self.activePageDef.write(self.pageDef);
+
+            this.alertTypeLookup = {
+                'State 11 Queue Alert':'11'
+            };
+
+            var sites = self.siteOptions.read();
+            self.sitesByName = _.indexBy(sites, 'name');
+        },
+
+        determineDownloadMenuUrl: function(){
+            var url = (this.displayMode.read() === 'matrix') ? 'downloadMenu.html' : 'empty.html';
+            this.downloadMenuUrl.write(url);
+        },
+
+        destroy: function(){
+        },
+
+        pageDef: {
+
+            title: 'Cloverleaf History',
+            domain: 'cloverleaf',
+            time: 'none'
+
+        },
+
+        requestData: function(refreshAllFilters) {
+
+//            console.log('refreshAllFilters:', refreshAllFilters);
+
+            var options = this.mapItem.createParams({span: "duration", end: "endDateTime", site: "site", vendor:"vendor", thread:"thread", datatype:"dataType", machine:"machine", test:"test", build:"build", division: "division"});
+            options.span = 21 * 3600 * 24;
+
+            this.threadHistory.request(options);
+            this.associatedBuilds.request(options);
+
+            this.zoomed.write(false);
+
+            var locked = this.lineLock.read();
+
+            if (locked) {
+
+                console.log('\n', 'A1: zoom deactivated by filter change while line is locked',
+                            '\n', 'locked state sets detailPoint',
+                            '\n', 'locked:', locked,
+                            '\n', 'zoomed:', this.zoomed.read(),
+                            '\n', 'detailPoint.dt:', this.detailPoint.read().dt, '\n\n');
+
+            } else {
+                var lastPoint = this.lastPoint.read();
+                this.detailPoint.write(lastPoint);
+
+                console.log('\n', 'A2: zoom inactive on page load, or deactivated by filter change, while line is unlocked',
+                            '\n', 'last data point sets detailPoint',
+                            '\n', 'locked:', locked,
+                            '\n', 'zoomed:', this.zoomed.read(),
+                            '\n', 'detailPoint.dt:',
+                                (this.detailPoint.read())
+                                    ? this.detailPoint.read().dt
+                                    : undefined, '\n\n');
+
+            }
+        },
+
+        roundDownToQuarterHour: function(date) {
+            var coeff = 1000 * 60 * 15;
+            return new Date(Math.floor(date.getTime() / coeff) * coeff);
+        },
+
+        findEndPoint: function(endPoint) {
+            var rounded = this.roundDownToQuarterHour(endPoint);
+            var arr = this.historyData.filter(function(obj){
+                return String(obj.dt) == String(rounded);
+            });
+
+            return arr[0];
+        },
+
+        alertListFeed: function(msg){
+
+            var self = this;
+
+            var alerts = msg.data;
+            var list = [];
+            var hash={};
+            alerts.forEach(function (o) {
+                if (!hash[o.loc]) {
+                    hash[o.loc] = o.loc;
+                    list.push({
+                        rank: o.rnk,
+                        type: (self.alertTypeLookup[o.alert_type] || ' '),
+                        title: o.site,
+                        filter: (self.sitesByName[o.site] ? {name:'site', optionId:self.sitesByName[o.site].id } : '')
+                    });
+                }
+            });
+            this.dataList.write(list);
+        },
+
+        toLegendIfNoLock: function(hoverPoint){
+
+            var lock = this.lineLock.read();
+            if(!lock)
+                this.legendPoint.write(hoverPoint);
+
+        },
+
+        lineLockChanged: function(locked){
+
+            var hoverPoint = this.hoverPoint.read();
+            this.legendPoint.write(hoverPoint);
+
+            var lastPoint = this.lastPoint.read();
+            var zoomed = this.zoomed.read();
+            var zoomEndPoint = this.zoomEndPoint.read();
+
+            if(locked){
+                /* when line is locked, locked state sets detailPoint */
+                this.detailPoint.write(hoverPoint);
+
+                console.log('\n', 'B1: line locked by click on chart',
+                            '\n', 'locked state sets detailPoint',
+                            '\n', 'locked:', this.lineLock.read(),
+                            '\n', 'zoomed:', this.zoomed.read(),
+                            '\n', 'detailPoint.dt:', this.detailPoint.read().dt, '\n\n');
+
+//                console.log('∆  line locked');
+
+            } else if (!locked && zoomed) {
+                /* when line is unlocked and zoom is active, zoomed state sets detailPoint */
+                this.detailPoint.write(zoomEndPoint);
+
+                console.log('\n', 'B2: line unlocked by click on chart while zoom is active',
+                            '\n', 'zoomed state sets detailPoint',
+                            '\n', 'locked:', this.lineLock.read(),
+                            '\n', 'zoomed:', this.zoomed.read(),
+                            '\n', 'detailPoint.dt:', this.detailPoint.read().dt, '\n\n');
+
+            } else {
+                /* when line is unlocked and zoom is inactive, last data point sets detailPoint */
+                this.detailPoint.write(lastPoint);
+
+                console.log('\n', 'B3: line unlocked by click on chart while zoom is inactive',
+                            '\n', 'last data point sets detailPoint',
+                            '\n', 'locked:', this.lineLock.read(),
+                            '\n', 'zoomed:', this.zoomed.read(),
+                            '\n', 'detailPoint.dt:', this.detailPoint.read().dt, '\n\n');
+
+//                console.log('∆  line unlocked');
+            }
+
+        },
+
+        toBuildDefs: function(msg){
+
+            // marry the builds from the service with the build definition data from the config
+
+            // todo consider creating copies so as not to modify the shared build objects from config
+            var self = this;
+
+            var builds_data = msg.data;
+
+            var build_ids = _.map(builds_data, 'build_id'); // yields array of build ids
+            var build_options = this.buildOptions.read();
+
+            var builds = [];
+            for(var i = 0; i < build_ids.length; i++){
+                var build = build_options[build_ids[i]];
+                if(build)
+                    builds.push(build);
+            }
+
+            self.convertDates(builds, 'updated');
+
+            return builds;
+
+        },
+
+        fields: {
+
+            nt: {name: 'new_tix', title: 'new tickets'},
+            ot: {name: 'old_tix', title: 'open tickets'},
+            rt: {name: 'red_threads', title: 'down'},
+            yt: {name: 'yellow_threads', title: 'other'},
+            gt: {name: 'green_threads', title: 'up'},
+            rm: {name: 'read_messages', title: 'reads'},
+            wm: {name: 'wrote_messages', title: 'writes'},
+            em: {name: 'errored_messages', title: 'errors'},
+            rb: {name: 'read_bytes', title: 'read bytes'},
+            wb: {name: 'wrote_bytes', title: 'write bytes'},
+            ie: {name: 'inbound_queue_pre', title: 'state 1'},
+            oe: {name: 'outbound_queue_pre', title: 'state 10'},
+            io: {name: 'inbound_queue_post', title: 'state 2'},
+            oo: {name: 'outbound_queue_post', title: 'state 11'},
+            il: {name: 'inbound_latency', title: 'inbound'},
+            ol: {name: 'outbound_latency', title: 'outbound'},
+            el: {name: 'engine_latency', title: 'engine'}
+
+        },
+
+        charts: [
+            {name:'tickets', height: 25, axis: true, graph: 'area_stacked', total_field: 'total_tickets', max_fields:['total_tickets'],fields: ['nt','ot']},
+            {name:'threads', height: 60, axis: true, graph: 'area_stacked', total_field: 'total_threads', max_fields:['total_threads'],fields: ['rt','yt','gt']},
+            {name:'messages', height: 60, axis: true, graph: 'area_stacked', total_field: 'total_messages', max_fields:['total_messages'],fields:['rm','wm']},
+            {name:'errors', height: 60, axis: true, graph: 'area', total_field: 'total_errored', max_fields:['errored_messages'],fields:['em']},
+            {name:'bytes', height: 60, axis: true, graph: 'area_stacked', total_field: 'total_bytes', max_fields:['total_bytes'],fields:['rb','wb']},
+            {name:'queues', height: 60, axis: true, graph: 'area_stacked', total_field: 'total_queues', max_fields:['total_queues'], fields:['ie','io','oe','oo']},
+            {name:'latency', height: 60, axis: true, graph: 'area_stacked',total_field: 'total_latency', max_fields:['total_latency'], fields: ['il','el','ol'], offset: -12},
+            {name:'time', height: 30, brush: true},
+            {name:'brush', height: 40, brush: true}
+
+        ],
+
+        chevronShapeData: [{x:0, y:0},{x:5,y:-5},{x:5,y:-10},{x:-5,y:-10},{x:-5,y:-5}],
+
+        initLayout: function(){
+
+            var self = this;
+
+            var margin = {top: 30, right: 126, bottom: 45, left: 45};
+
+            var fullWidth =  836;
+            var fullHeight = 572;
+
+            var width = self.width = fullWidth - margin.left - margin.right;
+            var height = self.height = fullHeight - margin.top - margin.bottom;
+
+            // setup legend fields holder
+            self.statFieldsByName = {};
+
+            var svg = d3.select(this.svg.get(0));
+
+            self.chartingArea = svg
+                    .append('g')
+                    .attr('name','chartingArea')
+                    .style('pointer-events','none')
+                    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+
+            var annotation_clipper = 'url(#' + self['annotation_clipper'].attr('id') + ')';
+
+            self.annotationArea = svg
+                    .append('g')
+                    .attr('transform', 'translate(' + margin.left + ',' + (margin.top - 30) + ')')
+                    .attr('name', 'annotationArea')
+                    .attr('clip-path', annotation_clipper);
+
+
+            self.zoomBrushArea = self.annotationArea.append('g')
+                    .attr("name", 'zoomBrushArea')
+                    .attr('pointer-events','visible')
+//                    .on('mousedown',function(){console.log('zoom brushie!');})
+            ;
+
+
+            self.annotationBackground = self.annotationArea
+                    .append('rect')
+                    .attr('name', 'annotationBackground')
+                    .attr('width',665)
+                    .attr('height',487)
+                    .attr('fill','none')
+                    .attr('pointer-events','visible')
+                    .on('mousedown', mousedrill)
+                    .on('mouseup', mouseup)
+                    .on('mouseenter', mouseenter)
+                    .on('mouseleave', mouseleave)
+                    .on("mousemove", mousemove);
+
+            function mouseup(){
+                console.log("mouse up!");
+            }
+
+            function mousedrill(){
+
+                self.brushing = true;
+                self.annotationBackground.attr('visibility','hidden');
+                self.zoomBrushArea.attr('visibility','visible');
+                var brush_node = self.zoomBrushArea.node();
+                var e = new Event('mousedown');
+                e.pageX = d3.event.pageX;
+                e.clientX = d3.event.clientX;
+                e.pageY = d3.event.pageY;
+                e.clientY = d3.event.clientY;
+                brush_node.dispatchEvent(e);
+
+
+//                console.log('drill');
+
+                self.noteMousePosition();
+                //self.updateMouseMarker();
+                //self.renderLegend();
+
+            }
+
+            function mousemove() {
+
+                if(!self.xZoomScale) return;
+                self.noteMousePosition();
+                //self.updateMouseMarker();
+                //self.renderLegend();
+
+            }
+
+            function mouseenter() {
+
+//                console.log("ENTER!");
+                if(!self.xZoomScale) return;
+
+                self.noteMousePosition();
+//                self.updateMouseMarker();
+  //              self.renderLegend();
+
+            }
+
+            function mouseleave() {
+
+                //console.log("LEAVE");
+                if(!self.xZoomScale || self.brushing) return;
+
+//                console.log('hover NULL');
+                self.hoverPoint.write(null);
+               // self.updateMouseMarker();
+               // self.renderLegend();
+
+            }
+
+            self.mouseMarker = self.annotationArea
+                    .append('line')
+                    .attr('name','mouseMarker')
+                    .attr('pointer-events','none')
+                    .attr('y1',30)
+                    .attr('y2',487)
+                    .attr('x1',0)
+                    .attr('x2',0)
+                    .style('stroke','#ace')
+                    .style('stroke-opacity',.75)
+                    .style('stroke-dasharray','2,2');
+
+
+            self.buildsArea = self.annotationArea
+                    .append('g')
+                    .attr('name', 'buildsArea');
+
+
+            self.mouseTimeField = self.chartingArea
+                    .append('text')
+                    .attr('name', 'mouseTimeField')
+                    .attr('transform','translate(' + (width + 120) + ', -18)')
+                    .attr('text-anchor', 'end')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '11px')
+                    .attr('fill', 'rgb(183,176,137)');
+
+        },
+
+        noteMousePosition: function() {
+
+            var self = this;
+            if(!self.xZoomScale) return;
+            if(!self.points) return;
+
+            var bisectDate = d3.bisector(function(d) { return d.dt; }).left;
+
+            var mx = d3.mouse(self.annotationBackground.node())[0];
+            var md = self.xZoomScale.invert(mx);
+
+            var i = bisectDate(self.points, md, 1);
+
+            var d, d0, d1;
+
+            if(self.points.length > 1) {
+                d0 = self.points[i - 1];
+                d1 = self.points[i];
+                if(d0 && d1)
+                    d = md - d0.dt > d1.dt - md ? d1 : d0;
+            } else {
+                d = self.points[0];
+            }
+
+            //console.log("H:");
+            //console.log(d);
+//            console.log('hoverPoint:', d);
+//            console.log('new_tix in hoverPoint:', d.new_tix);
+            self.hoverPoint.write(d);
+
+        },
+
+        updateBuildChevrons: function(builds){
+
+            var self = this;
+
+            if (builds && builds.length == 1) console.log('∆  build selected');
+
+            builds = builds || this.associatedBuildOptions.read();
+            // todo find a cleaner way to make sure things are set up other than checking for scale existence
+            // and calling this again when data arrives
+
+//            if (this.detailPoint.read()) console.log('detailPoint.dt           ◊', this.detailPoint.read().dt);
+            if(!self.xZoomScale || !builds || !self.historyData || self.historyData.length == 0 )
+                return;
+
+            var chevron = d3.svg.line()
+                            .x(function(d) { return d.x; })
+                            .y(function(d) { return d.y; })
+                            .interpolate("linear-closed");
+
+            var chevronPathData = chevron(self.chevronShapeData);
+
+            var buildSel =
+                    self.buildsArea
+                            .selectAll('[name=build]')
+                            .data(builds, function(d){ return d.id;});
+
+            buildSel
+                    .enter()
+                    .append('g')
+                    .attr('name','build')
+                    .append('path')
+                    .attr('fill','purple')
+                    .attr('d', chevronPathData)
+                    .attr('stroke-width', '1px')
+                    .attr('stroke', 'rgb(239, 157, 30)')
+                    .attr('fill', 'rgb(105, 52, 7)')
+
+                    .on('mouseover', function(d, i){
+                        d3.select(this).style({fill: 'rgb(175, 112, 11)', stroke: 'rgb(249, 227, 80'});
+
+                    })
+                    .on('mouseout', function(d, i){
+                        d3.select(this).style({fill: 'rgb(105, 52, 7)', stroke: 'rgb(239, 157, 30'});
+                    })
+                    .on('click', function(d, i){
+                        var build = d;
+                        self.filterList.write([{name:'build',optionId:build.id}]);
+                    })
+            ;
+
+            buildSel
+                    .attr('transform', function(d) {
+                        if (isNaN(self.xZoomScale(d.updated))) {
+                            console.log('self.xZoomScale.domain():', self.xZoomScale.domain());
+                            console.log('self.xZoomScale.range():', self.xZoomScale.range());
+
+                            console.log('d:', d);
+                        }
+                        var x = self.xZoomScale(d.updated);
+                        return 'translate(' + x + ',11)';
+                    })
+                    .call(d3.kodama.tooltip()
+                            .attr({class: 'katana_tooltip_small'})
+                            .prep(function(build){
+                                var tier = (build.is_test) ? 'Test': 'Prod';
+                                return {
+                                    items: [
+                                        {title: 'Build', value: build.name},
+                                        {title: 'Sites', value: build.sites},
+                                        {title: 'Tier', value: tier},
+                                        {title: 'Updated', value: d3.time.format('%-I:%M %p %a %b %e')(build.updated)},
+                                        {title: 'By', value: build.updated_by}
+                                    ]
+
+                                };
+                            })
+            )
+            ;
+
+            buildSel.exit().remove();
+
+        },
+
+        updateMouseMarker: function(p){
+
+            var self = this;
+
+            if(!p)
+//                console.log("AWAY");
+
+            var locked = self.lineLock.read();
+            var showMarker = !!p;
+            if(self.brushing && !locked)
+                showMarker = false;
+
+            //console.log(showMarker);
+
+            self.mouseMarker.style('visibility', showMarker ? 'visible' : 'hidden');
+            self.mouseTimeField.style('visibility', showMarker ? 'visible' : 'hidden');
+
+            if(!p)
+                return;
+
+            var dt = p.dt;
+            var x = self.xZoomScale(dt);
+            self.mouseMarker.attr('x1', x).attr('x2', x);
+
+            var dateFormat = d3.time.format('%-I:%M %p %a %b %e');
+
+            self.mouseTimeField.text(dateFormat(dt));
+
+        },
+
+        initConfig: function(){
+
+            var self = this;
+            var i, f, c;
+
+            // stack charts by heights
+            var top = 0;
+            var padding = 12;
+            for(i = 0; i < this.charts.length; i++){
+                c = this.charts[i];
+                c.top = top;
+                top += c.height + padding + (c.offset || 0);
+            }
+
+            for(var field_name in self.fields){
+                f = self.fields[field_name];
+
+                /* set all fields to active other than 'old_tix' */
+                f.active = (f.name != 'old_tix');
+//                f.active = true;
+            }
+
+            // create field sets to generate totals in data handler
+            self.fields_sets_by_total_field = {};
+
+            for(i = 0; i < self.charts.length; i++){
+                c = self.charts[i];
+                if(c.total_field)
+                    self.fields_sets_by_total_field[c.total_field] = c.fields;
+            }
+
+
+        },
+
+        receiveData: function(msg) {
+            var self = this;
+            self.historyData = self.points = msg.data;
+            self.convertDates(self.historyData, 'dt');
+            self.processData();
+            self.render();
+            self.updateBuildChevrons();
+        },
+
+        // take an array of data, convert string timestamp with milliseconds to local Date object using moment.js
+        convertDates: function(arr, field){
+
+            if(!arr) return;
+            for(var i = 0; i < arr.length; i++) {
+                var d = arr[i];
+                var ts = d[field];
+                if(typeof ts === 'string') {
+                    d['_'+field] = ts;
+                    ts = ts.substring(0, ts.indexOf('.'));
+                    d[field] = moment(ts).toDate();
+                }
+            }
+        },
+
+        processData: function(){
+            var self = this;
+
+            if (!self.historyData) return;
+
+            var i, j, d, f;
+            for(i = 0; i < self.historyData.length; i++){
+
+                d = self.historyData[i];
+
+                // determine values for stacked areas y0 and y1 plus totals of field sets
+                for(var total_field in self.fields_sets_by_total_field){
+                    d[total_field] = 0;
+                    var fields = self.fields_sets_by_total_field[total_field];
+                    for(j = 0; j < fields.length; j++){
+                        var field_name = fields[j];
+                        f = self.fields[field_name];
+
+//                        console.log(field_name, 'd[field_name]:', d[field_name]);
+
+                        var value = f.active ? Number(d[field_name]) :  0;
+                        d[field_name+'_y0'] = d[total_field] || 0;
+                        d[total_field] += (value || 0);
+                        d[field_name+'_y1'] = d[total_field] || 0;
+                    }
+                }
+
+            }
+
+            var lastPoint = self.historyData[self.historyData.length - 1];
+            var detailPoint = self.detailPoint.read();
+
+            self.lastPoint.write(lastPoint);
+            if (!detailPoint) self.detailPoint.write(lastPoint);
+        },
+
+        toggleLineLock: function(){
+            this.lineLock.toggle();
+
+        },
+
+        render: function() {
+            var self = this;
+            var i, c;
+            var points = self.historyData;
+
+            var width = self.width;
+            var height = self.height;
+
+            var customTimeFormat = d3.time.format.multi([
+                [".%L", function(d) { return d.getMilliseconds(); }],
+                [":%S", function(d) { return d.getSeconds(); }],
+                ["%I:%M", function(d) { return d.getMinutes(); }],
+                ["%I %p", function(d) { return d.getHours(); }],
+                ["%a %d", function(d) { return d.getDay() && d.getDate() != 1; }],
+                ["%b %d", function(d) { return d.getDate() != 1; }],
+                ["%b", function(d) { return d.getMonth(); }],
+                ["%Y", function() { return true; }]
+            ]);
+
+            var xZoomScale = self.xZoomScale = d3.time.scale()
+                    .range([0, width])
+                    .domain(d3.extent(points,function(d){return d.dt;}));
+
+            // todo cap domain of zoom within full scale next and try to keep it?
+
+            var xFullScale = self.xFullScale = d3.time.scale()
+                    .range([0, width])
+                    .domain(d3.extent(points,function(d){return d.dt;}));
+
+            var xZoomAxis = d3.svg.axis()
+                    .scale(xZoomScale)
+                    .orient('bottom')
+                    .tickSize(4,0)
+                    .tickFormat(customTimeFormat)
+                    ;
+
+            var xFullAxis = d3.svg.axis()
+                    .scale(xFullScale)
+                    .orient('bottom')
+                    .tickSize(4,0)
+                    .tickFormat(customTimeFormat)
+                    ;
+
+            for(i = 0; i < self.charts.length; i++){
+
+                c = self.charts[i];
+
+                c.xScale = (c.name === 'brush') ? self.xFullScale : self.xZoomScale;
+
+                if(c.axis || c.name === 'time') {
+                    c.yScale = d3.scale.linear()
+                            .range([c.height, 0])
+                            .domain([0, 1.25 * d3.max(points,
+                                    (function(chartDef) {
+                                        return function (d) {
+                                            return d[chartDef.total_field];
+                                        };
+                                    })(c)
+                                  )]);
+
+                    var tickCount = (i == 0) ? 2 : 4;
+                    c.yAxis = d3.svg.axis().scale(c.yScale).ticks(tickCount).tickSize(4,0).orient('left').tickFormat(d3.format('s'));
+                }
+
+                if(c.brush) {
+                    c.xAxis = (c.name === 'brush') ? xFullAxis : xZoomAxis;
+                }
+            }
+
+            var fullScaleBrush = self.fullScaleBrush = d3.svg.brush()
+                    .x(self.xFullScale)
+                    .on('brush', function() {
+
+//                                console.log('setting brushend xzoomX', self.xZoomScale.domain());
+
+                                self.xZoomScale.domain(fullScaleBrush.empty() ? self.xFullScale.domain() : fullScaleBrush.extent());
+
+//                                console.log('finished brushend xzoomX', self.xZoomScale.domain());
+
+
+                                self.updateMouseMarker(self.legendPoint.read());
+                                self.updateBuildChevrons();
+                                redrawCharts(false);
+                    })
+                    .on('brushend', function(e) {
+
+                                var timeChartEndPoint = self.findEndPoint(fullScaleBrush.extent()[1]);
+                                self.zoomEndPoint.write(timeChartEndPoint);
+
+                                var locked = self.lineLock.read();
+                                var legendPoint = self.legendPoint.read();
+
+                                if (locked && fullScaleBrush.empty()) {
+                                    /* when line is locked and zoom is inactive, locked state sets detailPoint */
+                                    self.zoomed.write(false);
+                                    self.detailPoint.write(legendPoint);
+
+                                    console.log('\n', 'C1: zoom killed by click on axis while line is locked',
+                                                '\n', 'locked state sets detailPoint',
+                                                '\n', 'locked:', self.lineLock.read(),
+                                                '\n', 'zoomed:', self.zoomed.read(),
+                                                '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                } else if (locked && !fullScaleBrush.empty()) {
+                                    /* when line is locked and zoom is active, locked state sets detailPoint */
+                                    self.zoomed.write(true);
+                                    self.detailPoint.write(legendPoint);
+
+                                    console.log('\n', 'C2: zoom set or adjusted by drag on axis while line is locked',
+                                                '\n', 'locked state sets detailPoint',
+                                                '\n', 'locked:', self.lineLock.read(),
+                                                '\n', 'zoomed:', self.zoomed.read(),
+                                                '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                } else if (!locked && !fullScaleBrush.empty()) {
+                                    /* when line is unlocked and zoom is active, zoomed state sets detailPoint */
+                                    self.zoomed.write(true);
+                                    self.detailPoint.write(timeChartEndPoint);
+
+                                    console.log('\n', 'C3: zoom set or adjusted by drag on axis while line is unlocked',
+                                                '\n', 'zoomed state sets detailPoint',
+                                                '\n', 'locked:', self.lineLock.read(),
+                                                '\n', 'zoomed:', self.zoomed.read(),
+                                                '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                } else if (!locked && fullScaleBrush.empty()) {
+                                    /* when line is unlocked and zoom is inactive, last data point sets detailPoint */
+                                    self.zoomed.write(false);
+                                    self.detailPoint.write(self.lastPoint.read());
+
+                                    console.log('\n', 'C4: zoom killed by click on axis while line is unlocked',
+                                                '\n', 'last data point sets detailPoint',
+                                                '\n', 'locked:', self.lineLock.read(),
+                                                '\n', 'zoomed:', self.zoomed.read(),
+                                                '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                }
+
+                                console.log('∆  time chart');
+                            })
+                    ;
+
+            var zoomScaleBrush = self.zoomScaleBrush = d3.svg.brush()
+                    .x(self.xZoomScale)
+                    .on('brush', function(e) {
+//                        console.log('BRUSH!');
+                              //  self.updateMouseMarker();
+                    })
+                    .on('brushstart', function(e) {
+                    })
+                    .on('brushend', function(e) {
+                                self.brushing = false;
+                                self.annotationBackground.attr('visibility','visible');
+
+//                                console.log('setting brushend xzoom', self.xZoomScale.domain());
+
+                                self.xZoomScale.domain(zoomScaleBrush.empty() ? self.xZoomScale.domain() : zoomScaleBrush.extent());
+
+//                                console.log('finished brushend xzoom', self.xZoomScale.domain());
+
+                                var mainChartEndPoint = self.findEndPoint(self.xZoomScale.domain()[1]);
+                                self.zoomEndPoint.write(mainChartEndPoint);
+
+                                var locked = self.lineLock.read();
+                                var legendPoint = self.legendPoint.read();
+
+                                console.log('∆  main charts');
+
+                                if(!zoomScaleBrush.empty()) {
+                                    fullScaleBrush.extent(self.xZoomScale.domain());
+
+                                    self.brushSelection
+                                            .call(self.fullScaleBrush)
+                                            .selectAll("rect")
+                                            .attr('rx', 4)
+                                            .attr('ry', 4)
+                                            .attr("y", -12)
+                                            .attr("fill", brush_fill)
+                                            .attr('stroke', '#fff')
+                                            .attr('stroke-opacity', .25)
+                                            .attr('stroke-width', "1px")
+                                            .attr("height", 44);
+
+                                } else {
+                                    self.toggleLineLock();
+                                }
+
+                                if (locked && zoomScaleBrush.empty()) {
+
+                                    console.log('\n', 'D1: chart clicked to unlock line',
+                                                '\n', 'locked:', self.lineLock.read(),
+                                                '\n', 'zoomed:', self.zoomed.read(),
+                                                '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                } else if (locked && !zoomScaleBrush.empty()) {
+                                    /* when line is locked, locked state sets detailPoint */
+                                    self.detailPoint.write(legendPoint);
+                                    self.zoomed.write(true);
+
+                                    console.log('\n', 'D2: zoom set by drag on chart while line is locked',
+                                                '\n', 'locked state sets detailPoint',
+                                                '\n', 'locked:', self.lineLock.read(),
+                                                '\n', 'zoomed:', self.zoomed.read(),
+                                                '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                } else if (!locked && !zoomScaleBrush.empty()) {
+                                    /* when line is unlocked, zoomed state sets detailPoint */
+                                    self.detailPoint.write(mainChartEndPoint);
+                                    self.zoomed.write(true);
+
+                                    console.log('\n', 'D3: zoom set by drag on chart while line is unlocked',
+                                                '\n', 'zoomed state sets detailPoint',
+                                                '\n', 'locked:', self.lineLock.read(),
+                                                '\n', 'zoomed:', self.zoomed.read(),
+                                                '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                } else if (!locked && zoomScaleBrush.empty()) {
+//
+                                    console.log('\n', 'D4: chart clicked to lock line',
+                                                '\n', 'locked:', self.lineLock.read(),
+                                                '\n', 'zoomed:', self.zoomed.read(),
+                                                '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                }
+
+                                self.noteMousePosition();
+                                self.zoomBrushArea.attr('visibility','hidden');
+                                self.updateMouseMarker(self.legendPoint.read());
+                                self.updateBuildChevrons();
+                                redrawCharts(true);
+                            })
+                    ;
+
+            var area = function(f, yScale) {
+
+                return  d3.svg.area()
+                        .x(function (d) {
+                            return self.xZoomScale(d.dt);
+                        })
+                        .y0(function (d) {
+                            return yScale(0);
+                        })
+                        .y1(function (d) {
+                            return yScale(Number(d[f]));
+                        });
+            };
+
+            var areaStacked = function(f, yScale) {
+
+                var y0f = f + '_y0';
+                var y1f = f + '_y1';
+
+                return  d3.svg.area()
+                        .x(function (d) {
+                            return self.xZoomScale(d.dt);
+                        })
+                        .y0(function (d) {
+                            return yScale(Number(d[y0f]));
+                        })
+                        .y1(function (d) {
+                            return yScale(Number(d[y1f]));
+                        });
+            };
+
+
+            var line = function(f) {
+                return d3.svg.line()
+                        .x(function (d) {
+                            return self.xZoomScale(d.dt);
+                        })
+                        .y(function (d) {
+                            return y(Number(d[f]));
+                        });
+            };
+
+//                    return d3.svg.line()
+//                            .x(function(d) { return d.x; })
+//                            .y(function(d) { return d.y; })
+//                            .interpolate("linear");
+
+            var brush_fill = 'url(#' + self['brush_fill'].attr('id') + ')';
+            var chart_clipper = 'url(#' + self['chart_clipper'].attr('id') + ')';
+
+            var chartSelection = self.chartingArea
+                    .selectAll('[name=chart]')
+                    .data(self.charts);
+
+            chartSelection
+                    .enter()
+                    .append('g')
+                    .attr('name','chart')
+                    .attr('transform', function(d, i) {
+                        return 'translate(0,'+ d.top +')';
+                    })
+                    .each(function(chartDef){
+
+                        chartDef.selection = d3.select(this);
+
+                        // build legend area on right of chart, position at bottom right, build up
+                        d3.select(this)
+                                .append('g')
+                                .attr('name', 'legendArea')
+                                .attr('transform', 'translate(' + width + ',' + chartDef.height + ')')
+                        ;
+
+                        d3.select(this).append('g').attr('name', 'graphingArea');
+
+
+                        if(chartDef.axis) {
+
+                            d3.select(this).append('g').attr('name', 'yAxisArea')
+                                    .append('text')
+                                    .attr('transform', 'translate(12,9)')
+                                    .attr('font-family', 'sans-serif')
+                                    .attr('font-size', '11px')
+                                    .attr('fill', 'rgb(183,176,137)')
+                                    .text(function (d) {
+                                        return d.name;
+                                    });
+
+                        }
+
+                        if(chartDef.brush){
+
+                            var xAxisSelection = d3.select(this).append('g')
+                                    .attr("name", 'xAxisArea');
+
+                            if(chartDef.name == 'brush') {
+
+                                var brushSelection = self.brushSelection = d3.select(this).append('g')
+                                        .attr("name", 'brushArea');
+
+
+                            }
+                        }
+
+
+                    });
+
+
+            self.brushSelection
+                    .call(self.fullScaleBrush)
+                    .selectAll("rect")
+                    .attr('rx', 4)
+                    .attr('ry', 4)
+                    .attr("y", -12)
+                    .attr("fill", brush_fill)
+                    .attr('stroke', '#fff')
+                    .attr('stroke-opacity', .25)
+                    .attr('stroke-width', "1px")
+                    .attr("height", 44);
+
+            var rs = self.zoomBrushArea
+                    .call(self.zoomScaleBrush)
+                    .selectAll("rect");
+
+            rs
+                    .attr('rx', 4)
+                    .attr('ry', 4)
+                    .attr("y", 20)
+                    .attr("fill", brush_fill)
+                    .attr('stroke', '#fff')
+                    .attr('stroke-opacity', .25)
+                    .attr('stroke-width', "1px")
+//                    .attr("height", 415);
+                    .attr("height", 467);
+
+            for(i = 0; i < self.charts.length; i++){
+
+                var chartDef = self.charts[i];
+
+                (function(chartDef){
+
+                    if(chartDef.axis) {
+
+                        var seriesSelection = chartDef.seriesSelection =
+                                chartDef.selection
+                                        .select('[name=graphingArea]')
+                                        .attr('clip-path',chart_clipper)
+                                .selectAll('.series')
+                                .data(chartDef.fields);
+
+                        seriesSelection
+                                .enter()
+                                .append('g')
+                                .attr('class', 'series')
+                                .append('path')
+                                .attr('class', 'area')
+                                .attr('fill', function (field) {
+                                    return 'url(#' + self[field + '_fill'].attr('id') + ')';
+                                });
+
+                        seriesSelection
+                                .select('.area')
+                                .attr("d", function (field) {
+//                                    if (chartDef.total_field == 'total_tickets') console.log('points:', points);
+//                                    console.log('chartDef:', chartDef);
+                                    if (chartDef.graph == 'area')
+                                        return area(field, chartDef.yScale)(points);
+                                    else
+                                        return areaStacked(field, chartDef.yScale)(points);
+                                });
+
+
+                        var legendSelection = chartDef.legendSelection =
+                                chartDef.selection
+                                        .select('[name=legendArea]')
+                                        .selectAll('.legend')
+                                        .data(chartDef.fields);
+
+                        var legendEnter = legendSelection
+                                .enter()
+                                .append('g')
+                                .attr('pointer-events','all')
+                                .attr('transform', function(d,i){
+                                    return 'translate(50,' + (-10 - i * 14) + ')';
+                                })
+                                .attr('opacity', function(field_name) {
+                                        var fieldDef = self.fields[field_name];
+                                        return (fieldDef.active) ? 1 : .4;
+                                })
+                                .attr('class', 'legend')
+                                        .on('click', function(field_name){
+                                            var locked = self.lineLock.read();
+                                            var legendPoint = self.legendPoint.read();
+                                            var lastPoint = self.lastPoint.read();
+
+                                            if(locked){
+                                                /* when line is locked, locked state sets detailPoint */
+                                                self.detailPoint.write(legendPoint);
+
+                                                console.log('\n', 'E1: legend box clicked while line is locked',
+                                                            '\n', 'locked state sets detailPoint',
+                                                            '\n', 'locked:', locked,
+                                                            '\n', 'zoomed:', self.zoomed.read(),
+                                                            '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                            } else {
+                                                /* when line is unlocked and zoom is inactive (because of bug), last data point sets detailPoint */
+                                                self.detailPoint.write(lastPoint);
+
+                                                console.log('\n', 'E2: legend box clicked while line is unlocked',
+                                                            '\n', 'last data point sets detailPoint',
+                                                            '\n', 'locked:', locked,
+                                                            '\n', 'zoomed:', self.zoomed.read(),
+                                                            '\n', 'detailPoint.dt:', self.detailPoint.read().dt, '\n\n');
+
+                                            }
+
+                                            var fieldDef = self.fields[field_name];
+                                            fieldDef.active = !fieldDef.active;
+
+                                            d3.select(this)
+                                                    .attr('opacity', fieldDef.active ? 1 : .4);
+
+//                                            console.log(fieldDef.name, '| active:', fieldDef.active);
+
+                                            self.processData();
+                                            self.render();
+                                            self.updateBuildChevrons();
+                                        });
+
+                        legendEnter
+                                .append('rect')
+                                .attr('x', 0)
+                                .attr('y', 0)
+                                .attr('width', 6)
+                                .attr('height', 10)
+                                .attr('fill', function (field) {
+                                    return 'url(#' + self[field + '_fill'].attr('id') + ')';
+                                });
+
+                        legendEnter
+
+                                .append('text')
+                                .attr('transform', 'translate(12,8)')
+                                .attr('font-family', 'sans-serif')
+                                .attr('font-size', '10px')
+                                .attr('fill', 'rgb(181,169,108)')
+                                .text(function (field) {
+                                    return self.fields[field].title;
+                                });
+
+
+                        legendEnter
+
+                                .append('text')
+                                .attr('transform', 'translate(-7,8)')
+                                .attr('text-anchor', 'end')
+                                .attr('font-family', 'sans-serif')
+                                .attr('font-size', '10px')
+                                .attr('fill', 'rgb(181,169,108)')
+                                .text(function (field) {
+                                    self.statFieldsByName[field] = d3.select(this);
+                                    return "";
+                                });
+
+                        var yAxisSelection = chartDef.selection.select('[name=yAxisArea]');
+
+
+                        yAxisSelection
+                                .call(chartDef.yAxis)
+                                .attr('font-family', 'sans-serif')
+                                .attr('font-size', '10px')
+                                .attr('fill', 'rgb(181,169,108)')
+                                .selectAll('path,line')
+                                .attr('fill', 'none')
+                                .attr('stroke', 'rgb(181,169,108)')
+                                .attr('shape-rendering', 'crispEdges');
+
+
+
+
+                    }
+
+                    if(chartDef.brush) {
+
+                        var xAxisSelection = chartDef.selection.select('[name=xAxisArea]');
+                        var axisColor = (chartDef.name == 'time') ? 'rgb(181,169,108)' : 'rgb(76, 150, 198)';
+                        xAxisSelection
+                                .call(chartDef.xAxis)
+                                .attr('font-family', 'sans-serif')
+                                .attr('font-size', '10px')
+                                .attr('fill', axisColor)
+                                .selectAll('path,line')
+                                .attr('fill', 'none')
+                                .attr('stroke', axisColor )
+                                .attr('shape-rendering', 'crispEdges');
+                    }
+
+                })(chartDef);
+
+            }
+
+            function updateChartDefAxisY(chartDef, points){
+
+                var c = chartDef;
+
+                /* exempt the brush chart, which has no y axis */
+                if (c.name === 'brush') return;
+
+                if(c.axis) {
+                    c.yScale = d3.scale.linear()
+                            .range([c.height, 0])
+                            .domain([0, 1.25 * d3.max(points,
+                                    (function(chartDef) {
+                                        return function (d) {
+                                            return d[chartDef.total_field];
+                                        };
+                                    })(c)
+                            )]);
+
+                    var tickCount = (c.name === 'tickets') ? 2 : 4;
+                    c.yAxis = d3.svg.axis().scale(c.yScale).ticks(tickCount).tickSize(4,0).orient('left').tickFormat(d3.format('s'));
+                }
+
+
+                var yAxisSelection = c.selection.select('[name=yAxisArea]');
+
+                yAxisSelection
+                        .call(c.yAxis)
+                        .attr('font-family', 'sans-serif')
+                        .attr('font-size', '10px')
+                        .attr('fill', 'rgb(181,169,108)')
+                        .selectAll('path,line')
+                        .attr('fill', 'none')
+                        .attr('stroke', 'rgb(181,169,108)')
+                        .attr('shape-rendering', 'crispEdges');
+
+            }
+
+            function redrawCharts(){
+
+                // get current zoom domain, filter points to date range, determine new min/max
+
+                var domain = self.xZoomScale.domain();
+
+                var points = self.historyData.filter(function(d){
+                   return (d.dt >= domain[0] && d.dt <= domain[1]);
+                });
+
+                var chartDef;
+
+                for(var i = 0; i < self.charts.length; i++){
+
+                    chartDef = self.charts[i];
+
+                    (function(chartDef, points) {
+
+//                        console.log('GOT POINTS:', points.length);
+
+                        updateChartDefAxisY(chartDef, points);
+
+                        if (chartDef.seriesSelection) {
+                            chartDef.seriesSelection
+                                    .select('.area')
+                                    .attr("d", function (field) {
+                                        if (chartDef.graph == 'area')
+                                            return area(field, chartDef.yScale)(points);
+                                        else
+                                            return areaStacked(field, chartDef.yScale)(points);
+                                    });
+                        } else if (chartDef.name === 'time') {
+                            // redraw x axis for zoomed time
+                            chartDef.selection.select('[name=xAxisArea]').call(chartDef.xAxis);
+                        }
+                    })(chartDef, points); // self.historyData
+                }
+
+                self.renderLegend(self.legendPoint.read());
+
+            }
+        },
+
+        renderLegend: function(legendPoint){
+
+            var self = this;
+            self.updateMouseMarker(legendPoint);
+
+            for(var field in self.statFieldsByName){
+
+                var sel = self.statFieldsByName[field];
+
+                var value = legendPoint && legendPoint[field] || 0;
+
+                var format = value >= 1000 ? d3.format('.3s') : d3.format('d');
+                sel.text(format(value));
+                sel.style('visibility', legendPoint ? 'visible' : 'hidden');
+            }
+
+        }
+
+    });
+
+</script>

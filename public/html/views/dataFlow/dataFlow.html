@@ -1,0 +1,574 @@
+
+<blueprint>
+    <sensor watch="networkFlow_svc" run="render" auto="true"></sensor>
+    <sensor watch="refreshAllFilters" batch="true" run="requestData" auto="true" ></sensor>
+
+    <prop find="networkFlow_svc" />
+    <prop find="getOptionItem" is="method" />
+    <prop find="uiFilterApply" />
+    <!--<prop find="networkMessageTypeFlow" is="service" />-->
+</blueprint>
+
+<display>
+
+    <div id="chartHolder"></div>
+
+</display>
+
+<script>
+
+$.cog({
+
+    init: function(){
+        this.initSankey();
+    },
+
+    requestData: function(){
+        var options = this.mapItem.createParams({span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility",msg_type:"messageType"});
+        this.networkFlow_svc.request(options);
+
+    },
+
+    render: function(msg){
+
+        var self = this;
+        var nodeMap = {};
+        var nodeData = [];
+        var linkData = msg.data;
+
+        for(var i=0; i <linkData.length; i++){
+            var d = linkData[i];
+            d.sent = Number(d.sent);
+            d.expected = Number(d.expected);
+            d.volume = d.sent || d.expected;
+
+            if(d.status == 'hot') {
+                d.isHot = true;
+
+            }
+
+            if(d.status == 'cold') {
+                d.isCold = true;
+
+            }
+
+            if(d.status == 'dead') {
+                d.isDead = true;
+
+            }
+        }
+
+        function processNodeData(nodeID, nodeType, link){
+
+            var itemID = nodeID;
+
+            if(!nodeID) {
+                nodeID = "BLANK-" + nodeType;
+            } else {
+                nodeID = nodeID + "_" + nodeType;
+            }
+
+            var item;
+
+            switch(nodeType) {
+                case "dc":
+                    item = self.getOptionItem('dataCenter', itemID);
+                    break;
+                case "m":
+                    item = self.getOptionItem('network', itemID);
+                    break;
+                case "f":
+                    item = self.getOptionItem('facility', itemID);
+                    break;
+                case "mt":
+                    item = self.getOptionItem('messageType', itemID);
+                    break;
+            }
+
+            item = item || {name: 'BLANK', abbr: 'BLANK', id: 'BLANK'};
+
+            return nodeMap[nodeID] || (nodeMap[nodeID] = {fac: 0, dead: 0, cold: 0, hot: 0, ct: 0, name: item.name, id: item.id, nodeType: nodeType, value: 0, abbr: item.abbr, completed: 0, sent: 0, expected: 0   });
+        }
+
+        _.forEach(linkData, function(link){
+            var n1 = processNodeData(link.n1, link.n1_type, link);
+            var n2 = processNodeData(link.n2, link.n2_type, link);
+            link.source = n1;
+            link.target = n2;
+            link.value = link.volume;
+            link.cc = "#20a8e3";//(Math.random() <.05) ? "#cccc77" : (Math.random() <.05) ?"#ff6666":"#20a8e3";
+
+            if(link.isDead)
+                link.cc = '#d63652';//148,98,// rgb(231, 54, 82)
+            else if(link.isHot)
+                link.cc = '#9040d0';
+            else if(link.isCold)
+                link.cc = '#cccc33';
+
+            link.oo = .3;
+            if(link.isCold || link.isDead)
+                link.oo = .6;
+        });
+
+        _.forEach(nodeMap, function(node){
+            nodeData.push(node);
+        });
+
+        this.drawSankey(nodeData,linkData);
+
+    },
+
+
+    initSankey: function() {
+
+        var self = this;
+        var rootDiv = self.chartHolder.get(0);
+        var svg = d3.select(rootDiv).append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 -10 1200 620")
+                .attr("preserveAspectRatio", "xMidYMid meet")
+                .append("g");
+
+        var gemFade = svg
+                .append("linearGradient")
+                .attr("y1", 0)
+                .attr("y2", 1)
+                .attr("x1", 0)
+                .attr("x2", 0)
+                .attr("id", "gemFade");
+
+        gemFade
+                .append("stop")
+                .attr("offset", "0%")
+                .attr("stop-color", "#fff")
+                .attr("stop-opacity", .75);
+
+        gemFade
+                .append("stop")
+                .attr("offset", "50%")
+                .attr("stop-color", "#fff")
+                .attr("stop-opacity", .25);
+
+
+        var lineFade = svg
+                .append("linearGradient")
+                .attr("y1", 0)
+                .attr("y2", 0)
+                .attr("x1", 0)
+                .attr("x2", .15)
+                .attr("id", "lineFade");
+
+        lineFade
+                .append("stop")
+                .attr("offset", "0%")
+                .attr("stop-color", "#fff")
+                .attr("stop-opacity", "100%");
+
+        lineFade
+                .append("stop")
+                .attr("offset", "100%")
+                .attr("stop-color", "#fff")
+                .attr("stop-opacity", "0%");
+
+        var hot_node = svg
+                .append("radialGradient")
+                .attr("id", "hot_node")
+                .attr("cx", "20%")
+                .attr("cy", "20%")
+                .attr("r", "90%");
+
+        hot_node
+                .append("stop")
+                .attr("offset", 0)
+                .attr("stop-color", "#c080f0");
+
+        hot_node
+                .append("stop")
+                .attr("offset", .5)
+                .attr("stop-color", "#9040d0");
+
+        hot_node
+                .append("stop")
+                .attr("offset", 1)
+                .attr("stop-color", "#662096");
+
+        var cold_node = svg
+                .append("radialGradient")
+                .attr("id", "cold_node")
+                .attr("cx", "20%")
+                .attr("cy", "20%")
+                .attr("r", "90%");
+
+        cold_node
+                .append("stop")
+                .attr("offset", 0)
+                .attr("stop-color", "#d5d2a0");
+
+        cold_node
+                .append("stop")
+                .attr("offset", .5)
+                .attr("stop-color", "#c3b840");
+
+        cold_node
+                .append("stop")
+                .attr("offset", 1)
+                .attr("stop-color", "#938020");
+
+
+        var danger_node = svg
+                .append("radialGradient")
+                .attr("id", "danger_node")
+                .attr("cx", "20%")
+                .attr("cy", "20%")
+                .attr("r", "90%");
+
+        danger_node
+                .append("stop")
+                .attr("offset", 0)
+                .attr("stop-color", "#efc5d1");
+
+        danger_node
+                .append("stop")
+                .attr("offset", .5)
+                .attr("stop-color", "#e73854");
+
+        danger_node
+                .append("stop")
+                .attr("offset", 1)
+                .attr("stop-color", "#a32542");
+
+
+        var normal_node = svg
+                .append("radialGradient")
+                .attr("id", "normal_node")
+                .attr("cx", "25%")
+                .attr("cy", "25%")
+                .attr("r", "90%");
+
+        normal_node
+                .append("stop")
+                .attr("offset", 0)
+                .attr("stop-color", "#e0e2e7");
+
+        normal_node
+                .append("stop")
+                .attr("offset", .5)
+                .attr("stop-color", "#20a8e3");
+
+        normal_node
+                .append("stop")
+                .attr("offset", 1)
+                .attr("stop-color", "#1088c3");
+
+
+        var line_good = svg
+                .append("linearGradient")
+                .attr("y1", "0%")
+                .attr("y2", "100%")
+                .attr("x1", "0%")
+                .attr("x2", "0%")
+                .attr("id", "lg");
+
+        line_good
+                .append("stop")
+                .attr("offset", "0%")
+                .attr("stop-color", "#ff0");
+
+        line_good
+                .append("stop")
+                .attr("offset", "100%")
+                .attr("stop-color", "#f00");
+
+
+        this.link_layer = svg.append("g");
+        this.node_layer = svg.append("g");
+        this.text_layer = svg.append("g");
+
+    },
+
+    drawSankey: function(nodes, links){
+
+        var width = 1200;
+        var height = 600;
+        var overPath = null;
+        var self = this;
+
+        var sankey = d3.sankey()
+                .nodeWidth(50)
+                .nodePadding(12)
+                .size([width, height]);
+
+        var path = sankey.link();
+
+        sankey
+                .nodes(nodes)
+                .links(links)
+                .atts(['sent','expected','completed','dead','hot','cold','ct','fac'])
+                .layout(20);
+
+        function getLinkTip(d) {
+
+            if(!d)
+                return null;
+
+            var tip = {
+                title: d.source.name + " to " + d.target.name,
+                items: getTipItems(d)
+            };
+
+            return tip;
+
+        }
+
+        function getNodeTip(d) {
+
+            if(!d)
+                return null;
+
+            var tip = {
+                title: d.name,
+                items: getTipItems(d)
+            };
+
+            return tip;
+
+        }
+
+        function getTipItems(d) {
+
+
+            var items = [];
+
+            items.push( {title: 'Messages', value: d3.format(',d')(Number(d.sent))});
+
+            if(Number(d.sent) === 0){
+                items.push( {title: 'Expected', value: d3.format(',d')(Math.round(Number(d.expected)))});
+            } else {
+                if (d.expected)  items.push( {title: 'Pct of Expected', value: d3.format('.1%')(Number(d.sent)/Number(d.expected))});
+            }
+
+            items.push( {title: 'Connections', value: d3.format(',d')(Math.round(Number(d.ct)))});
+
+            if(d.dead)
+                items.push( {title: 'Down', value: d3.format(',d')(Math.round(Number(d.dead)))});
+
+            if(d.cold)
+                items.push( {title: 'Low Vol', value: d3.format(',d')(Math.round(Number(d.cold)))});
+
+            return items;
+
+
+        }
+
+        var link = this.link_layer.
+                selectAll(".link")
+                .data(links, function (d) {
+                    return d.source.id + ":" + d.target.id;
+                });
+
+
+        link
+                .enter().append("path")
+                .attr("class", "link")
+                .call(d3.kodama.tooltip()
+                        .attr({class: 'katana_tooltip'})
+                        .prep(getLinkTip))
+
+                .on("mouseover", function(d){
+
+                    overPath = path(d);
+                    d3.select(this)
+                            .style("opacity",1);
+                })
+                .on("mouseout",function(d){
+                    d3.select(this)
+                            .style("opacity", d.oo);
+                })
+                .on("click",function(d){clicky.bind(self)(d.target);})
+                .style("opacity",1)
+        ;
+
+        link
+                .transition()
+                .duration(function(d,i){ return 150;})
+                .delay(function(d,i){ return i * 10 + 500; })
+                .attr("d", path)
+                .style("stroke-width", function (d) {
+                    return Math.max(1, d.dy);
+                })
+                .style("stroke", function(d){return d.cc;})
+                .style("opacity", function(d){return d.oo;})
+                .sort(function (a, b) {
+                    return b.dy - a.dy;
+                })
+
+        ;
+
+        link.exit().remove();
+
+        var node = this.node_layer.selectAll(".node")
+                .data(nodes, function (d) {
+                    return d.id;
+                });
+
+        var e = node
+                        .enter().append("g")
+                        .attr("class", "node")
+                        .call(d3.kodama.tooltip()
+                                .attr({class: 'katana_tooltip'})
+                                .prep(getNodeTip))
+                        .style("opacity", 0)
+                        .on("click",function(d){clicky.bind(self)(d);})
+
+                ;
+
+
+        e
+                .append("rect")
+                .attr("rx", 4)
+                .attr("ry", 4)
+                .attr("transform", function (d) {
+                    return "translate(" + d.x + "," + d.y + ")";
+                })
+                .attr("fill",function(d,i){
+                    if(d.dead >= d.ct * .5) {
+
+                        return "url(#danger_node)";
+                    } else if (d.cold >= d.ct * .5) {
+                        return "url(#cold_node)";
+                    } else if (d.hot >= d.ct * .5) {
+                        return "url(#hot_node)";
+                    }
+                    return "url(#normal_node)";
+
+                })
+                .attr("height", 0)
+                .attr("width", sankey.nodeWidth())
+               // .attr("data-content","showing stuff")
+
+        ;
+
+        var gem = d3.svg.gem()
+                        .bottomLeft(9)
+                        .bottomRight(9)
+                        .topLeft(1)
+                        .topRight(1)
+                        .width(50-4)
+                        .height(12)
+                ;
+
+        e
+                .append("path")
+                .attr("pointer-events","none")
+                .attr("class","gem")
+                .attr("d", gem)
+                .attr("transform", function (d) {
+                    return "translate(" + (d.x + 2) +"," + (d.y + 2) + ")";
+                })
+                .style("fill","url(#gemFade)")
+                .style("stroke-width",1)
+            // .style("stroke","url(#gemFade)")
+                .style("stroke-opacity",0)
+                .style("opacity",.5)
+        ;
+
+        var g = e.append("g");
+
+
+        g
+                .append("text")
+                .style("opacity", .0)
+                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ") "; })
+                .text(function (d) {
+                    var str = d.abbr;
+                   // if(d.dead > 0)
+                   //     str += ' [ ' + d.dead + ' ]';
+                    return str;
+                });
+
+        node
+                .style("opacity",1)
+        ;
+
+        node.select("rect")
+
+                .transition()
+                .duration(function(d,i){ return 500;})
+                .delay(function(d,i){ return 0 })
+                .attr("transform", function (d) {
+                    return "translate(" + d.x + "," + d.y + ")";
+                })
+                .attr("fill",function(d,i){
+                   // console.log(d);
+                    if(d.dead >= d.ct * .5) {
+
+                        return "url(#danger_node)";
+                    } else if (d.cold >= d.ct * .5) {
+                        return "url(#cold_node)";
+                    }
+                    else if (d.hot >= d.ct * .5) {
+                        return "url(#hot_node)";
+                    }
+                    return "url(#normal_node)";
+
+                })
+                .attr("height", function (d) {
+                    return d.dy + 4;
+                })
+                .attr("width", sankey.nodeWidth())
+
+        ;
+
+        node.select(".gem")
+
+                .transition()
+                .duration(function(d,i){ return 500;})
+                .delay(function(d,i){ return 0 })
+                .attr("transform", function (d) {
+                    return   "translate(" + (d.x + 2) +"," + (d.y + 2) + ") scale(1,"+ (d.dy > 20 ? d.dy *.05 : d.dy *.01)+ ")" ;
+                })
+
+        ;
+
+        node.select("text")
+                .transition()
+                .duration(500)
+                .style("opacity", 1.0)
+                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ") "; })
+                .attr("x" , -6) // -6
+                .attr("y", function(d) { return d.dy / 2; })
+                .text(function (d) {
+                    return d.abbr;
+                })
+                .attr("dy", "6")
+                .attr("font-size", function(d){
+                    return "14px";
+                })
+                .attr("text-anchor", "end")
+                .filter(function(d) { return d.x < width / 2; })
+                .attr("x", 6 + sankey.nodeWidth())
+                .attr("text-anchor", "start");
+
+
+        node.exit().remove();
+
+        function clicky(d){
+
+            var nt = d.nodeType; // m mt dc f
+            if(nt=="mt"){
+                self.uiFilterApply.write({name: 'messageType', optionId: d.id});
+            } else if(nt=="dc") {
+                self.uiFilterApply.write({name: 'dataCenter', optionId: d.id});
+            } else if(nt=="m") {
+                self.uiFilterApply.write({name: 'network', optionId: d.id});
+            } else if(nt=="f") {
+                self.uiFilterApply.write({name: 'facility', optionId: d.id});
+            }
+
+        }
+
+    }
+});
+
+</script>

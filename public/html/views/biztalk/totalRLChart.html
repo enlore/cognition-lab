@@ -1,0 +1,41 @@
+<blueprint>
+
+    <alias name="TOTAL_RL_RENDERER" url="totalRLRenderer.html" />
+
+
+    <data name="columns" value="prop defineColumns" />
+    <data name="records" prop="true" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <sensor watch="totalRLChartData" run="updateChart" />
+
+    <cog find="grid" url="KATANA_GRID" />
+</blueprint>
+
+<display>
+    <div id="grid" />
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        defineOptions: {
+            headerHeight: 28,
+            rowHeight: 40,
+            paneHeight: 280
+        },
+
+        defineColumns: [
+            { field: "group", title: "Rcv Locations", flex: "0 0 93px", renderer: "TOTAL_RL_RENDERER", clickable:true }
+        ],
+
+        updateChart: function(totalRLChartData) {
+            this.records.write(totalRLChartData.data);
+        }
+
+    });
+</script>

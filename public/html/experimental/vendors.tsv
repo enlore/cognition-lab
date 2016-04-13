@@ -1,0 +1,375 @@
+vid	vendor	vname
+1	3mdm	3M Documentation Mgmt
+2	accs	Skylight (Access)
+3	acex	Accenx Exchange
+4	acud	McKesson (Acudose)
+5	agfa	AGFA (Impax)
+6	agil	Agility Healthcare
+7	ahqa	AHI Software (AHIQA)
+8	aims	Merge Healthcare (AIMS)
+9	airs	Air Shield (Watchchild)
+10	aisb	Apollo Information Services
+11	algt	AllegiantMD (Merge)
+12	amas	Sheridan (Amcias)
+13	amed	AutoMed (FDS)
+14	aml	AML Reference Lab (Bought by Quest)
+15	amsc	UHS (AMISCS8)
+16	anrd	Shareable Ink
+17	aplo	Lumedx (Apollo Advance)
+18	arad	Radisphere (AccuRad)
+19	aria	Varian (Aria)
+20	arie	Ardent/Ochsner (Interface Engine)
+21	aroe	Airstrip Technologies (One Cardiology)
+22	arup	ARUP Reference Lab
+23	asrd	Austin Radiological (Nuance/PowerScribe)
+24	athn	AthenaHealth (AthenaClinicals)
+25	atrm	Antrium (IRL)
+26	ava	Avaya
+27	axal	Axial Exchange (Provider)
+28	bbrh	Big Ben RHIO (BBRHIO)
+29	bnfr	Applied Health Analytics (Benefactor IQ)
+30	brmd	eMD for Bariatrics
+31	bti	Biztalk (Integration Services Platform)
+32	bztl	Biztalk (Parallon Platform)
+33	caly	Witt Biomedical (Calysto)
+34	cams	Patriot Medical Technologies (CAMS)
+35	caps	Vital Sign (Capsule)
+36	ccws	GE (Centricity Cardio Workflow (CCW))
+37	cdis	3M (Clinical Document Improvement System)
+38	cdnx	Codonix
+39	cdsr	Epiphany (Cardio Server)
+40	cgcl	Standing Stone (CaogClinic)
+41	clar	Spheris (Clarity)
+42	clnc	Clinicomp (CCU System)
+43	clnv	Puritan Bennett (Clinivision)
+44	cmi	Philips (Clinical Monitor Interfaces - CMI)
+45	cmps	BCX/CompSee - Omnicell Optiflex
+46	cmre	Provation (MD) - CMORE
+47	comp	Computrition
+48	copa	Copia (Viracor-IBT)
+49	coph	Cerner (SaraPath CoPathPlus)
+50	cpn	GE(CPN-OBL)
+51	cprc	IMACS (CarePricer)
+52	cpsi	CPSI HIS (Computer Programs and Systems Inc)
+53	cqi	NextGen (Surgical/CQI)
+54	crbn	Grand Rounds Software (Crib Notes)
+55	crdo	GE (CardioLab)
+56	crme	CMRE Financial Services
+57	crwr	Sheridan (CAREWritEHR)
+58	csco	CISCO PBX
+59	ctc	Care Team Connect
+60	cths	Goodroe (Cathsource TM Transcription)
+61	cvpc	GE (Centricity DMS/CVPACS)
+62	d123	Callibia Discharge 123
+63	dbmo	db Motion
+64	dcep	Medquist (DocEP)
+65	dee	Dictaphone (Enterprise Express)
+66	dicr	Dictaphone (RX)
+67	dino	Data Innovations (Instrument Manager)
+68	docl	LIN Software (DocLinks)
+69	docm	Northwest/IDX (DocMS)
+70	drck	Ameripath (Derrick & Associates)
+71	drsy	AGFA (DR Mammography)
+72	dypv	VigiLanz Corp (Dynamic PharmacoVigilance)
+73	ecin	Extended Care (ECIN)
+74	ecnt	Passport Health Communications, Inc. (eCare Next)
+75	ecps	Heartlab (Encompas)
+76	ecw	eClinicalWorks (eCW) - ASP
+77	ecww	eClinical Works (eCW) - RDC
+78	edie	Collective Medical Technologies (EDIE)
+79	edix	Spheris (formally EDIX)
+80	edm	Siemens (EDM)
+81	egat	SeeBeyond (eGate)
+82	ehan	e-Handoff (e-Handoff)
+83	eicu	Visicu (eICU)
+84	elca	Electronic Lab Reporting - CA
+85	elco	Electronic Lab Reporting - CO
+86	elfl	Electronic Lab Reporting - FL
+87	elga	Electronic Lab Reporting - GA
+88	elgp	Recondo Technology (EligibilityPlus)
+89	elin	Electronic Lab Reporting - IN
+90	elky	Electronic Lab Reporting - KY
+91	ella	Electronic Lab Reporting - LA
+92	elmo	Electronic Lab Reporting - MO
+93	elnh	Electronic Lab Reporting - NH
+94	elnv	Electronic Lab Reporting - NV (PHINMS)
+95	elok	Electronic Lab Reporting - OK
+96	elsc	Electronic Lab Reporting - SC (PHINMS)
+97	eltn	Electronic Lab Reporting - TN
+98	eltx	Electronic Lab Reporting - TX
+99	elva	Electronic Lab Reporting - VA
+100	elys	Axolotl
+101	emap	Lynx Medical (E/Map)
+102	emca	Emcare (ED Billing)
+103	emci	EMCARE (Ingenious Med)
+104	empo	Software Solutions Network (Empro)
+105	empr	Empiric (Encompass.NET)
+106	endo	Olympus (EndoWorks)
+107	epat	Lincor Solutions Inc. (ePatient)
+108	epic	Epic
+109	epoc	Alere (epoc)
+110	escr	eScription (EditScript)
+111	esid	phgTechnologies (EasyID)
+112	essc	Essence (Santa Clara Health Dept)
+113	estx	Esoterix (Entrix)
+114	etls	ETL Server
+115	evlf	Edwards Lifesciences (EV1000)
+116	expd	Expeditor
+117	fdoh	Florida Department of Health
+118	fmat	FormFast
+FormFast (Imprint)
+119	fofr	Central Logic (ForeFront Transfer)
+120	frnt	Eko Systems (Frontiers)
+121	frps	Foundation Radiology (PowerScribe 360)
+122	fusn	Dolbey (Fusion)
+123	fvce	Dolbey/DVI (Fusion Voice)
+124	galv	Galvanon
+125	game	Gamewood (GHN)
+126	gcie	Gulf Coast Division (GCDHL7)
+127	gecm	GE (CMI Aware Gateway)
+128	gecs	GE (CMI-CareScape Gateway)
+129	gemm	Heartland (Gemstar MR)
+130	gemr	Heartland (Gemstar Rad)
+131	gems	CommonCents (GEMServe)
+132	glur	Alere (GlucoStabilizer)
+133	grnr	Greensboro Radiology (Canopy Partners)
+134	haem	Haemonetics (SafeTrace TX)
+135	hcom	hc1.com
+136	hdd	HPG Data Download
+137	hels	Healthsouth
+138	hhd	City of Houston Health Dept (RODS)
+139	hlat	Extension (HealthAlert)
+140	hltc	Dictaphone (Health Touch)
+141	hms	Health Monitoring Systems (HMS)
+142	hone	Nuance (Healthone)
+143	horz	McKesson (Horizon Imaging)
+144	hpf	McKesson - HPF (Facility)
+145	htch	MCR Technologies (Health Touch)
+146	hths	Healthscribe
+147	htn	Health Television Network (HTN)
+148	hzcd	McKesson (Horizon Cardiology)
+149	ibis	Martin Gottlieb & Associates (IBIS)
+150	icis	Karl Storz (ICIS)
+151	idxp	IDX Physician PMS
+152	idxr	IDX Radiology
+153	imad	Identity Mang Account Details (Homegrown)
+154	imag	IDX (Imagecast)
+155	imak	State of AK Immunization
+156	imca	State of CA Immunization
+157	imco	State of CO Immunization
+158	imed	Ingenious Med
+159	imfl	State of FL Immunization
+160	imga	Imaging Advantage
+161	imgn	Perceptive Software (ImageNow)
+162	imgv	GE (Image Vault Echopacs)
+163	imid	State of ID Immunization
+164	imin	State of IN Immunization
+165	imks	State of KS Immunization
+166	imky	State of KY Immunization
+167	imla	State of LA Immunization
+168	immo	Bureau of Immunizations-MO
+169	imnh	State of NH Immunization
+170	imob	Mobile Heartbeat (imobile)
+171	imok	State of OK Immunization
+172	impc	Impac (MOSAIQ/Multi-ACCESS ESI)
+173	imsc	State of SC Immunization
+174	imtn	Bureau of Immunizations-TN
+175	imtx	Bureau of Immunizations-TX
+176	imut	State of Utah Immunization
+177	imva	State of VA Immunization
+178	inan	Draeger (Innovian Anesthesia)
+179	infi	Infinitt (PACS)
+180	inft	Amtelco (Infinity)
+181	init	HealthVision (Initiate)
+182	intd	SDC (IntelliDesk)
+183	intq	McKesson (Interqual)
+184	iodn	Iodine (Iodine Software, LLC)
+185	ipc	IPC Link
+186	ipl	iPeople
+187	irnd	Teges (iRounds)
+188	isas	WiPro (ISAS)
+189	itel	Intelerad Medical (Inteleviewer)
+190	ivlk	Invivolink
+191	kaiz	Kaiser (Harris/Epic)
+192	kdhl	Krames Staywell (KOD HL7)
+193	khin	Kansas Health Information Network (KHIN/ICA)
+194	kndx	Siemens (Acuson KinetDx)
+195	kpai	KPMD (Medwrite/KPAI)
+196	labc	LabCorp Reference Lab
+197	lanm	Lanier (MedWord) Bought by MedQuist
+198	lbwk	Atlas Labworks
+199	lees	Leesar
+200	lion	IBSG (lablion LIS)
+201	lits	Lodgenetrx-Interactive Television System
+202	logc	Logicare
+203	lpti	Lifepoint (Informatics)
+204	mcal	Amcom Software (MediCall Select)
+205	mcar	McKesson (MedCarousel)
+206	mdas	Medassets
+207	mdmb	MediMobile
+208	mdq	MedQuist (old product)
+209	mdrx	PhACTS (MedRexStat)
+210	mds	MDS (IRL)
+211	mdsl	Medselect (Medselect RX)
+212	medc	McKesson (Horizon Medcomm-RX)
+213	medl	Intego/Wescom (Medlink 3000)
+214	mglk	Magview (Maglink)
+215	mhub	Medicity HUB Grid
+216	mids	Midas (Facility)
+217	milm	Millenium (Cerner)
+218	mmin	Medmined (VSI)
+219	mpath	Mercy Hosp  - McKesson Pathways Interface Engine
+220	mprt	Mprint
+221	mrbt	McKesson (Robot-Rx)
+222	mrc	Medical Records Corp (MRC)
+223	mrs	Mammography Reporting System (MRS)
+224	mt	Meditech (HCA 5.6)
+225	mtcs	Meditech (HCA CS 6.0)
+226	mtm	Meditech (Mainstream)
+227	multi	Multiple Vendor Connection (Localhost only)
+228	muse	GE (Centricity) MUSE
+229	neod	IsoPrime (Neodata)
+230	ngag	Proventix (nGage)
+231	nhhd	New Hampshire Health Dept (AHEDD)
+232	nicu	Isoprime (NICU Nursing Module)
+233	niko	Nihon Kohden (NeuroWorkbench)
+234	none	*** DO NOT REMOVE ***
+235	notf	Health IT (Notifi)
+236	novo	Novopath
+237	nowk	Natus Medical (Neuroworks)
+238	nrtl	NORTEL
+239	nvcr	Hill-Rom (Navacare)
+240	nvpc	NovaRad (NovaPACS)
+241	oais	Telus Health
+242	obtr	Philips (OB Trace Vue)
+243	oep	Goodroe (Cathsource TM Billing/OEP)
+244	oflx	Omnicell (Optiflex)
+245	oimx	Optimal IMX
+246	omhb	Omega Diagnostics (Omega Hub)
+247	omni	Omnicell (Supply Station)
+248	ompm	Insight Medical Mgt (Omnicare )
+249	ompt	Medical Web Tech (One Medical Passport)
+250	onbs	Hyland (Onbase)
+251	onco	Bogardus Medical Systems (OncoChart)
+252	oncu	Allocade (On-Cue)
+253	opdr	Doctors Hosp (IE - Optilink)
+254	optm	OptumInsight (Computer-Assisted Coding (CAC))
+255	osur	OmniCell (Suremed)
+256	pa	PA
+257	pacm	McKesson (PacMed)
+258	pacs	GE (Centricity) - CCG PACS
+259	paml	PAML
+260	pcpn	Primary Care Physician Notification (PCP)
+261	penr	PenRad (MIS)
+262	peri	GE (Centricity Perioperative)
+263	pfts	Patient Focus Systems (PTS)
+264	phes	Regenstrief Institute (PHESS)
+265	phlk	AmeriPath (Pathlink)
+266	phns	PHNS
+267	phy	Physician System (Generic FTP Files)
+268	phyc	Advanced Diagnostics Imaging
+269	pkp	Patient Keeper (Portal)
+270	plth	Plexus (Anesthesia Touch)
+271	pmed	Promed (Promed)
+272	pnav	Patient Navigator (Sarah Cannon RI)
+273	prat	HASA (Provider Assist)
+274	prcs	Abbott (Precision PCx)
+275	prev	SSI (Prevent)
+276	prml	Dade Behring (Pharmlink)
+277	psen	Dictaphone (PowerScribe Encounters)
+278	pshl	Passport Health (Patient Verification)
+279	psys	PathGroup (Pathsys)
+280	ptho	Pathol (Homegrown)
+281	ptmg	MediServ(Practice Management PRO)
+282	pwph	Impac (Tamtron PowerPath)
+283	pwrs	Dictaphone (PowerScribe Orders)
+284	pyxm	Pyxis (Medstation)
+285	pyxs	Pyxis (Supply Station)
+286	qmi	GE (QS OB Link)
+287	qtel	Cardiac Science (Quinton Qtel RMS)
+288	qust	Quest Reference Lab
+289	radc	Radcare
+290	radw	Evolved (Radweb)
+291	ralf	Alere (RALS Freedom)
+292	rall	Rad Alliance (Corepoint)
+293	rals	MAS RALS-Plus
+294	rdoc	Rehab Documentation, Inc (ReDoc)
+295	rdtr	IMS (ReadyTracker-Tissue)
+296	rdwe	Nuance (Radwhere)
+297	reco	Trintech (ReconNet)
+298	rgen	Dr. Know, LLC (Report Generator)
+299	rinc	Radiology Incorporated (Voice Recognition SAS)
+300	rlay	RelayHealth (RelayHealth)
+301	rlvw	Steris (RealView)
+302	rml	RML (Cerner Classic)
+303	rpgo	EmCare (Rap and Go)
+304	rpha	Rhapsody
+305	rpit	RODS-Pittsburgh
+306	rplp	Lifepoint (Orion Health Rhapsody)
+307	rspd	Rauland (Responder)
+308	rxhx	InterMedHX (RxHx)
+309	sasu	Premier SafetySurveillor
+310	scrp	Script RX
+311	seer	Accelarad (seemyradiology)
+312	sen7	Pharmacy OneSource (Sentri 7)
+313	sent	Simplex Granell (Zettler Sentinel Touch)
+314	sfsc	Softscript
+315	sftm	SoftMed (ChartScript)
+316	sftp	Omnicell (SafetyPak)
+317	shbg	Sheridan Billing (SMART)
+318	smrt	SMART
+319	spgl	Superior Global Transcription
+320	spgm	MedQuist (SpeechQ for GM)
+321	spqr	MedQuist (SpeechQ for Radiology)
+322	ssca	Syndromic Data-CA
+323	sscn	McKesson (SupplyScan)
+324	ssfl	Syndromic Data-FL
+325	ssga	State of GA Syndromic
+326	ssin	State Syndromic Surveillance - MU#10
+327	ssla	State of LA Syndromic
+328	ssmo	State of MO Syndromic
+329	ssnh	State of NH Syndromic
+330	ssnv	Syndromic Data-NV
+331	sstn	Syndromic Data-TN
+332	sstx	State of TX Syndromic
+333	ssut	State of UT Syndromic
+334	ssva	State of VA Syndromic
+335	star	Phoebe Putney Memorial (Interface Engine)
+336	stel	bioMerieux (Stellara)
+337	stpc	StatRad (StatPacs)
+338	swrk	StandardRegister(SMARTWorks)
+339	synp	Fuji (Synapse)
+340	tams	PHG Technologies (TAMS-Total Asset Mang System)
+341	tbtr	TeleTracking (BedTracking)
+342	tchm	Crothall (TeamChimes)
+343	tcor	Telcor (Quick-Link)
+344	tdes	Trinisys,LLC
+345	tdoc	Hospira (Theradoc)
+346	telo	US Teleradiology (TeleOps)
+347	temh	Team Health
+348	tmhl	Kurzweil (Team Health)
+349	tms	Four Rivers (TMS, TMS Pro., iTMS)
+350	trco	Tarrant County Health Dept
+351	trmd	AIM (Transmed)
+352	trmv	Philips (TraceMasterVue)
+353	trnc	Trans Comp (Bought by MRC)
+354	trs	Transcend (TRS)
+355	tsys	T-SystemEV
+356	ttec	AGFA (Talk Technologies)
+357	umeg	University of Miami (eGate)
+358	unpc	DR Systems (Unity PACS)
+359	vdh	Virginia Dept of Health (Essence)
+360	verc	Merge/Emageon/Camtronics (Vericis)
+361	vmax	SensorMedic (VMAX)
+362	vntg	Ventana Medical Systems (VANTAGE)
+363	voyg	GE (Voyager)
+364	vpnt	GE (ViewPoint)
+365	vrad	Virtual Radiologic
+366	vris	Varian (Varis Vision)
+367	vscm	Healthline (Viscims)
+368	vtrs	Velos (Velos Transplant)
+369	vwtr	MedQuist (Lanier VoiceWriter)
+370	wexp	Net Health (Wound Expert)
+371	wpth	Net Health (Wound Path)
+372	xcel	Phillips (Xcelera)
+373	zvis	Clario Medical (zVision)

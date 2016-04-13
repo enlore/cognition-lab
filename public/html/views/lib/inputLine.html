@@ -1,0 +1,68 @@
+<blueprint>
+
+    <sensor watch="item" run="render" />
+    <prop find="item" />
+
+</blueprint>
+
+<display>
+    <div id="label" class="katana_input_label"></div>
+    <div id="input" class="katana_input"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            //var self = this;
+            //var mi = self.mapItem;
+            //mi.createSensor(mi.source).run(self.render);
+
+
+            this.holder.on('click',function(e){
+                e.preventDefault();
+                self.clickCmd();
+            });
+
+        },
+
+        determineRenderer: function(){
+
+            var b = this.button.read();
+            if(b.renderer) {
+                this.mapItem.path = this.rendererPath.read() || this.mapItem.parent.path;
+                this.renderer.write(b.renderer);
+            }
+
+            var showSensor = this.mapItem.createSensor(b.show);
+            showSensor.transform(this.matchesValue).pipe(this.buttonActive).autorun();
+        },
+
+        matchesValue: function(show){
+            var b = this.button.read();
+            return (b.value === show);
+        },
+
+        applyActive: function(){
+            var isActive = this.buttonActive.read();
+            this.holder.toggleClass('katana_active',isActive);
+        },
+
+        clickCmd: function(){
+
+            var b = this.button.read();
+            var cmd = this.mapItem.findData(b.tell);
+            if(!cmd){
+                this.throwError('button tell not found!');
+                return;
+            }
+            cmd.write(b.value);
+
+        }
+
+
+    });
+
+</script>

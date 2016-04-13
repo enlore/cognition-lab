@@ -1,0 +1,57 @@
+<blueprint>
+
+
+    <alloy url="aliases.html" />
+    <alloy url="services.html" />
+
+    <alloy url="/html/core/patient_acct.html" />
+
+    <data name="contentPage" value="loading.html" />
+    <sensor watch="configData" transform="getUrl" pipe="contentPage" auto="true" once="true" />
+    <cog find="content" url="data contentPage" />
+
+    <prop find="activeSiteMenu" />
+    <prop find="activeSiteCog" />
+    <prop find="activeSiteDomain" />
+    <prop find="pageMenuOptions" />
+    <prop find="activePageUrl" />
+
+</blueprint>
+
+
+<display>
+    <div id="content" style="width: 100%;"></div>
+</display>
+
+
+<script>
+    $.cog({
+
+        init: function() {
+
+            this.activePageUrl.write(null);
+            this.activeSiteCog.write(this.mapItem.uid);
+            this.activeSiteDomain.write('patient_acct');
+            this.pageMenuOptions.write(this.getPageMenuOptions());
+        },
+
+        getUrl: function() { return "content.html"; },
+
+        getPageMenuOptions: function(){
+            return {
+                url: 'KATANA_TEXT_BUTTON_RENDERER',
+                class: 'katana_nav_button',
+                default: 'RECON_HISTORY_PAGE',
+                show: 'activePageUrl',
+                menuStyle: {'flex-direction':'column'},
+                items: [
+                    {value: 'RECON_HISTORY_PAGE'    , title:'Reconciliation History'},
+                    {value: 'DATA_FLOW_PAGE'    , title:'Data Flow'},
+                    {value: 'COMP_FLOW_PAGE'    , title:'Component Flow'}
+                ]
+            };
+        }
+
+    });
+
+</script>

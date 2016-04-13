@@ -1,0 +1,681 @@
+<blueprint>
+    <data name="jumpsToHealth" value="true" prop="true" />
+
+    <sensor watch="suppressJumpToHealth" run="removeJumpCapability" optional="true" auto="true" />
+
+    <sensor watch="compFlow_svc" run="render" auto="true" />
+    <sensor watch="refreshAllFilters" batch="true" run="requestData" auto="true" />
+    <sensor watch="compAlertStatus" run="render"  />
+    <prop find="compAlertStatus" />
+    <!--<prop find="compMessageTypeFlow" />-->
+    <prop find="getOptionItem" is="method" />
+    <prop find="compFlow_svc" />
+    <prop find="platformHealth_svc" />
+    <prop find="uiFilterApply" />
+
+    <cog find="grid" url="COMP_HIST_GRID" />
+    <cog find="breadcrumb" url="../breadcrumb/_bigBreadcrumb.html" />
+</blueprint>
+
+<display>
+
+        <div id="breadcrumb" style="width: 100%;"></div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; font-size: 1.1em; color: #cdf; padding: 4px;">
+            <div style="display: flex; flex: 3 3 850px; flex-direction: column; padding: 4px;">
+               <div class="katana_panel_abyss" >
+                    <div id="content"></div>
+                </div>
+            </div>
+            <div id="grid" style="flex: 1 1 350px; padding: 4px;"></div>
+        </div>
+
+</display>
+
+<script>
+
+$.cog({
+
+
+                init: function(){
+
+                    this.initSankey();
+                },
+
+                removeJumpCapability: function() {
+                    this.jumpsToHealth.write('false');
+                },
+
+                requestData: function(){
+
+                    var options = this.mapItem.createParams({span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility",msg_type:"messageType"});
+                    this.compFlow_svc.request(options);
+                    this.platformHealth_svc.request({span:options.span,end:options.end});
+                },
+
+                render: function(){
+
+                    var self = this;
+                    var alerts = this.compAlertStatus.read() || {}; // hash by comp id
+
+                    var nodeMap = {};
+                    var nodeData = [];
+                    var linkData = this.compFlow_svc.read();
+                    if(!linkData) return;
+                    linkData = linkData.data;
+               //     console.log("COMPFLOW linkdata:");
+                 //   console.log(linkData);
+                    var linkVar = "sent";
+
+                    function processNodeData(nodeID, nodeType, link){
+
+                        var name = nodeID.toUpperCase();
+                        if(!nodeID) {
+                            nodeID = "BLANK-" + nodeType;
+                        } else {
+                            nodeID = nodeID + "_" + nodeType;
+                        }
+
+                        var longName="";
+                        var abbr="";
+
+                        var item = {};
+
+                        switch(nodeType) {
+                            case "mt":
+                                var chunks = name.split("_");
+                                if(chunks.length > 1) chunks.shift();
+                                var name = chunks[0];
+                                item = self.getOptionItem('messageType', name);
+                                //longName = messageTypeLookup(name).name;
+                                //abbr = messageTypeLookup(name).abbr || name;
+                                break;
+                            case "comp":
+
+                                item = self.getOptionItem('comp', name) || self.getOptionItem('sourceApp',name);
+                                //longName = componentLookup(name).orig_name || name;
+                                //abbr = componentLookup(name).abbr || name;
+                                break;
+                         //   case "comp": longName = networkLookup(name).orig_name || name; break;
+
+                        }
+
+                        var alert = alerts[name];
+
+                //        console.log("ALERTS!");
+                //        console.log(alerts);
+                        var node = nodeMap[nodeID] || (nodeMap[nodeID] = {
+                            name: name,
+                            id: nodeID,
+                            nodeType: nodeType,
+                            value: 0,
+                            longName: item ? item.name : 'missing: ' + name,
+                            abbr: item ? item.abbr : 'missing: ' + nodeID,
+                            warning: alert && alert.warning,
+                            critical: alert && alert.critical
+                        });
+
+                        node.value += Number(link[linkVar]);
+
+                        //comp.pageLink = this.getPageLink(comp.id);
+                        //comp.nominal =true;
+                        //comp.warning = alerts[comp.id] && alerts[comp.id].warning;
+                        //comp.critical = alerts[comp.id] && alerts[comp.id].critical;
+
+                        return node;
+                    }
+
+                    _.forEach(linkData, function(link){
+                        var n1 = processNodeData(link.n1, link.n1_type, link);
+                        var n2 = processNodeData(link.n2, link.n2_type, link);
+                        link.source = n1;
+                        link.target = n2;
+
+                        link.value = link[linkVar];
+                        link.cc = "#20a8e3";//(Math.random() <.05) ? "#cccc77" : (Math.random() <.05) ?"#ff6666":"#20a8e3";
+                        link.oo = .3;
+                        if(link.cc != "#20a8e3") link.oo = .5;
+                    });
+
+                    _.forEach(nodeMap, function(node){
+                        nodeData.push(node);
+                    });
+
+                    this.drawSankey(nodeData,linkData);
+                    ////console.log("GOT DATA:"+data);
+                    ////console.log(data.msg.data);
+                },
+
+
+                initSankey: function(){
+
+                    var self = this;
+                    var rootDiv = this.content.get(0);
+                    var svg = d3.select(rootDiv).append("svg")
+                            .attr("width","100%")
+                            .attr("height","100%")
+                            .attr("viewBox", "0 -10 1200 620")
+                            .attr("preserveAspectRatio","xMidYMin meet")
+                            .append("g");
+                         //   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                    var gemFade = svg
+                            .append("linearGradient")
+                            .attr("y1", 0)
+                            .attr("y2", 1)
+                            .attr("x1", 0)
+                            .attr("x2", 0)
+                            .attr("id", "gemFade");
+
+                    gemFade
+                            .append("stop")
+                            .attr("offset", "0%")
+                            .attr("stop-color", "#fff")
+                            .attr("stop-opacity",.75);
+
+                    gemFade
+                            .append("stop")
+                            .attr("offset", "50%")
+                            .attr("stop-color", "#fff")
+                            .attr("stop-opacity",.25);
+
+
+                    var lineFade = svg
+                            .append("linearGradient")
+                            .attr("y1", 0)
+                            .attr("y2", 0)
+                            .attr("x1", 0)
+                            .attr("x2", .15)
+                            .attr("id", "lineFade");
+
+                    lineFade
+                            .append("stop")
+                            .attr("offset", "0%")
+                            .attr("stop-color", "#fff")
+                            .attr("stop-opacity", "100%");
+
+                    lineFade
+                            .append("stop")
+                            .attr("offset", "100%")
+                            .attr("stop-color", "#fff")
+                            .attr("stop-opacity", "0%");
+
+                    var down_node = svg
+                            .append("radialGradient")
+                            .attr("id","down_node")
+                            .attr("cx","20%")
+                            .attr("cy","20%")
+                            .attr("r","90%");
+
+                    down_node
+                            .append("stop")
+                            .attr("offset",0)
+                            .attr("stop-color","#c5c2cf");
+
+                    down_node
+                            .append("stop")
+                            .attr("offset",.8)
+                            .attr("stop-color","#3318aa");
+
+                    down_node
+                            .append("stop")
+                            .attr("offset",1)
+                            .attr("stop-color","#230890");
+
+
+
+                    var warning_node = svg
+                            .append("radialGradient")
+                            .attr("id","warning_node")
+                            .attr("cx","20%")
+                            .attr("cy","20%")
+                            .attr("r","90%");
+
+                    warning_node
+                            .append("stop")
+                            .attr("offset",0)
+                            .attr("stop-color","#e5e2e0");
+
+                    warning_node
+                            .append("stop")
+                            .attr("offset",.5)
+                            .attr("stop-color","#e3a820");
+
+                    warning_node
+                            .append("stop")
+                            .attr("offset",1)
+                            .attr("stop-color","#c38810");
+
+
+                    var danger_node = svg
+                            .append("radialGradient")
+                            .attr("id","danger_node")
+                            .attr("cx","20%")
+                            .attr("cy","20%")
+                            .attr("r","90%");
+
+                    danger_node
+                            .append("stop")
+                            .attr("offset",0)
+                            .attr("stop-color","#efe5e1");
+
+                    danger_node
+                            .append("stop")
+                            .attr("offset",.8)
+                            .attr("stop-color","#e71814");
+
+                    danger_node
+                            .append("stop")
+                            .attr("offset",1)
+                            .attr("stop-color","#b31512");
+
+
+                    var normal_node = svg
+                            .append("radialGradient")
+                            .attr("id","normal_node")
+                            .attr("cx","25%")
+                            .attr("cy","25%")
+                            .attr("r","90%");
+
+                    normal_node
+                            .append("stop")
+                            .attr("offset",0)
+                            .attr("stop-color","#e0e2e7");
+
+                    normal_node
+                            .append("stop")
+                            .attr("offset",.8)
+                            .attr("stop-color","#20a8e3");
+
+                    normal_node
+                            .append("stop")
+                            .attr("offset",1)
+                            .attr("stop-color","#1088c3");
+
+                    var line_good = svg
+                            .append("linearGradient")
+                            .attr("y1", "0%")
+                            .attr("y2", "100%")
+                            .attr("x1", "0%")
+                            .attr("x2", "0%")
+                            .attr("id", "lg");
+
+                    line_good
+                            .append("stop")
+                            .attr("offset", "0%")
+                            .attr("stop-color", "#ff0");
+
+                    line_good
+                            .append("stop")
+                            .attr("offset", "100%")
+                            .attr("stop-color", "#f00");
+
+
+                    this.link_layer = svg.append("g");
+                    this.dash_layer = svg.append("g");
+                    this.node_layer = svg.append("g");
+                    this.text_layer = svg.append("g");
+
+              //      this.aniLink = this.dash_layer.append("path").style("fill","none").style("stroke-dasharray","10,3" +
+             //               "0").style("stroke-opacity",0).style("stroke","#fff").style("pointer-events","none");
+
+                },
+
+                drawSankey: function(nodes, links){
+
+                    var width = 1200;
+                    var height = 600;
+                    var overPath = null;
+                    var self = this;
+
+                    var sankey = d3.sankeyComp()
+                            .nodeWidth(50)
+                            .nodePadding(12)
+                            .size([width, height]);
+
+                    var path = sankey.link();
+
+                    sankey
+                            .nodes(nodes)
+                            .links(links)
+                            .layout(30);
+
+
+
+                    function getLinkTipA(d) {
+
+
+                        var tip = {
+                            id: d.source.id+':'+ d.target.id,
+                            title: d.source.longName ,
+                            items: [
+                                {title: 'Messages', value: d3.format(',d')(Math.round(Number(d.sent)))},
+                                {title: 'From', value: d.source.targetLinks[0].source.longName},
+                                {title: 'To', value: d.target.longName}
+                            ]
+                        };
+
+                        return tip;
+
+                    }
+
+                    function getLinkTip(d) {
+
+                        return (d.source.nodeType === "mt") ? getLinkTipA(d) : getLinkTipB(d);
+                    }
+
+
+                    function getLinkTipB(d) {
+
+
+
+                        var tip = {
+                            id: d.source.id+':'+ d.target.id,
+                            title: d.target.longName,
+                            items: [
+                                {title: 'Messages', value: d3.format(',d')(Math.round(Number(d.sent)))},
+                                {title: 'From', value: d.source.longName}
+                            ]
+                        };
+
+                        return tip;
+
+                    }
+
+                    function getNodeTip(d) {
+
+
+
+                        var tip = {
+                            id: d.longName,
+                            title:  d.longName,
+                            items:  [
+                                {title: 'Messages', value: d3.format(',d')(Math.round(Number(d.value)))}
+                            ]
+                        };
+
+                        if(d.critical)
+                            tip.items.push({title: 'Critical Alerts', value:  d3.format(',d')(Math.round(Number(d.critical)))});
+
+                        if(d.warning)
+                            tip.items.push({title: 'Warnings', value: d3.format(',d')(Math.round(Number(d.warning)))});
+
+                        return tip;
+
+                    }
+
+
+
+
+
+
+
+
+                    var link = this.link_layer.
+                            selectAll(".link")
+                            .data(links, function (d) {
+                                return d.source.id + ":" + d.target.id;
+                            });
+
+
+                    link
+                            .enter().append("path")
+                            .attr("class", "link")
+                            .call(d3.kodama.tooltip()
+                                    .attr({class: 'katana_tooltip'})
+                                    .prep(getLinkTip))
+                            .on("mouseover", function(d){
+
+                                overPath = path(d);
+                                d3.select(this)
+                                        .style("opacity",.9);
+                              /*  self.aniLink
+                                        .attr("d",overPath)
+                                        .style("stroke-width",Math.max(1, d.dy *.9))
+                                        .style("stroke-opacity",.25);*/
+
+                            })
+                            .on("mouseout",function(d){
+
+                                d3.select(this)
+                                        .style("opacity", d.oo);
+                               // self.aniLink.style("stroke-opacity",0);
+                            })
+                            .on("click",function(d){clicky.bind(self)(d);})
+                            .style("opacity",1)
+                    ;
+
+
+
+                    link
+                            .transition()
+                            .duration(function(d,i){ return 200;})
+                            .delay(function(d,i){ return i * 10 + 500; })
+                            .attr("d", path)
+                            .style("stroke-width", function (d) {
+                                return Math.max(1, d.dy);
+                            })
+                            .style("stroke", function(d){return d.cc;})
+                            .style("opacity", function(d){return d.oo;})
+                            .sort(function (a, b) {
+                                return b.dy - a.dy;
+                            })
+
+                    ;
+
+
+
+                    link.exit().remove();
+
+
+
+
+                    var node = this.node_layer.selectAll(".node")
+                            .data(nodes, function (d) {
+                                return d.id;
+                            });
+
+                    var e = node
+                                    .enter().append("g")
+                                    .attr("class", "node")
+                                    .call(d3.kodama.tooltip()
+                                            .attr({class: 'katana_tooltip'})
+                                            .prep(getNodeTip))
+                                    .style("opacity", 0)
+                                    .on("click",function(d){
+                                        console.log('d:', d);
+//                                        console.log("jumpsToHealth:", self.jumpsToHealth.read());
+                                        if (self.jumpsToHealth.read() === 'false') return;
+                                        clicky.bind(self)(d);
+                                    })
+
+                            ;
+
+
+                    e
+                            .append("rect")
+                            .attr("rx", 4)
+                            .attr("ry", 4)
+                            .attr("transform", function (d) {
+                                return "translate(" + d.x + "," + d.y + ")";
+                            })
+                            .attr("fill",function(d,i){
+                                if(d.critical)
+                                    return "url(#danger_node)";
+                                else if(d.warning)
+                                    return "url(#warning_node)";
+                                return "url(#normal_node)";
+
+                            })
+                            .style("display", function(d) { return (d.nodeType=="mt") ? "none" : "inline";})
+                            .attr("height", 0)
+                            .attr("width", sankey.nodeWidth())
+                           // .attr("data-content","showing stuff")
+
+                    ;
+
+                    var gem = d3.svg.gem()
+                                    .bottomLeft(9)
+                                    .bottomRight(9)
+                                    .topLeft(1)
+                                    .topRight(1)
+                                    .width(50-4)
+                                    .height(12)
+                            ;
+
+                    e
+                            .append("path")
+                            .attr("pointer-events","none")
+                            .attr("class","gem")
+                            .attr("d", gem)
+                            .attr("transform", function (d) {
+                                return "translate(" + (d.x + 2) +"," + (d.y + 2) + ")";
+                            })
+                            .style("fill","url(#gemFade)")
+                            .style("stroke-width",1)
+                        // .style("stroke","url(#gemFade)")
+                            .style("stroke-opacity",0)
+                            .style("opacity",.5)
+                            .style("display", function(d) { return (d.nodeType=="mt") ? "none" : "inline";})
+                    ;
+
+                    var g = e.append("g");
+
+
+                    g
+                            .append("text")
+                            .style("opacity", .0)
+                            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ") "; })
+                            .text(function (d) {
+                                if(d.nodeType == "mt")
+                                    return d.abbr;
+                                else
+                                    return d.longName.split('(')[0];
+                            });
+
+                    node
+                            .style("opacity",1)
+                    ;
+
+                    node.select("rect")
+
+                            .transition()
+                            .duration(function(d,i){ return 500;})
+                            .delay(function(d,i){ return 0 })
+                            .attr("transform", function (d) {
+                                return "translate(" + d.x + "," + d.y + ")";
+                            })
+                            .attr("height", function (d) {
+                                return d.dy + 4;
+                            })
+                            .attr("width", sankey.nodeWidth())
+                            .attr("fill",function(d,i){
+                                if(d.critical)
+                                    return "url(#danger_node)";
+                                else if(d.warning)
+                                    return "url(#warning_node)";
+                                return "url(#normal_node)";
+
+                            })
+                            ;
+
+                    node.select(".gem")
+
+                            .transition()
+                            .duration(function(d,i){ return 500;})
+                            .delay(function(d,i){ return 0 })
+                            .attr("transform", function (d) {
+                                return   "translate(" + (d.x + 2) +"," + (d.y + 2) + ") scale(1,"+ (d.dy > 20 ? d.dy *.05 : d.dy *.01)+ ")" ;
+                            })
+
+                    ;
+
+                    node.select("text")
+                            .transition()
+                            .duration(500)
+                            .style("opacity", 1.0)
+                            .style("fill", function(d){
+                                return (d.nodeType == "mt") ? "#9ac" : "#fff";
+                            })
+                            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ") "; })
+                            .attr("x" , -6) // -6
+                            .attr("y", function(d) { return d.dy / 2; })
+
+                            .attr("dy", "6")
+                            .attr("font-size", function(d){
+                                return "13px";
+                            })
+                            .attr("text-anchor", "end")
+                            .filter(function(d) { return d.nodeType == "mt" || d.x < width / 2; })
+                            .attr("x", 6 + sankey.nodeWidth())
+                            .attr("text-anchor", "start")
+                            .filter(function(d) { return d.nodeType == "mt"})
+                            .attr("x", sankey.nodeWidth() *.5)
+                            .attr("font-size", function(d){
+                                return "11px";
+                            })
+                            .attr("text-anchor", "middle");
+
+
+                    node.exit().remove();
+
+                   // var nodeSel = this.mapItem.localSel.find('.panel');
+
+                 //   nodeSel.tooltip({
+                 //       'trigger':'hover'
+                 //       ,'container': 'body'
+                //        ,'placement': 'top'
+                    //    ,'white-space': 'nowrap'
+                   //     ,'html':'true'
+                //    });
+
+                    function clicky(d){
+
+                        //var opt = this.mapItem.createParams({span:"duration",end:"endDateTime",network:"network",app:"sourceApp",dc:"dataCenter",facility:"facility",msg_type:"messageType"});
+
+
+
+                        if(d.source){ // switch to hidden node of message type of link clicked
+                            d = (d.n1_type == "mt") ? d.source : d.target;
+                        }
+
+
+                        var nt = d.nodeType; // mt or comp
+                        if(nt=="mt"){
+                            self.uiFilterApply.write({name: 'messageType', optionId: d.name});
+
+                        } else if(nt=="comp") {
+
+                            var item = self.getOptionItem('sourceApp', d.name);
+                            if(!item) {
+                                // possibly link to comp health page
+                                var page = this.getPageLink(d.name);
+                                if(page)
+                                    this.mapItem.findData('activePageUrl').write(page);
+                                return;
+                            }
+
+                            self.uiFilterApply.write({name: 'sourceApp', optionId: d.name});
+
+                        }
+
+
+                        this.requestData();
+
+                    }
+
+
+                },
+
+                getPageLink: function(id){
+                    if(id=='BZT')
+                        return 'BIZTALK_HEALTH_PAGE';
+                    return null;
+                },
+
+                destroy: function(){
+
+
+                }
+            });
+
+</script>

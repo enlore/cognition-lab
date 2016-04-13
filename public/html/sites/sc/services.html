@@ -1,0 +1,53 @@
+<blueprint>
+
+    <net name="configData" url="CONFIG_MESSAGES" req="true" />
+
+    <alias name="RECON_SVC" path="SERVICE_ROOT" url="scRecon" />
+    <alias name="RECON_HIST_SVC" path="SERVICE_ROOT" url="scReconHist" />
+    <alias name="MSG_SAMPLE_SVC" path="SERVICE_ROOT" url="scMsgSample" />
+    <alias name="COMP_HIST_SVC" path="SERVICE_ROOT" url="scCompHist" />
+    <alias name="COMP_FLOW_SVC" path="SERVICE_ROOT" url="scCompFlow" />
+    <alias name="DATA_FLOW_SVC" path="SERVICE_ROOT" url="scNetworkFlow" />
+    <alias name="MSG_ALL_SVC" path="SERVICE_ROOT" url="scMsgAll" />
+
+    <net name="compHist_svc" url="COMP_HIST_SVC" />
+    <net name="compFlow_svc" url="COMP_FLOW_SVC" />
+    <net name="networkFlow_svc" url="DATA_FLOW_SVC" />
+    <net name="msgSample" url="MSG_SAMPLE_SVC" />
+
+    <net name="msgInfo" path="SERVICE_ROOT" url="scMsgData"/>
+    <net name="platformHealth_svc" path="SERVICE_ROOT" url="scPlatformHealth" />
+
+    <prop find="compAlertStatus" />
+    <sensor watch="platformHealth_svc" run="determineCompAlertStatus" />
+</blueprint>
+
+<script>
+
+    $.cog({
+
+        determineCompAlertStatus: function(msg){
+
+
+            var statusList = msg.data;
+            var compAlerts = {};
+            statusList.forEach(
+                    function(status) {
+                        var id = status.platform;
+                        var num = Number(status.qd);
+                        var t1 = Number(status.t1);
+                        var t2 = Number(status.t2);
+                        var alert = compAlerts[id] = compAlerts[id] || {id: id, critical: 0, warning: 0};
+                        if (num >= t2)
+                            alert.critical++;
+                        else if (num >= t1)
+                            alert.warning++;
+                    });
+
+
+            //console.log(compAlerts);
+            this.compAlertStatus.write(compAlerts);
+        }
+    });
+
+</script>

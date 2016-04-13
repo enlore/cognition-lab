@@ -1,0 +1,97 @@
+<blueprint>
+
+    <require url="NUMERAL_JS" />
+    <prop find="selSortFromGui" />
+    <prop find="rowData" />
+    <sensor watch="rowData" run="render" auto="true" />
+
+</blueprint>
+
+<display>
+    <div style="display: flex; width: 100%; height: 100%; ">
+
+        <div id="critical" class="reconcile_aspect_magenta" ></div>
+        <div id="severe" class="reconcile_aspect_purple" ></div>
+        <div id="extreme" class="reconcile_aspect_blue_purple" ></div>
+        <div id="delayed" class="reconcile_aspect_blue" ></div>
+        <div id="prompt" class="reconcile_aspect_green" ></div>
+        <div id="nocalc" class="reconcile_aspect_grey" ></div>
+
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+
+        init: function(){
+
+            var self = this;
+            var d = self.rowData.read();
+
+            function getTipData(def){
+
+                var count = d[def.field];
+                var pct = d[def.field + '_pct'];
+
+                var countMessage = numeral(count).format('0,0');
+                var pctMessage = numeral(pct).format('0.0%');
+
+                if (pct > 0.999 && pct < 1) { pctMessage = '99.9+%' }
+
+                var tipData = {
+                    id: self.mapItem.uid + ':' + def.title,
+                    title: def.title,
+                    items: [
+                        {title: 'Messages',value: countMessage + " (" + pctMessage + ")"}
+                    ]
+
+                };
+
+                return tipData;
+
+            }
+
+            self.segments.forEach(function(s){
+
+                var segSel = self[s.id];
+                segSel.bamboo(getTipData(s));
+                segSel.off('click');
+                segSel.on('click',function(e){
+                    e.preventDefault();
+                    self.selSortFromGui.write(s.field+'_pct');
+                });
+
+            });
+        },
+
+
+
+        segments: [
+            {field: "b5", title: "Critical Delay (36+ hrs)", id: 'critical'},
+            {field: "b4", title: "Severe Delay (24+ hrs)", id: 'severe'},
+            {field: "b3", title: "Extreme Delay (4+ hrs)", id: 'extreme'},
+            {field: "b2", title: "Moderate Delay (3+ mins)", id: 'delayed'},
+            {field: "b1", title: "Prompt Arrival", id: 'prompt'},
+            {field: "not_calc", title: "Not Calculated", id: 'nocalc'}
+        ],
+
+        render: function(){
+
+            this.init();
+
+            var d = this.rowData.read();
+
+            for(var i = 0; i < this.segments.length; i++){
+                var s = this.segments[i];
+                var div = this[s.id];
+                var pct = d[s.field + '_pct'] * 100.0;
+                div.css('flex',pct + ' ' + pct);
+            }
+
+        }
+
+
+
+    })
+</script>

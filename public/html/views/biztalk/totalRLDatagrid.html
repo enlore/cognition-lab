@@ -1,0 +1,43 @@
+<blueprint>
+    <data name="columns" value="prop defineColumns" />
+    <data name="gridOptions" value="prop defineOptions" />
+
+    <data name="records" prop="true" />
+    <sensor watch="totalRLGridData" run="updateChart" />
+
+    <cog find="grid" url="KATANA_GRID"  />
+</blueprint>
+
+<display>
+    <div id="holder" style="padding: 2px;" >
+        <div id="grid" class="small" />
+    </div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+        init: function() {
+        },
+
+        defineOptions: {
+            headerHeight: 28,
+            rowHeight: 25,
+            paneHeight: 586
+        },
+
+        defineColumns: [
+             { field:"Location",  title:"Receive Location", flex:"1 1 180px" }
+            ,{ field:"timestamp", title:"Updated",          flex:"0 1 130px" }
+        ],
+
+        updateChart: function(totalRLGridData) {
+            totalRLGridData = _.sortBy(totalRLGridData, "Server");
+            this.records.write(totalRLGridData);
+        }
+
+    });
+
+</script>

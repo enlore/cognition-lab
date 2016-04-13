@@ -1,0 +1,253 @@
+<blueprint>
+    <prop find="CDMTags" />
+    <prop find="EISTags" />
+
+    <sensor needs="CDMTags, EISTags" retain="true" run="marryTagLists" auto="true" />
+
+    <data name="tagTypes" prop="true" />
+    <data name="tagsVals" prop="true" />
+
+    <data name="selectedTag" prop="true" />
+
+    <sensor needs="selectedRule" run="setDeliveryStates" auto="true" />
+    <sensor needs="selectedRule" run="show" auto="true" />
+
+    <prop find="emailStatus" />
+    <prop find="smsStatus" />
+    <prop find="timebox" />
+
+    <sensor watch="emailStatus" run="renderEmail" auto="true" />
+    <sensor watch="smsStatus" run="renderSms" auto="true" />
+    <sensor watch="timebox" run="renderTimebox" auto="true" />
+
+    <data name="searchQuery" />
+
+    <chain find="tagList" source="tagTypes" item="tag" url="tags/tag.html" />
+    <cog find="tagValList" url="tags/tagValList.html" />
+    <cog find="tagSearch" url="tags/searchBar.html" />
+</blueprint>
+
+<display>
+    <div id="palette-wrap" class="tag-palette" style="position: relative; color: rgb(66, 122, 176);" >
+        <div id="palette-mask" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(50, 50, 50, 0.4);" />
+        <h3 style="margin-top: 0;">Available Filters</h3>
+        <p class="quiet hint">Use these filter criteria to build custom alerts.</p>
+        <div class="tag-palette flex-container">
+            <div class="tag-palette list-wrap katana_panel">
+                <ul id="tag-list" />
+            </div>
+            <div class="tag-palette val-wrap katana_panel_gloom">
+                <div id="tag-search" />
+                <ul id="tag-val-list" />
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .tag-palette .tag-palette.flex-container {
+            display: flex;
+            flex-direction: row;
+            margin-top: 19px;
+            min-height: 300px;
+            max-height: 350px;
+        }
+
+        .tag-palette.toggle-sms button,
+        .tag-palette.toggle-email button {
+            flex: 0 0 400px;
+            color: black;
+            display: block;
+            background-color: lightblue;
+            margin: 0 10px;
+        }
+
+        .tag-palette.select-timebox {
+            flex: 0 0 800px;
+            color: black;
+            display: block;
+        }
+
+        .tag-palette .tag-palette.list-wrap {
+            flex: 0 1 200px;
+        }
+
+        .tag-palette .tag-palette.val-wrap {
+            flex: 0 1 300px;
+        }
+
+        .tag-palette .tag-palette.val-wrap ul,
+        .tag-palette .tag-palette.list-wrap ul {
+            padding: 0;
+            overflow: auto;
+            max-height: 300px;
+        }
+    </style>
+</display>
+
+<script>
+    $.cog({
+
+        cdmProps: [
+            "dcs"
+        ],
+
+        eisProps: [
+            "facilities",
+            "sites",
+            "vendors",
+            "datatypes",
+            "divisions"
+        ],
+
+        miscTags:  {
+            "companies": [],
+
+            "env": [
+                {
+                    id: "qa",
+                    name: "QA",
+                    abbr: "qa"
+                },
+                {
+                    id: "prod",
+                    name: "Prod",
+                    abbr: "prod"
+                }
+            ]
+        },
+
+        pickCDM: function (cdm) {
+            return _.pick(cdm, this.cdmProps)
+        },
+
+        pickEIS: function eis (eis) {
+            return _.pick(eis, this.eisProps)
+        },
+
+        uniqComps: function uniqComps (facils) {
+            var companies = []
+            var uComs = {}
+
+            _.each(facils, function (facil) {
+                if (!uComs.hasOwnProperty(facil.CompanyId)) { // if facility name not on unique companies object
+                    uComs[facil.CompanyId] = {
+                        id: facil.CompanyId,
+                        abbr: facil.CompanyId,
+                        name: facil.CompanyId // TODO need the human name here
+                    }
+                }
+            })
+
+            companies = _.values(uComs)
+
+            return companies
+        },
+
+        keys: function (bodies) {
+            var theKeys = []
+            for (var i = 0; i < bodies.length; i++) {
+                var body = bodies[i]
+                _.each(_.keys(body), function (key) {
+                    theKeys.push(key)
+                })
+            }
+            return theKeys
+        },
+
+        hierarchy: function hierarchy (left, right) {
+            return left.sort > right.sort
+        },
+
+        swap: function (item) {
+            switch (item) {
+                case "env": return "environments"
+                case "dcs": return "data centers"
+                default: return item
+            }
+        },
+
+        capitalize: function (name) {
+            var parts = name.split(" ")
+
+            for (var i = 0; i < parts.length; i++) {
+                var first = parts[i].charAt(0)
+                var letters = parts[i].split("")
+                letters[0] = first.toUpperCase()
+                parts[i] = letters.join("")
+            }
+
+            name = parts.join(" ")
+            return name
+        },
+
+        label: function label (tag) {
+            return {
+                label: this.capitalize(this.swap(tag.name)),
+                name: tag.name,
+                sort: tag.sort
+            }
+        },
+
+        sortOrder: function (tagName) {
+            var tag = {
+                name: tagName
+            }
+
+            var order = [
+                "env",
+                "dcs",
+                "divisions",
+                "facilities",
+                "sites",
+                "vendors",
+                "companies",
+                "datatypes",
+            ]
+
+            switch (tagName) {
+                case "env": tag.sort = order.indexOf(tagName) + 1; break;
+                case "dcs": tag.sort = order.indexOf(tagName) + 1; break;
+                case "sites": tag.sort = order.indexOf(tagName) + 1; break;
+                case "divisions": tag.sort = order.indexOf(tagName) + 1; break;
+                case "vendors": tag.sort = order.indexOf(tagName) + 1; break;
+                case "companies": tag.sort = order.indexOf(tagName) + 1; break;
+                case "datatypes": tag.sort = order.indexOf(tagName) + 1; break;
+                case "facilities": tag.sort = order.indexOf(tagName) + 1; break;
+                default: tag.sort = 0; break;
+            }
+
+            return tag
+        },
+
+        marryTagLists: function () {
+            var cdm = this.pickCDM(this.CDMTags.read())
+            var eis = this.pickEIS(this.EISTags.read())
+
+            console.log('\n', 'cdm:', cdm, '\n\n');
+            console.log('\n', 'eis:', eis, '\n\n');
+
+            var misc = this.miscTags
+            misc.companies = this.uniqComps(eis.facilities) // array
+
+            var tagTypes = this.keys([cdm, eis, misc])
+            var tagsVals = _.extend({}, cdm, eis, misc)
+
+            this.tagTypes.write(tagTypes.map(this.sortOrder).sort(this.hierarchy).map(this.label.bind(this)))
+            this.tagsVals.write(tagsVals)
+        },
+
+        pickTagTypes: function (envel) {
+            this.tagTypes.write(_.keys(envel))
+            this.tagsVals.write(envel)
+        },
+
+        show: function show (rule) {
+            if (rule)
+                this.paletteMask.hide()
+            else {
+                this.paletteMask.show()
+            }
+        }
+
+    })
+</script>

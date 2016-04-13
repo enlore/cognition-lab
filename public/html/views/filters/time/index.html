@@ -1,0 +1,187 @@
+<blueprint>
+
+    <!-- todo make sure sensor  'run' throws an error if func not found!!!! -->
+    <sensor watch="endDateTime" auto="true" run="pickerUpdate" />
+    <sensor watch="snapToFullDays" auto="true" run="fullDayActive" />
+
+    <sensor watch="durationSelection" auto="true" run="dropdownUpdate" />
+    <sensor watch="endDateTime" auto="true" run="dropdownUpdate" />
+
+    <prop find="duration" />
+    <prop find="durationText" />
+    <prop find="durationSelection" />
+    <prop find="endDateTime" />
+    <prop find="endDateTimeSelection" />
+    <prop find="snapToFullDays" />
+
+</blueprint>
+
+
+<display>
+<div style="width: 100%;">
+
+    <div style="padding: 11px 0 0 4px;">
+        <span class="filter-title" style="justify-content: flex-end;padding-bottom: 0;display: flex;flex-direction: row;">
+
+        <div id="backBtn" class="mini-button" >
+            <span class="glyphicon glyphicon-backward"></span>
+        </div>
+
+        <div id="nowBtn" class="mini-button" >
+            Now
+        </div>
+         <div id="fullDayBtn" class="mini-button" >
+             Full Day
+         </div>
+        <div id="forwardBtn" class="mini-button" >
+            <span class="glyphicon glyphicon-forward"></span>
+        </div>
+
+     </span>
+    </div>
+
+    <div style="display: flex; width: 100%; padding: 4px 1px 0px 4px;">
+        <div style="flex: 1 1 170px; padding: 4px;">
+            <input id="input" style="font-size: 12px; width: 100%; " />
+        </div>
+        <div style="flex: 1 1 80px;  padding: 4px 0 4px 4px;">
+            <input id="dropdown" style="font-size: 12px; width: 100%; " />
+        </div>
+    </div>
+
+</div>
+</display>
+
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            this.dropdownComp = $(this.dropdown.rawContent()).kendoDropDownList({
+                dataTextField: "text",
+                dataValueField: "value",
+                dataSource: [
+                    {text:"1 hour",value:3600},
+                    {text:"2 hours",value:7200},
+                    {text:"3 hours",value:10800},
+                    {text:"6 hours",value:21600},
+                    {text:"12 hours",value:43200},
+                    {text:"1 day",value:86400},
+                    {text:"3 days",value:259200}
+                ],
+                index: 0,
+                change: this.dropdownSelect.bind(this)
+            }).data("kendoDropDownList");
+
+            this.picker = $(this.input.rawContent()).kendoDateTimePicker({
+                change: this.pickerSelect.bind(this)
+            }).data("kendoDateTimePicker");
+
+            var mi = this.mapItem;
+
+            var endDateTimePlace = mi.findData("endDateTime");
+            var endDateTimeSelectionPlace = mi.findData("endDateTimeSelection");
+
+            var snapPlace = mi.findData("snapToFullDays");
+            var durationPlace = mi.findData("durationSelection");
+            var forceRefreshPlace = mi.findData("forceRefresh");
+
+            $(this.nowBtn.rawContent()).on("click",function(){
+
+                endDateTimeSelectionPlace.write(moment().format("YYYY-MM-DDTHH:mm:ss"));
+            });
+
+            $(this.backBtn.rawContent()).on("click",function(){
+                var d = moment(endDateTimeSelectionPlace.read());
+                var snap = snapPlace.read();
+                if(snap && (d.hours() !== 0 || d.minutes() !== 0 || d.seconds() !== 0)) {
+                    d.hours(0);
+                    d.minutes(0);
+                    d.seconds(0);
+                } else {
+                    d.subtract('days', 1);
+                }
+
+                endDateTimeSelectionPlace.write(d.format("YYYY-MM-DDTHH:mm:ss"));
+            });
+
+            $(this.forwardBtn.rawContent()).on("click",function(){
+                var d = moment(endDateTimeSelectionPlace.read()).add("days",1);
+                if(d.unix() > moment().unix())
+                    d = moment();
+                endDateTimeSelectionPlace.write(d.format("YYYY-MM-DDTHH:mm:ss"));
+            });
+
+            $(this.fullDayBtn.rawContent()).on("click",function(){
+                snapPlace.toggle();
+
+                var d = moment(endDateTimeSelectionPlace.read());
+                var snap = snapPlace.read();
+                if(snap && (d.hours() !== 0 || d.minutes() !== 0 || d.seconds() !== 0)) {
+                    d.hours(0);
+                    d.minutes(0);
+                    d.seconds(0);
+                }
+                if(snap) {
+                    d.add('days', 1);
+                }
+
+                var now = moment();
+
+                if(d.unix() > now.unix())
+                    d = now;
+
+                endDateTimeSelectionPlace.write(d.format("YYYY-MM-DDTHH:mm:ss"));
+                durationPlace.tell(86400);
+                forceRefreshPlace.tell(true); // force a refresh when no filter data has changed
+            });
+
+
+
+        },
+
+        dropdownUpdate: function(){
+
+            var choice = Number(this.durationSelection.read());
+            this.dropdownComp.value(choice);
+            this.durationText.write(this.dropdownComp.text());
+
+        },
+
+        dropdownSelect: function() {
+
+            this.durationSelection.write(this.dropdownComp.value());
+
+        },
+
+
+        destroy: function(){
+            this.dropdownComp.destroy();
+            this.picker.destroy();
+        },
+
+        fullDayActive: function(snap){
+            this.fullDayBtn.toggleClass('active',snap);
+        },
+
+        pickerUpdate: function(msg){
+            var val = moment(msg).clone().toDate(); //format("YYYY-MM-DDTHH:mm:ss");
+            this.picker.value(val);
+        },
+
+        pickerSelect: function() {
+
+            var val = this.picker.value();
+            var end = moment(val);
+            var sum = end.seconds() + end.minutes() + end.hours();
+            if(sum )
+                this.snapToFullDays.write(false);
+            this.endDateTimeSelection.write(end);
+
+        }
+
+    });
+
+</script>

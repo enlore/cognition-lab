@@ -1,0 +1,26 @@
+<blueprint>
+    <data name="options" value="prop defineButtons" />
+    <cog find="holder" path="LIB" url="buttonMenu.html" />
+</blueprint>
+
+<display>
+    <div id="holder"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        defineButtons:  {
+            show: 'viewIssue',
+            items: [
+                {value: 'tracking'},
+                {value: 'naks'},
+                {value: 'moderate latency'},
+                {value: 'extreme latency'},
+                {value: 'severe latency'},
+                {value: 'critical latency'}
+            ]
+        }
+    });
+</script>

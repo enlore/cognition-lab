@@ -1,0 +1,54 @@
+<blueprint>
+
+    <prop find="dataList" />
+    <prop find="KAITEN_TITLE" />
+
+    <preload url="cell.html" />
+
+    <chain find="carousel" source="dataList" item="cellData" url="cell.html" />
+
+
+    <sensor find="btnLeft" detect="click" run="scrollLeft" />
+    <sensor find="btnRight" detect="click" run="scrollRight" />
+
+</blueprint>
+<display>
+    <div style="display: block; flex-wrap: wrap; justify-content: center; font-size: 1.1em; color: #cdf; padding: 1px 4px 0px 4px;">
+        <div style="display: flex; flex: 1 3 auto; flex-direction: column; padding: 4px;">
+            <div style="width:100%;border-style: solid; display: flex; justify-content: space-between;
+                    border-width: 1px;
+                    border-radius: 4px;
+                    padding: 6px 5px;
+                    background: linear-gradient(to bottom, rgb(7,15,49) 0%,rgb(7,28,63) 100%);
+                    /*border-color: rgba(77, 105, 179, 1);*/
+                    border-color: rgba(8, 79, 142, 1);
+                    box-shadow: 0px 4px 14px 2px rgba(10, 20, 40, .25);">
+                <div style="flex:0 0 auto;white-space: nowrap;margin-top:3px;margin-right:3px;"><span style="white-space: nowrap" id="myTitle"></span>: <i class="fa fa-chevron-left"  id="btnLeft" ></i></div>
+                <div id="container" style="flex:0 3 88%; overflow:hidden;"><div style="display: inline-block; overflow:hidden;  " id="carousel" ></div></div>
+                <div style="flex:0 0 auto;white-space: nowrap;margin-top:3px;"> <i class="fa fa-chevron-right" id="btnRight" ></i></div>
+            </div>
+        </div>
+    </div>
+</display>
+<script>
+    $.cog({
+        init: function(){
+          this.ml= 0;
+            this.myTitle.text(this.KAITEN_TITLE.read());
+        },
+       scrollLeft: function() {
+           this.diff = this.carousel.width() - this.container.width();
+           if ( this.ml>=0) return;
+           this.ml+=300;
+
+           this.carousel.animate({marginLeft:this.ml},300,function(){});
+       } ,
+       scrollRight: function() {
+           this.diff = this.carousel.width() - this.container.width();
+           if (this.ml<-1*this.diff) return;
+           this.ml-=300;
+           this.carousel.animate({marginLeft:this.ml},300,function(){});
+       }
+    });
+</script>
+

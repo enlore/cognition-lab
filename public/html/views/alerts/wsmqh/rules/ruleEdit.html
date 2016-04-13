@@ -1,0 +1,28 @@
+<blueprint>
+    <prop find="selectedRule" />
+    <prop find="editRule" />
+
+    <sensor watch="rule,selectedRule" group="true" retain="true" transform="toClonedRule" pipe="editRule" auto="true" />
+
+    <cog find="titleBox" url="titleBoxEdit.html" />
+    <cog find="controlBox" url="controlBox.html" />
+</blueprint>
+
+<display>
+    <div id="holder" class="katana_panel_gloom" style="display: flex; flex-direction: row; flex: 1 1 auto; height: 70px; margin: 4px 0; border-bottom-width:0; ">
+        <div id="controlBox" style="display: flex; flex: 1 1 auto;" />
+        <div id="titleBox" style="display: flex; flex: 0 0 auto; " />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        toClonedRule: function(msg){
+            return _.cloneDeep(msg.rule);
+        }
+
+    })
+</script>
+
+

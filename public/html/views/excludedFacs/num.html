@@ -1,0 +1,27 @@
+<blueprint>
+    <prop find="column" />
+    <sensor watch="itemData" run="render" auto="true" />
+</blueprint>
+
+<display>
+    <div id="holder" style="width: 100%;" >
+        <span id="span" style="text-align: right;"></span>
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+
+        render: function(d){
+
+            this.holder.bamboo({title: 'pop with ' + d});
+            this.span.text('grr');
+
+        }
+
+
+    });
+
+</script>

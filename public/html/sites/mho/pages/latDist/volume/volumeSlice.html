@@ -1,0 +1,66 @@
+<blueprint>
+    <alloy url="volumeContentState.html" />
+    <prop find="filterList" />
+
+    <data name="filterClick" />
+    <data name="sliceContentUrl" />
+
+    <prop find="uiSelectBucket" />
+    <sensor watch="uiSelectBucket" run="showContent" />
+
+    <cog find="breadcrumb" url="volumeBreadcrumb.html" />
+    <cog find="actionMenu" url="actionMenu.html" />
+    <!--<cog find="sliceMenu" url="volumeSliceMenu.html" />-->
+    <cog find="sliceContent" url="data sliceContentUrl" />
+
+    <sensor watch="filterClick" run="filterData" />
+    <sensor watch="sliceContentPage" change="true" pipe="sliceContentUrl" auto="true"/>
+</blueprint>
+
+<display>
+    <div id="holder" class="reconcile_box" style="opacity: 0; height: 0;" >
+        <div style="display: flex; width: 100%; height: 20px;">
+            <div id="breadcrumb" style="display: flex; " />
+            <div id="actionMenu" style="display: flex; flex: 1 1; padding-left: 12px; " />
+            <!-- /* use if adding ability to display sample */ -->
+            <!--<div id="sliceMenu" style="display: flex; flex: 1 1; justify-content: flex-end;" />-->
+        </div>
+        <div id="sliceContent" />
+    </div>
+</display>
+
+<script>
+    $.cog({
+
+        showContent: function() {
+            this.holder.css('opacity', 1);
+            this.holder.css('height', '100%');
+        },
+
+        filterData: function(){
+
+            var self = this;
+            var props = ['duration','endDateTime'];
+
+            for(var i = 0; i < props.length; i++){
+                var prop = props[i];
+                var d = this.mapItem.findData(prop, 'last');
+                var v = this.mapItem.findData(prop, 'first').read();
+                d.write(v);
+            }
+
+            var filterNames = ['messageType','sourceApp','dataCenter','network','facility'];
+            var filterList = [];
+
+            for(var j = 0; j < filterNames.length; j++){
+                var name = filterNames[j];
+                var optionId = this.mapItem.findData(name, 'first').read();
+                if(optionId !== 'All')
+                    filterList.push({name: name, optionId: optionId});
+            }
+
+            self.filterList.write(filterList);
+        }
+
+    })
+</script>

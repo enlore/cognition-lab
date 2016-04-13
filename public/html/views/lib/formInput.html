@@ -1,0 +1,43 @@
+<blueprint>
+
+    <prop find="cog" is="config" />
+    <sensor watch="formRequest" run="writeToField" />
+
+</blueprint>
+
+<display>
+    <div class="katana_input_label">
+        <span id="label"></span>
+    </div>
+    <div class="katana_input">
+        <input id="input" />
+    </div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            var self = this;
+            var mi = self.mapItem;
+            var c = self.cog;
+
+            self.label.val(c.label);
+
+            mi.createSensor(c.field).run(self.render);
+            mi.createProp({find: c.field, where: 'first', thing: 'data', name: 'inputData'}); /// todo make an easy version and make _createProp
+
+        },
+
+       render: function(){
+
+           var d = this.inputData.read();
+           this.input.val(d);
+
+       }
+
+    });
+
+</script>

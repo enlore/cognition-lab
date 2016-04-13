@@ -1,0 +1,75 @@
+<blueprint>
+
+    <data name="buttonActive" prop="true" />
+
+    <prop find="rendererPath" is="config" optional="true" />
+    <prop find="button" />
+    <data name="renderer" value="buttonRenderer.html" prop="true "/>
+    <sensor watch="button" run="determineRenderer" auto="true" />
+    <sensor watch="buttonActive" run="applyActive" auto="true" />
+    <cog find="holder" and="append" url="data renderer" />
+
+</blueprint>
+
+<display>
+    <div id="holder" class="katana_text_menu_item"></div>
+</display>
+
+<script>
+
+    $.cog({
+
+        init: function(){
+
+            var self = this;
+
+            this.holder.on('click',function(e){
+                e.preventDefault();
+                self.clickCmd();
+            });
+
+        },
+
+        determineRenderer: function(){
+
+            var b = this.button.read();
+            if(b.renderer) {
+                this.mapItem.path = this.rendererPath.read() || this.mapItem.parent.path;
+                this.renderer.write(b.renderer);
+            }
+
+            var showSensor = this.mapItem.createSensor(b.show);
+            showSensor.transform(this.matchesValue).pipe(this.buttonActive).autorun();
+        },
+
+        matchesValue: function(show){
+            var b = this.button.read();
+            return (b.value === show);
+        },
+
+        applyActive: function(){
+            var isActive = this.buttonActive.read();
+            this.holder.toggleClass('katana_active',isActive);
+        },
+
+        clickCmd: function(){
+
+            var b = this.button.read();
+            var cmd = this.mapItem.findData(b.tell);
+            if(!cmd){
+                this.throwError('button tell not found!');
+                return;
+            }
+
+            var value = b.value;
+            if(typeof value === 'function')
+                value = value();
+
+            cmd.write(value);
+
+        }
+
+
+    });
+
+</script>

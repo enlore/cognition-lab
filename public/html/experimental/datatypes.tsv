@@ -1,0 +1,61 @@
+did	datatype	dname
+1	abs	Abstracting
+2	adt	Admissions
+3	adtmpm	Admission (MPM)
+4	bedmg	Bed Management
+5	bill	Billing GED/COMP
+6	chrg	Charges
+7	cmr	Clinical Monitoring Results
+8	dict	Dictionary Maintenance
+9	edi	EDI
+10	edm	ER Patient Visit Data and Assessment Forms
+11	elmu	Electronic Lab Record
+12	elr	Electronic Lab Results
+13	empiqry	ADT Query
+14	eps	Patient Problem Codes
+15	img	COLD Feed Reports
+16	imgurl	Image Reports
+17	immu	Immunization
+18	insreq	Ins Eligibility Request
+19	insrsp	Ins Eligibility Verification
+20	insto	Instrument Orders
+21	instr	Instrument Results
+22	itsdio	ITS DI Orders
+23	itsdir	ITS DI Results
+24	itshmr	ITS HM Results
+25	labord	Lab Orders
+26	labpoc	POC Results
+27	labrslt	Lab Results
+28	mmasn	Advanced Ship Notices
+29	mmftp	FTP to SMART
+30	mmitem	Item Dict. Maintenance
+31	mmpar	PAR
+32	mmrepl	Replenishments
+33	mr	Medical Records
+34	mstr	Master Files
+35	multi	Multiple Data Types
+36	none	Should Not Be Used
+37	nuras	Nursing Patient Assessment Forms
+38	oeadm	OE ADM Vitals
+39	oeord	OE Orders
+40	oerpt	OE Reports
+41	oewrk	OE Work Orders
+42	orm	Includes All Clinical Orders Data
+43	pcard	Preference Cards
+44	phaadm	Medication Administration by Nurses
+45	phainv	Pharmacy Inventory,Charges
+46	phaord	Pharmacy Orders
+47	phaproc	Pharmacy Procedures
+48	proccode	Procedure Code
+49	pthord	Pathology Orders
+50	pthrslt	Pathology Reports
+51	radord	Radiology Orders
+52	radrslt	Radiology Reports
+53	radurl	Radiology Image Status
+54	ref	Referrals
+55	riurl	Radiology Image Status
+56	rlabo	Ref Lab Orders
+57	rlabr	Ref Lab Results
+58	sch	Scheduling
+59	symu	Syndrome Surveillance
+60	vacc	Vaccination Data
